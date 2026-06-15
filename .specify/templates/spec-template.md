@@ -73,6 +73,10 @@
 <!--
   ACTION REQUIRED: The content in this section represents placeholders.
   Fill them out with the right edge cases.
+  For this project, explicitly consider messy Excel/XLSB source data, unmatched
+  events, missing or malformed Pcodes, inconsistent month formats, mixed
+  currencies, stale ingestion, weak match coverage, no RCPA coverage, and AI
+  questions that the available data cannot answer.
 -->
 
 - What happens when [boundary condition]?
@@ -92,6 +96,10 @@
 - **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
+
+For data-producing or analytics features, requirements MUST state the source
+files/tables used, validation expectations, reconciliation behavior, data-quality
+visibility, and whether values are local-currency or USD-normalized.
 
 *Example of marking unclear requirements:*
 

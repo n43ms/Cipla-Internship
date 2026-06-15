@@ -9,7 +9,9 @@ description: "Task list template for feature implementation"
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: Tests are REQUIRED for ingestion, reconciliation, database views, API
+contracts, AI grounding, and dashboard data-quality behavior. UI-only cosmetic
+changes may omit tests only when the feature specification explicitly allows it.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -69,6 +71,8 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T007 Create base models/entities that all stories depend on
 - [ ] T008 Configure error handling and logging infrastructure
 - [ ] T009 Setup environment configuration management
+- [ ] T010 Setup ingestion-run tracking, validation error capture, and data-quality reporting
+- [ ] T011 Setup deterministic KPI/materialized-view refresh workflow
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

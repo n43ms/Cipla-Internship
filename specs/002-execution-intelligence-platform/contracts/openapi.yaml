@@ -1,0 +1,432 @@
+openapi: 3.1.0
+info:
+  title: Cipla EMEU Execution Intelligence API
+  version: 0.1.0
+  description: Read-only dashboard API plus grounded AI query endpoint for the protected MVP.
+servers:
+  - url: http://localhost:8000
+    description: Local backend
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /api/filters:
+    get:
+      summary: Available dashboard filters
+      responses:
+        "200":
+          description: Filter options and latest ingestion metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FiltersResponse"
+  /api/ingestion/latest:
+    get:
+      summary: Latest ingestion run summary
+      responses:
+        "200":
+          description: Latest run status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionSummary"
+  /api/data-quality:
+    get:
+      summary: Data quality dashboard summary
+      parameters:
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Month"
+      responses:
+        "200":
+          description: Data quality metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataQualityResponse"
+  /api/execution/summary:
+    get:
+      summary: Execution KPI summary
+      parameters:
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Month"
+        - $ref: "#/components/parameters/Therapy"
+        - $ref: "#/components/parameters/EventType"
+      responses:
+        "200":
+          description: Execution KPIs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionSummaryResponse"
+  /api/execution/events:
+    get:
+      summary: Event-level execution matrix
+      parameters:
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Month"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Paginated events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResponse"
+  /api/budget/summary:
+    get:
+      summary: Budget utilization summary
+      parameters:
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Month"
+      responses:
+        "200":
+          description: Budget KPIs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BudgetSummaryResponse"
+  /api/doctors/roi:
+    get:
+      summary: Doctor ROI rows
+      parameters:
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/MonthStart"
+        - $ref: "#/components/parameters/MonthEnd"
+        - name: roiSegment
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Paginated doctor ROI data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorRoiResponse"
+  /api/doctors/{countryCode}/{pcode}:
+    get:
+      summary: Doctor detail
+      parameters:
+        - name: countryCode
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pcode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Doctor profile, engagement, prescription trend, and limitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorDetailResponse"
+        "404":
+          description: Doctor not found
+  /api/ai/query:
+    post:
+      summary: Grounded AI business question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiQueryRequest"
+      responses:
+        "200":
+          description: Grounded answer with metrics and limitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiQueryResponse"
+components:
+  parameters:
+    Country:
+      name: country
+      in: query
+      schema:
+        type: string
+    Month:
+      name: month
+      in: query
+      schema:
+        type: string
+        example: "2026-05"
+    MonthStart:
+      name: monthStart
+      in: query
+      schema:
+        type: string
+        example: "2025-11"
+    MonthEnd:
+      name: monthEnd
+      in: query
+      schema:
+        type: string
+        example: "2026-03"
+    Therapy:
+      name: therapy
+      in: query
+      schema:
+        type: string
+    EventType:
+      name: eventType
+      in: query
+      schema:
+        type: string
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        default: 25
+        minimum: 1
+        maximum: 100
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    ResponseMeta:
+      type: object
+      required: [generatedAt, latestIngestionStatus, dataQualityFlags, limitations]
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        latestIngestionRunId:
+          type: string
+          nullable: true
+        latestIngestionStatus:
+          type: string
+        dataQualityFlags:
+          type: array
+          items:
+            type: string
+        limitations:
+          type: array
+          items:
+            type: string
+        sourceDerivationNotes:
+          type: array
+          items:
+            type: string
+    FiltersResponse:
+      type: object
+      required: [meta, countries, months]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        countries:
+          type: array
+          items:
+            type: string
+        months:
+          type: array
+          items:
+            type: string
+        therapies:
+          type: array
+          items:
+            type: string
+        eventTypes:
+          type: array
+          items:
+            type: string
+        brands:
+          type: array
+          items:
+            type: string
+    IngestionSummary:
+      type: object
+      required: [id, status, rowsSeen, rowsLoaded, rowsSkipped, warningCount, errorCount]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        rowsSeen:
+          type: integer
+        rowsLoaded:
+          type: integer
+        rowsSkipped:
+          type: integer
+        warningCount:
+          type: integer
+        errorCount:
+          type: integer
+    DataQualityResponse:
+      type: object
+      required: [meta, matchCoverage, pcodeCoverage, rcpaCoverage, validationErrors]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        matchCoverage:
+          type: number
+        snapshotSourceCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        pcodeCoverage:
+          type: number
+        rcpaCoverage:
+          type: number
+        validationErrors:
+          type: integer
+        unmatchedRecords:
+          type: integer
+    ExecutionSummaryResponse:
+      type: object
+      required: [meta, plannedEvents, matchedEvents, executedEvents, actionDueEvents, matchCoverage]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        plannedEvents:
+          type: integer
+        matchedEvents:
+          type: integer
+        weakOrUnmatchedEvents:
+          type: integer
+        executedEvents:
+          type: integer
+        actionDueEvents:
+          type: integer
+        plannedHcps:
+          type: integer
+        engagedHcps:
+          type: integer
+        hcpExecutionRate:
+          type: number
+        eventExecutionRate:
+          type: number
+        matchCoverage:
+          type: number
+    EventListResponse:
+      type: object
+      required: [meta, page, pageSize, total, rows]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        rows:
+          type: array
+          items:
+            type: object
+    BudgetSummaryResponse:
+      type: object
+      required: [meta, plannedBudget, actualSpend, currencyCode, missingFx]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        plannedBudget:
+          type: number
+        confirmedBudget:
+          type: number
+        actualSpend:
+          type: number
+        unspentGap:
+          type: number
+        overrunAmount:
+          type: number
+        currencyCode:
+          type: string
+        missingFx:
+          type: boolean
+        fxRateDate:
+          type: string
+          nullable: true
+    DoctorRoiResponse:
+      type: object
+      required: [meta, page, pageSize, total, rows]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        rows:
+          type: array
+          items:
+            type: object
+    DoctorDetailResponse:
+      type: object
+      required: [meta, profile, engagementHistory, prescriptionTrend]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        profile:
+          type: object
+        engagementHistory:
+          type: array
+          items:
+            type: object
+        prescriptionTrend:
+          type: array
+          items:
+            type: object
+    AiQueryRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        country:
+          type: string
+        month:
+          type: string
+        pageContext:
+          type: string
+        filters:
+          type: object
+    AiQueryResponse:
+      type: object
+      required: [answer, supportingMetrics, limitations, confidence]
+      properties:
+        answer:
+          type: string
+        supportingMetrics:
+          type: array
+          items:
+            type: object
+        limitations:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: string
+          enum: [high, medium, low, unavailable]
+        redactionApplied:
+          type: boolean

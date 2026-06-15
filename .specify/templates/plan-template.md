@@ -40,7 +40,21 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Verify the plan satisfies the Cipla EMEU Execution Intelligence Platform
+Constitution:
+
+- Data provenance: source files, sheets, row counts, validation errors, and
+  ingestion-run tracking are defined for every data-producing feature.
+- Reconciliation: event, Pcode, month, and currency matching rules are explicit;
+  weak/unmatched records remain visible.
+- Deterministic logic: KPIs, ROI, budget metrics, and matching rules are computed
+  by SQL or typed services, not AI.
+- Testing: ingestion quirks, database constraints/views, API contracts, and user
+  journeys have targeted tests.
+- Security/deployment: secrets stay server-side, source workbooks stay out of git,
+  and the feature fits the MVP deployment model.
+- UX reliability: loading, empty, error, stale-data, weak-match, missing-FX, and
+  no-RCPA states are handled where applicable.
 
 ## Project Structure
 

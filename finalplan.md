@@ -64,10 +64,11 @@ Observed characteristics:
   - `Apr-24`
   - `25-Apr`
   - `Oct-25`
+- Current-year Nepal/Myanmar and Sri Lanka RCPA month cells can also appear as Excel serial numbers such as `45772`.
 - Pcodes appear numeric in the files, but must be stored as text to avoid future ID corruption.
 - RCPA values are in local currencies and must not be compared across countries without currency normalization.
 
-Implication: RCPA ingestion must use column alias maps, robust month normalization, text Pcode normalization, and local currency handling.
+Implication: RCPA ingestion must use column alias maps, robust month normalization including Excel serial-number dates, text Pcode normalization, and local currency handling.
 
 ### 2.2 Yearly Planner Files
 
@@ -242,10 +243,12 @@ AI never calculates KPIs and never invents missing facts.
 - FastAPI.
 - Pydantic v2.
 - Pydantic Settings.
-- Supabase Python client or SQLAlchemy with PostgreSQL driver.
+- SQLAlchemy 2.0 with PostgreSQL driver as the primary data layer.
+- Alembic for migrations.
 - Pandas for lightweight transformations where useful.
 - `openpyxl` for XLSX files.
-- `pyxlsb` or `python-calamine` for XLSB files.
+- `python-calamine` as the primary XLSB reader.
+- `pyxlsb` as a fallback for workbook-specific reader issues.
 - `pytest` for ingestion and service tests.
 - `ruff` for linting and formatting.
 
@@ -457,7 +460,8 @@ Fields:
 MVP behavior:
 
 - Store local amounts reliably.
-- Use USD amounts only where an exchange rate exists.
+- Seed one representative static exchange rate per supported currency for MVP with documented `rate_date` and `source`.
+- Use USD amounts only where a seeded exchange rate exists.
 - Do not compare local-currency values across countries without normalization.
 
 ### 7.3 Canonical Business Tables
@@ -654,7 +658,9 @@ Fields:
 
 Unique key:
 
-- `country_id`, `calendar_month_id`, `pcode_normalized`, `brand_group`, `sku`, `own_or_competitor`, `source_file_id`
+- `source_file_id`, `country_id`, `calendar_month_id`, `pcode_normalized`, `brand_group`, `sku`, `own_or_competitor`, `currency_code`
+
+`ingestion_run_id` records the latest run that wrote the aggregate row, but it is not part of the uniqueness boundary. Re-ingesting the same file must update the same aggregate row instead of duplicating it.
 
 Do not store every raw RCPA row in Postgres for MVP. Store aggregated facts and ingestion quality metrics.
 
@@ -698,14 +704,14 @@ Fields:
 - `created_at`
 - `country_id`
 - `calendar_month_id`
-- `question`
+- `question_redacted`
 - `context_summary_json`
 - `answer`
 - `model`
 - `latency_ms`
 - `error_message`
 
-Do not log secrets or raw oversized prompts.
+Do not log secrets, raw oversized prompts, source row payloads, or raw workbook excerpts. Redact Pcode-like identifiers, monetary values, and likely doctor-name spans before persistence.
 
 ---
 
@@ -948,6 +954,8 @@ Supported examples:
 - `May-26`
 - Excel serial dates
 
+Excel serial numbers such as `45772` are expected in current RCPA files and must be parsed as valid month inputs, not validation failures.
+
 #### Pcode Normalization
 
 Rules:
@@ -964,9 +972,19 @@ Rules:
 Rules:
 
 - preserve local value and currency code
-- compute USD only when an exchange rate exists
+- compute USD only when a static seeded exchange rate exists in MVP
 - label metrics clearly when local currency is used
 - avoid cross-country monetary comparisons without USD normalization
+
+#### Sri Lanka May Execution Derivation
+
+Because the May monthly execution planner has no Sri Lanka country tab, Sri Lanka May execution evidence must be derived deterministically from consolidation `Working` rows:
+
+1. Filter consolidation requests to Sri Lanka and May 2026.
+2. Group by normalized intervention name, intervention type/subtype, country, and calendar month.
+3. Compute raised request count, approved/confirmed evidence, attended HCPs, actual spend, and status from consolidation fields.
+4. Insert execution snapshot rows with `snapshot_source = derived_from_consolidation`.
+5. Expose a data-quality limitation explaining that these rows were derived from consolidation, not from a monthly execution tab.
 
 ---
 
@@ -1284,7 +1302,7 @@ outputs/
 *.xlsx
 ```
 
-If sample files are needed for tests, use tiny synthetic fixtures, not real Cipla files.
+If sample files are needed for tests, use tiny synthetic fixtures, not real Cipla files. Fixture files live under `ingestion/tests/fixtures/xlsx/`, `ingestion/tests/fixtures/xlsb/`, and expected outputs under `ingestion/tests/fixtures/expected/`. Each fixture should contain three to five rows and target a specific edge case.
 
 ---
 
@@ -1300,12 +1318,12 @@ Required tests:
 - April execution status maps `1` to executed
 - April blank status maps correctly
 - May execution status maps `Executed` and `Action due`
-- Sri Lanka missing May execution tab does not crash ingestion
+- Sri Lanka missing May execution tab derives labeled execution evidence from consolidation
 - consolidation parses request ID, dates, spend, approval statuses
 - consolidation parses multi-doctor expected and actual Pcode fields
 - RCPA parser handles `O & C` and `Own/Competitor`
 - RCPA parser handles `Active Status` and `Status Doctor`
-- month parser handles all observed formats
+- month parser handles all observed formats, including Excel serial-number month values
 - Pcode parser preserves normalized text IDs
 - validation errors are recorded for malformed rows
 
@@ -1320,6 +1338,8 @@ Required checks:
 - unmatched events appear in `mv_unmatched_events`
 - doctor ROI view does not divide by zero
 - currency fields are not mixed silently
+- static FX seed rows exist and missing-FX behavior is visible
+- repeated RCPA ingestion updates existing aggregate rows through the explicit unique key
 
 ### 14.3 API Tests
 
@@ -1332,6 +1352,7 @@ Required tests:
 - event tables paginate
 - doctor ROI endpoint handles no RCPA data
 - AI endpoint refuses unsupported questions cleanly
+- AI logging stores only redacted questions
 
 ### 14.4 Frontend Tests
 
@@ -1504,7 +1525,7 @@ Mitigation:
 
 - store currency code
 - preserve local amounts
-- normalize only with exchange rate
+- normalize only with static seeded exchange rates in MVP
 - label charts clearly
 
 ### Risk: AI hallucination
@@ -1539,4 +1560,3 @@ Adopt:
 - simplified ingestion that avoids raw RCPA row storage
 
 This architecture is serious enough for a real stakeholder demo, defensible in engineering interviews, and realistic for a solo build. It keeps the MVP deployable while avoiding the data integrity mistakes that would make the dashboard untrustworthy.
-
