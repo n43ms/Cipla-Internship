@@ -18,6 +18,8 @@ The application is a production-quality marketing execution intelligence platfor
 4. Are engaged doctors actually prescribing Cipla brands?
 5. Which high-prescribing doctors are not being engaged?
 6. What data quality issues prevent confident decision-making?
+7. Where are requests stuck in approval, confirmation, or post-event reporting?
+8. Which intervention types consume effort and budget, and which generate the strongest business return?
 
 The system must not behave like a fragile spreadsheet clone. It must behave like a serious data product: auditable ingestion, deterministic business logic, explicit reconciliation, typed APIs, polished dashboard UX, and AI summaries grounded only in trusted query results.
 
@@ -98,10 +100,11 @@ Observed characteristics:
 
 - `Working` is the canonical operational sheet.
 - It includes request IDs, country/division, intervention dates, months, venue, intervention name/type/subtype, topic, estimated budget, confirmed budget, actual expenses, expected doctors, attended doctors, expected Pcodes, actual Pcodes, approval statuses, cancellation reason, city/state, and up to six approval levels.
+- It includes transcript-critical financial and workflow fields: `ESTIMATED INTERVENTION`, `APPROVE/CONFIRMED TOTAL INTERVENTION`, `TOTAL ACTUAL EXPENSES FOR INTERVENTION`, `ACTUAL EXPENSE AGAINST BTU`, `TOTAL ACTUAL BTC EXPENSE`, `Association Amount`, request approval/confirmation status, post-event report approval/confirmation status, expense submitted/confirmed dates, and approval chain columns.
 - This is the richest source for actual execution and spend.
 - Doctor fields are semi-structured and may contain multiple names/Pcodes per row.
 
-Implication: this file should populate execution requests and request-doctor attendance facts. It should not be reduced to a flat dashboard summary during ingestion.
+Implication: this file should populate execution requests, request-doctor attendance facts, financial spend split, workflow governance, intervention mix, and post-event reporting status. It should not be reduced to a flat dashboard summary during ingestion.
 
 ### 2.4 Monthly Execution Planner Files
 
@@ -135,7 +138,11 @@ The MVP should support:
 - Historical RCPA from April 2024 to March 2025 for baseline and trend comparison.
 - Execution tracking by country, month, event type, event, and therapy.
 - Budget utilization by planned cost, confirmed cost, actual spend, and unspent gap.
+- Budget utilization by estimated/FMV-like reference, confirmed/contracted amount, direct HCP/BTU spend, overhead/BTC spend, total actual spend, and variance.
 - Doctor ROI by engagement history and RCPA prescription behavior.
+- Leadership ROI quadrant showing low effort/high reward, high effort/high reward, low effort/low reward, and high effort/low reward doctors or opportunities.
+- Workflow governance showing request approval location, request confirmation, post-event reporting/proof status, and pending owner/stage.
+- Intervention-type mix by count, spend, execution, and workflow status.
 - Data quality visibility.
 - AI summaries grounded in dashboard query results.
 
@@ -149,6 +156,7 @@ The MVP should not include:
 - Automated scheduled ingestion.
 - Direct Power BI embedding.
 - AI-based matching or AI-based KPI calculation.
+- Proof image/agenda content inspection; the supplied workbook supports reporting/proof status, not actual proof-file analysis.
 
 These can be added later after the core data path is trusted.
 
@@ -172,6 +180,8 @@ Python CLI responsible for:
 - Date/month normalization.
 - Pcode normalization.
 - Currency annotation.
+- Financial mapping for estimated, confirmed/contracted, BTU, BTC, total actual, and association amounts.
+- Workflow lifecycle parsing for request approval, request confirmation, report approval, and report confirmation statuses.
 - Upserts into canonical tables.
 - Event reconciliation.
 - Materialized view refresh.
@@ -217,6 +227,9 @@ React + TypeScript responsible for:
 - Charts.
 - Drilldowns.
 - Data quality warnings.
+- Workflow governance views.
+- Intervention mix views.
+- ROI quadrant views.
 - Loading, empty, error, and stale states.
 - AI panel UI.
 
@@ -369,14 +382,12 @@ Fields:
 
 #### `source_files`
 
-Tracks each input file.
+Tracks reusable file identity. It does not represent run participation because the same workbook hash may be profiled or ingested in multiple runs.
 
 Fields:
 
 - `id`
-- `ingestion_run_id`
 - `original_filename`
-- `file_path`
 - `file_hash`
 - `file_type`: `xlsx`, `xlsb`
 - `source_type`: `planner`, `execution_snapshot`, `consolidation`, `rcpa`
@@ -384,11 +395,34 @@ Fields:
 - `period_start`
 - `period_end`
 - `detected_sheet_count`
-- `status`
+- `created_at`
 
 Unique constraint:
 
 - `file_hash`
+
+#### `ingestion_run_files`
+
+Connects a reusable source file to a specific ingestion run and stores run-specific profiling and load results.
+
+Fields:
+
+- `id`
+- `ingestion_run_id`
+- `source_file_id`
+- `local_path_snapshot`
+- `status`: `pending`, `profiled`, `loaded`, `skipped`, `failed`
+- `sheets_profiled`
+- `rows_seen`
+- `rows_loaded`
+- `rows_skipped`
+- `warnings`
+- `errors`
+- `profile_json`
+
+Unique constraint:
+
+- `ingestion_run_id`, `source_file_id`
 
 #### `validation_errors`
 
@@ -462,6 +496,7 @@ MVP behavior:
 - Store local amounts reliably.
 - Seed one representative static exchange rate per supported currency for MVP with documented `rate_date` and `source`.
 - Use USD amounts only where a seeded exchange rate exists.
+- Temporary manual rates are allowed only when marked `provisional`; official company-approved rates should replace them when provided.
 - Do not compare local-currency values across countries without normalization.
 
 ### 7.3 Canonical Business Tables
@@ -561,19 +596,45 @@ Fields:
 - `intervention_type`
 - `intervention_sub_type`
 - `topic_remarks`
-- `estimated_budget_local`
-- `confirmed_budget_local`
-- `actual_expense_local`
+- `estimated_intervention_local`
+- `confirmed_contracted_amount_local`
+- `confirmed_vs_estimated_variance_local`
+- `actual_total_expense_local`
+- `actual_btu_expense_local`
+- `actual_btc_expense_local`
+- `association_amount_local`
+- `association_contract_id`
+- `association_deliverables`
 - `currency_code`
-- `estimated_budget_usd`
-- `confirmed_budget_usd`
-- `actual_expense_usd`
+- `fx_rate_to_usd`
+- `fx_rate_source`
+- `fx_rate_date`
+- `fx_rate_status`: `official`, `provisional`, `missing`
+- `estimated_intervention_usd`
+- `confirmed_contracted_amount_usd`
+- `confirmed_vs_estimated_variance_usd`
+- `actual_total_expense_usd`
+- `actual_btu_expense_usd`
+- `actual_btc_expense_usd`
+- `direct_hcp_spend_local`
+- `direct_hcp_spend_usd`
+- `overhead_spend_local`
+- `overhead_spend_usd`
+- `total_roi_spend_local`
+- `total_roi_spend_usd`
 - `expected_customer_count`
 - `attended_customer_count`
 - `expected_category_raw`
 - `attended_category_raw`
 - `approval_status`
 - `confirmation_status`
+- `request_approval_status`
+- `request_confirmation_status`
+- `post_approval_status`
+- `post_confirmation_status`
+- `expense_submitted_date`
+- `expense_confirmed_date`
+- `current_owner_stage`
 - `cancellation_reason`
 - `city`
 - `state`
@@ -582,7 +643,22 @@ Fields:
 
 Unique key:
 
-- `req_id`
+- `source_file_id`, `req_id` when `req_id` is present and valid.
+- fallback `request_uid` generated from source system, country, source row, intervention date, intervention name, and rep code when `req_id` is missing or invalid.
+
+Validation:
+
+- duplicate `req_id` values within a source file are blocking validation errors unless the rows are byte-identical retries.
+- cross-file duplicate `req_id` values are flagged for review but not assumed invalid until source-system scope is confirmed.
+
+Transcript-verified financial mapping:
+
+- `APPROVE/CONFIRMED TOTAL INTERVENTION` -> confirmed/contracted amount.
+- `ESTIMATED INTERVENTION` -> estimated/FMV-like reference only.
+- `ACTUAL EXPENSE AGAINST BTU` -> direct HCP/BTU spend.
+- `TOTAL ACTUAL BTC EXPENSE` -> overhead/BTC spend.
+- `TOTAL ACTUAL EXPENSES FOR INTERVENTION` -> total actual spend and default ROI spend.
+- `Association Amount` -> separate association/event amount, not default contracted HCP spend.
 
 #### `request_doctors`
 
@@ -627,7 +703,12 @@ Fields:
 
 Unique key:
 
-- `pcode_normalized`
+- `country_id`, `pcode_normalized`
+
+Validation:
+
+- cross-country Pcode reuse is allowed and reported as a data-quality observation.
+- same-country duplicate Pcodes with conflicting doctor names/classes are validation warnings requiring review.
 
 #### `rcpa_prescriptions`
 
@@ -747,12 +828,60 @@ Purpose:
 Includes:
 
 - planned budget USD
+- estimated/FMV-like intervention reference
+- confirmed/contracted amount
+- confirmed-vs-estimated variance
+- direct HCP/BTU spend
+- overhead/BTC spend
 - confirmed budget local/USD
 - actual spend local/USD
 - unspent gap
 - overrun amount
 - events with spend but no plan match
 - events with plan but no actual spend
+- FX source/date/status including provisional manual rates
+
+### `mv_workflow_governance`
+
+Purpose:
+
+- Show where requests and post-event reports are stuck.
+
+Includes:
+
+- country
+- month
+- rep
+- intervention type/subtype
+- request approval status
+- request confirmation status
+- post/report approval status
+- post/report confirmation status
+- current owner/stage
+- pending request count
+- pending report count
+- reports sent for correction
+- reports approved
+- expense submitted/confirmed date coverage
+
+### `mv_intervention_mix`
+
+Purpose:
+
+- Show activity mix by intervention type and subtype.
+
+Includes:
+
+- intervention type
+- intervention subtype
+- request count
+- approved/executed count
+- report pending count
+- confirmed/contracted amount
+- direct HCP/BTU spend
+- overhead/BTC spend
+- total actual spend
+- FX status
 
 ### `mv_doctor_roi`
 
@@ -776,11 +905,23 @@ Includes:
 - competitor prescription value
 - Cipla share by quantity
 - spend per Cipla prescription
+- ROI quadrant x/y values
+- ROI quadrant label
+- dark-horse flag
 - segment:
   - high_value_engaged
   - high_value_unengaged
   - low_rx_high_spend
   - insufficient_data
+
+Quadrants:
+
+- low effort / high reward
+- high effort / high reward
+- low effort / low reward
+- high effort / low reward
+
+Dark-horse doctors are low effort / high reward opportunities.
 
 ### `mv_data_quality`
 
@@ -916,9 +1057,12 @@ req_id: REQ_ID
 month: Months
 intervention_name: INTERVENTION NAME
 intervention_type: INTERVENTION TYPE
-estimated_budget: ESTIMATED INTERVENTION
-confirmed_budget: APPROVE/CONFIRMED TOTAL INTERVENTION
-actual_expense: TOTAL ACTUAL EXPENSES FOR INTERVENTION
+estimated_intervention: ESTIMATED INTERVENTION
+confirmed_contracted_amount: APPROVE/CONFIRMED TOTAL INTERVENTION
+actual_total_expense: TOTAL ACTUAL EXPENSES FOR INTERVENTION
+actual_btu_expense: ACTUAL EXPENSE AGAINST BTU
+actual_btc_expense: TOTAL ACTUAL BTC EXPENSE
+association_amount: Association Amount
 expected_pcodes: Expected PCODE
 actual_pcodes: Actual PCODE
 expected_doctors: Dr. NAME EXPECTED
@@ -973,6 +1117,7 @@ Rules:
 
 - preserve local value and currency code
 - compute USD only when a static seeded exchange rate exists in MVP
+- label manual temporary rates as provisional until official company rates are provided
 - label metrics clearly when local currency is used
 - avoid cross-country monetary comparisons without USD normalization
 
@@ -1009,6 +1154,18 @@ Returns latest ingestion run summary.
 #### `GET /api/data-quality`
 
 Returns data quality summary from `mv_data_quality` and unmatched event counts.
+
+#### `GET /api/workflow/summary`
+
+Returns request approval, request confirmation, report approval, report confirmation, and owner/stage counts.
+
+#### `GET /api/workflow/requests`
+
+Returns request-level workflow governance rows with pagination.
+
+#### `GET /api/interventions/mix`
+
+Returns intervention type/subtype counts, spend, execution, reporting, and FX status.
 
 #### `GET /api/execution/summary`
 
@@ -1128,10 +1285,43 @@ Purpose:
 Includes:
 
 - budget summary cards
+- estimated vs confirmed/contracted amount
+- direct HCP/BTU spend
+- overhead/BTC spend
+- total actual spend
 - planned vs actual spend chart
 - event-level gap table
 - country/local currency labels
-- warnings for missing FX
+- warnings for missing or provisional FX
+
+#### Workflow Governance
+
+Purpose:
+
+- Show where requests and post-event reporting are stuck.
+
+Includes:
+
+- request approval location
+- request confirmation status
+- request approved/rejected/corrected/deleted/draft counts
+- post-event report draft/pending/approved/sent-for-correction counts
+- owner/stage drilldown
+- rep-level pending count where available
+
+#### Intervention Mix
+
+Purpose:
+
+- Show what activity types each market is executing.
+
+Includes:
+
+- intervention type/subtype breakdown
+- request count
+- approved/executed count
+- spend by intervention type
+- report pending status by intervention type
 
 #### Doctor ROI
 
@@ -1142,9 +1332,11 @@ Purpose:
 Includes:
 
 - scatter plot: engagement/spend vs prescriptions
+- ROI quadrant matrix
 - segments
 - top prescribing unengaged doctors
 - high spend low prescription doctors
+- low effort/high reward dark-horse doctors
 - doctor detail drawer
 
 #### Data Quality
@@ -1160,6 +1352,11 @@ Includes:
 - validation errors
 - event match coverage
 - Pcode coverage
+- BTU/BTC reconciliation issues
+- missing confirmed/contracted amount count
+- provisional FX count
+- workflow status coverage
+- intervention type coverage
 - unmatched events table
 - RCPA coverage summary
 
@@ -1320,6 +1517,8 @@ Required tests:
 - May execution status maps `Executed` and `Action due`
 - Sri Lanka missing May execution tab derives labeled execution evidence from consolidation
 - consolidation parses request ID, dates, spend, approval statuses
+- consolidation maps estimated, confirmed/contracted, BTU, BTC, total actual, association amount, and variance fields
+- consolidation maps request approval, request confirmation, post/report approval, and post/report confirmation statuses
 - consolidation parses multi-doctor expected and actual Pcode fields
 - RCPA parser handles `O & C` and `Own/Competitor`
 - RCPA parser handles `Active Status` and `Status Doctor`
@@ -1339,7 +1538,11 @@ Required checks:
 - doctor ROI view does not divide by zero
 - currency fields are not mixed silently
 - static FX seed rows exist and missing-FX behavior is visible
+- provisional FX rows are labeled and can be replaced by official company FX
 - repeated RCPA ingestion updates existing aggregate rows through the explicit unique key
+- BTU plus BTC reconciles to total actual spend where populated, otherwise warning is visible
+- workflow governance and intervention mix views refresh successfully
+- ROI quadrant labels are deterministic
 
 ### 14.3 API Tests
 
@@ -1455,7 +1658,10 @@ Success:
 Deliver:
 
 - budget utilization tab
+- workflow governance tab/section
+- intervention mix tab/section
 - doctor ROI tab
+- ROI quadrant matrix
 - doctor drilldown
 - unmatched events/data quality tab
 

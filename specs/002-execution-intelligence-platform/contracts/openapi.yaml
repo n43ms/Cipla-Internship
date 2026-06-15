@@ -50,6 +50,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DataQualityResponse"
+  /api/workflow/summary:
+    get:
+      summary: Request and post-event workflow governance summary
+      parameters:
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Month"
+        - $ref: "#/components/parameters/InterventionType"
+      responses:
+        "200":
+          description: Request approval, confirmation, and reporting status summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowSummaryResponse"
+  /api/workflow/requests:
+    get:
+      summary: Workflow governance request-level rows
+      parameters:
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Month"
+        - $ref: "#/components/parameters/InterventionType"
+        - name: workflowStatus
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Paginated workflow governance rows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowRequestsResponse"
+  /api/interventions/mix:
+    get:
+      summary: Intervention type and subtype mix
+      parameters:
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Month"
+      responses:
+        "200":
+          description: Intervention type counts, spend, and workflow mix
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InterventionMixResponse"
   /api/execution/summary:
     get:
       summary: Execution KPI summary
@@ -184,6 +231,11 @@ components:
         type: string
     EventType:
       name: eventType
+      in: query
+      schema:
+        type: string
+    InterventionType:
+      name: interventionType
       in: query
       schema:
         type: string
@@ -342,15 +394,28 @@ components:
             type: object
     BudgetSummaryResponse:
       type: object
-      required: [meta, plannedBudget, actualSpend, currencyCode, missingFx]
+      required: [meta, plannedBudget, confirmedContractedAmount, actualTotalSpend, currencyCode, missingFx]
       properties:
         meta:
           $ref: "#/components/schemas/ResponseMeta"
         plannedBudget:
           type: number
-        confirmedBudget:
+        estimatedIntervention:
           type: number
-        actualSpend:
+          nullable: true
+        confirmedContractedAmount:
+          type: number
+          nullable: true
+        confirmedVsEstimatedVariance:
+          type: number
+          nullable: true
+        directHcpBtuSpend:
+          type: number
+          nullable: true
+        overheadBtcSpend:
+          type: number
+          nullable: true
+        actualTotalSpend:
           type: number
         unspentGap:
           type: number
@@ -363,6 +428,130 @@ components:
         fxRateDate:
           type: string
           nullable: true
+        fxRateSource:
+          type: string
+          nullable: true
+        fxRateStatus:
+          type: string
+          enum: [official, provisional, missing]
+    WorkflowSummaryResponse:
+      type: object
+      required: [meta, requestApprovalCounts, requestConfirmationCounts, postApprovalCounts, postConfirmationCounts, ownerStageCounts]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        requestApprovalCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        requestConfirmationCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        postApprovalCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        postConfirmationCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        ownerStageCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        pendingRequestCount:
+          type: integer
+        pendingReportCount:
+          type: integer
+        reportsSentForCorrection:
+          type: integer
+        reportsApproved:
+          type: integer
+        expenseSubmittedCoverage:
+          type: number
+        expenseConfirmedCoverage:
+          type: number
+    WorkflowRequestsResponse:
+      type: object
+      required: [meta, page, pageSize, total, rows]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              reqId:
+                type: string
+              country:
+                type: string
+              month:
+                type: string
+              repName:
+                type: string
+                nullable: true
+              interventionType:
+                type: string
+                nullable: true
+              requestApprovalStatus:
+                type: string
+              requestConfirmationStatus:
+                type: string
+              postApprovalStatus:
+                type: string
+              postConfirmationStatus:
+                type: string
+              currentOwnerStage:
+                type: string
+                nullable: true
+    InterventionMixResponse:
+      type: object
+      required: [meta, rows]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+        rows:
+          type: array
+          items:
+            type: object
+            required: [interventionType, requestCount]
+            properties:
+              interventionType:
+                type: string
+              interventionSubType:
+                type: string
+                nullable: true
+              requestCount:
+                type: integer
+              executedCount:
+                type: integer
+              approvedCount:
+                type: integer
+              reportPendingCount:
+                type: integer
+              confirmedContractedAmount:
+                type: number
+                nullable: true
+              directHcpBtuSpend:
+                type: number
+                nullable: true
+              overheadBtcSpend:
+                type: number
+                nullable: true
+              totalActualSpend:
+                type: number
+                nullable: true
+              fxRateStatus:
+                type: string
+                enum: [official, provisional, missing]
     DoctorRoiResponse:
       type: object
       required: [meta, page, pageSize, total, rows]

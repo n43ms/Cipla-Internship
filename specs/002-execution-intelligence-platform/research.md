@@ -36,6 +36,36 @@
 
 **Alternatives considered**: Live FX API integration was rejected as a deployment and reliability distraction. Ignoring FX entirely was rejected because it would make cross-country money charts misleading.
 
+## Decision: Provisional Manual FX Until Official Company Rate Arrives
+
+**Rationale**: The transcript confirms that Cipla wants a common USD denominator, but the conversion rate should come from Pralhad/company guidance rather than daily internet rates. Until that official rate is provided, the system may use a manually seeded rate only when it is visibly marked `provisional`.
+
+**Alternatives considered**: Live internet rates were rejected because they create moving business numbers. Blocking all USD views was considered safer but rejected for MVP practicality because the user chose temporary manual rates with a provisional label.
+
+## Decision: Confirmed + BTU/BTC Financial Mapping
+
+**Rationale**: The consolidation workbook contains enough fields to support the transcript's financial ask. `APPROVE/CONFIRMED TOTAL INTERVENTION` is the confirmed/contracted amount. `ESTIMATED INTERVENTION` is retained as the estimated/FMV-like reference. `ACTUAL EXPENSE AGAINST BTU` represents direct HCP/BTU spend, `TOTAL ACTUAL BTC EXPENSE` represents overhead/BTC spend, and `TOTAL ACTUAL EXPENSES FOR INTERVENTION` represents total actual spend for ROI.
+
+**Alternatives considered**: `Association Amount` was rejected as the default contracted amount because coverage is sparse and it appears to represent association/event rows. It remains preserved as a separate association amount. Waiting for further mapping was rejected because the user confirmed the confirmed + BTU/BTC mapping.
+
+## Decision: Workflow Governance From Consolidation Lifecycle Columns
+
+**Rationale**: The consolidation workbook directly contains request approval, request confirmation, report/post approval, report/post confirmation, submitted date, confirmed date, and Level 1-6 approver columns. These fields are sufficient to build the transcript-requested three-part execution governance view: current request location, request overview, and reporting/proof status.
+
+**Alternatives considered**: Inferring lifecycle from execution status alone was rejected because it would hide the actual workflow bottleneck fields. Inspecting actual proof images/agendas is out of scope because those files are not in the supplied data.
+
+## Decision: Intervention Mix Is Source-Driven
+
+**Rationale**: The transcript mentioned seven intervention types, but the current consolidation data shows eight observed `INTERVENTION TYPE` values. The app should group by source values and not hard-code a fixed count.
+
+**Alternatives considered**: Hard-coding seven categories was rejected because it would immediately mismatch the workbook. A configurable mapping layer can be added later if business wants renamed/rolled-up categories.
+
+## Decision: ROI Quadrant Uses Deterministic Cohort Thresholds
+
+**Rationale**: Leadership wants a simple quadrant for low effort/high reward and dark-horse opportunities. For MVP, investment/effort is total ROI spend and reward/result is Cipla prescription quantity or value. Median thresholds within the selected cohort are deterministic, explainable, and do not require extra stakeholder configuration.
+
+**Alternatives considered**: AI-based quadrant classification was rejected because segmentation is business logic. Fixed global thresholds were rejected because market/currency/therapy differences would make them brittle before official thresholds are provided.
+
 ## Decision: Synthetic Fixture Structure Before Tests
 
 **Rationale**: Tests need tiny reproducible workbooks, not the confidential real files. Fixtures live under `ingestion/tests/fixtures/` with `xlsx/`, `xlsb/`, and `expected/` subfolders. Each fixture should contain three to five rows and target one known edge case.

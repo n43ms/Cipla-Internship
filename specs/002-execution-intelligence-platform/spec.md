@@ -14,6 +14,11 @@
 
 - Q: Who can access the deployed dashboard during MVP? -> A: Protected deployed demo.
 
+### Session 2026-06-15
+
+- Q: Which consolidation columns should drive contracted amount and spend split? -> A: Use `APPROVE/CONFIRMED TOTAL INTERVENTION` as the confirmed/contracted amount, `ESTIMATED INTERVENTION` as the estimated/FMV-like reference, `ACTUAL EXPENSE AGAINST BTU` as direct HCP/BTU spend, `TOTAL ACTUAL BTC EXPENSE` as overhead/BTC spend, and `TOTAL ACTUAL EXPENSES FOR INTERVENTION` as total actual spend.
+- Q: How should USD conversion work until Pralhad shares the official company rate? -> A: Use a temporary manual FX seed marked `provisional`; replace it later with the official company-approved rate and keep warnings visible while provisional.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Trust the Ingested Data (Priority: P1)
@@ -45,6 +50,8 @@ As a Cipla EMEU/PBP manager, I need to compare yearly planned activities with mo
 1. **Given** a planned event appears with a month suffix in an execution file, **When** event reconciliation runs, **Then** the system links the records using explicit match metadata rather than silently mutating the names.
 2. **Given** a planned event has no confident execution or consolidation match, **When** the execution dashboard is viewed, **Then** the event appears as unmatched or action due with a data quality explanation.
 3. **Given** Sri Lanka has no May country tab in the monthly execution planner, **When** Sri Lanka May execution is analyzed, **Then** the system derives execution evidence from consolidation requests and exposes any limitation.
+4. **Given** a month is selected, **When** execution governance is viewed, **Then** the system shows request location in the approval flow, request decision status, and post-event reporting/proof status.
+5. **Given** requests are pending with a manager, country lead, central marketing, medical signatory, final signatory, or report approver, **When** governance details are viewed, **Then** the responsible stage and pending count are visible without manually reading Excel.
 
 ---
 
@@ -61,6 +68,8 @@ As a business stakeholder, I need to see planned budget, confirmed budget, actua
 1. **Given** planned cost exists for an event but no matching actual spend exists, **When** budget utilization is viewed, **Then** the unspent gap is visible and tied to the unmatched/missed event.
 2. **Given** actual spend exists without a confident planner match, **When** budget utilization is viewed, **Then** the spend is shown as unmatched actual activity rather than being forced into an unrelated plan event.
 3. **Given** monetary values come from different countries, **When** they are displayed together, **Then** the system either uses normalized values or clearly warns that local-currency values are not directly comparable.
+4. **Given** estimated and confirmed intervention amounts differ, **When** budget utilization is viewed, **Then** the confirmed/contracted amount drives spend and variance while estimated/FMV-like amount remains a reference metric.
+5. **Given** direct HCP/BTU spend and BTC/overhead spend exist, **When** budget or ROI views are displayed, **Then** honorarium/direct spend, overhead spend, and total spend are shown separately and reconcile to total actual expense where populated.
 
 ---
 
@@ -77,6 +86,8 @@ As a marketing manager, I need to connect doctor engagement and spend with RCPA 
 1. **Given** an attended doctor has a valid Pcode and RCPA records, **When** Doctor ROI is viewed, **Then** the doctor appears with engagement history, prescription trend, brand mix, and segment.
 2. **Given** a high-prescribing doctor has no engagement record, **When** missed opportunity analysis is viewed, **Then** the doctor appears as a high-value unengaged opportunity.
 3. **Given** a request doctor field contains multiple names or Pcodes, **When** consolidation ingestion runs, **Then** each doctor participation record is split, validated, and traceable to its source position.
+4. **Given** doctor spend and prescription results are available, **When** ROI quadrant is viewed, **Then** doctors are classified into low effort/high reward, high effort/high reward, low effort/low reward, or high effort/low reward using deterministic thresholds.
+5. **Given** a doctor falls into low effort/high reward, **When** leadership reviews ROI opportunities, **Then** the doctor is highlighted as a dark-horse opportunity for potential future speaker or engagement cultivation.
 
 ---
 
@@ -121,7 +132,14 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - Event names differ across planner, monthly execution, and consolidation files by suffix, punctuation, casing, or labels such as `(New)`.
 - Consolidation doctor fields may contain multiple expected or actual doctors in one row.
 - Actual spend may exist without a matching plan event; plan events may exist without actual spend.
+- Estimated/FMV-like intervention values may differ from confirmed/contracted values; confirmed values must drive spend and ROI calculations.
+- Direct HCP/BTU spend and BTC/overhead spend may be zero, missing, or only partially populated; total actual spend must reconcile where populated and show data-quality warnings otherwise.
+- `Association Amount` exists for sparse association/event rows and must be preserved separately, not silently substituted as the main contracted HCP amount.
+- Request and report lifecycle statuses include draft, approved, rejected, deleted, sent for correction, pending with named owner, and pending confirmation values.
+- Post-event reporting/proof status is inferred from report approval/confirmation and expense submission/confirmation columns; actual proof images/agendas are not present in the supplied workbook.
+- Intervention types currently include eight observed values, not exactly seven; the system must be data-driven rather than hard-coded to seven.
 - Currency values are local by country and cannot be compared across countries unless normalized.
+- USD normalization must use official company FX when available; before that, manually seeded rates must be visibly marked provisional.
 - RCPA coverage may be absent for a doctor, country, month, or brand.
 - Ingestion may be stale, partially successful, or completed with warnings.
 - AI questions may request unsupported facts, causal claims, or calculations not present in trusted data.
@@ -148,9 +166,15 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **FR-014**: System MUST expose weak and unmatched event records as first-class data quality outputs rather than hiding them from dashboard metrics.
 - **FR-015**: System MUST provide execution KPIs covering planned events, matched events, unmatched events, executed events, action-due events, planned HCPs, engaged HCPs, HCP execution rate, event execution rate, and match coverage.
 - **FR-016**: System MUST provide budget KPIs covering planned budget, confirmed budget, actual spend, unspent gap, overrun amount, planned events without spend, and spend without plan match.
+- **FR-016a**: System MUST treat `APPROVE/CONFIRMED TOTAL INTERVENTION` as the confirmed/contracted amount and `ESTIMATED INTERVENTION` as the estimated/FMV-like reference value; estimated value MUST NOT drive ROI spend.
+- **FR-016b**: System MUST split actual spend into direct HCP/BTU spend from `ACTUAL EXPENSE AGAINST BTU`, overhead/BTC spend from `TOTAL ACTUAL BTC EXPENSE`, and total actual spend from `TOTAL ACTUAL EXPENSES FOR INTERVENTION`.
+- **FR-016c**: System MUST report confirmed-vs-estimated variance and BTU/BTC reconciliation quality where source values are populated.
 - **FR-017**: System MUST provide doctor ROI outputs covering engagement count, last engagement, associated spend, Cipla prescription quantity/value, competitor prescription quantity/value, Cipla share, spend per Cipla prescription, and ROI segment.
+- **FR-017a**: System MUST provide a leadership ROI quadrant that classifies doctors or engagement targets by investment/effort and prescription reward/result, including explicit dark-horse low-effort/high-reward opportunities.
 - **FR-018**: System MUST provide data quality outputs covering latest ingestion status, rows seen, rows skipped, validation errors, event match coverage, Pcode coverage, RCPA coverage, and unmatched records.
+- **FR-018a**: System MUST provide workflow governance outputs covering request approval location, request confirmation/decision status, post-event reporting approval status, post-event reporting confirmation status, pending owner/stage, and overdue/pending reporting counts.
 - **FR-019**: System MUST provide filters for country, month, therapy, event type, brand, speciality, doctor class, and ROI segment where relevant.
+- **FR-019a**: System MUST provide intervention-type and intervention-subtype filters and breakdowns for counts, spend, execution status, and workflow status.
 - **FR-020**: System MUST support drilldown from dashboard summaries into event, budget, doctor, and data-quality details.
 - **FR-021**: System MUST expose read-only dashboard data to the frontend through typed backend contracts and MUST prevent frontend access to database secrets or AI provider secrets.
 - **FR-022**: System MUST support an AI assistant that only summarizes deterministic query results and includes supporting metrics, limitations, and confidence.
@@ -163,6 +187,8 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **FR-027a**: System MUST use synthetic fixtures under `ingestion/tests/fixtures/` with tiny workbook samples that cover the known source quirks without committing real Cipla files.
 - **FR-028**: System MUST document a data dictionary, ingestion runbook, deployment guide, and demo validation flow.
 - **FR-029**: MVP deployment MUST be protected from public access through a simple demo-appropriate access control such as deployment-provider protection, a shared password, or an allowlist; full user accounts and role-based access remain out of MVP.
+- **FR-030**: System MUST preserve `Association Amount`, `Association Contract ID`, and `Association Deliverables` separately for association/event rows and MUST NOT use them as the default contracted HCP amount unless a later business rule explicitly changes this.
+- **FR-031**: System MUST support provisional manual FX seed rates with `fx_rate_status = provisional`, and MUST distinguish them from future official company-approved FX rates.
 
 ### Architecture Corrections and Clarifications
 
@@ -175,6 +201,9 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **AC-007**: Manual event-match editing is intentionally out of MVP, so unmatched and weak matches must be visible enough for operational review without requiring a write-back UI.
 - **AC-008**: Sri Lanka May execution evidence must be derived from consolidation requests by filtering Sri Lanka requests to May 2026, grouping by normalized intervention/event fields, and marking the resulting execution snapshot rows as `derived_from_consolidation` so they are never confused with monthly planner tab rows.
 - **AC-009**: `rcpa_prescriptions` must have an explicit idempotency constraint at the aggregate grain: source file, country, month, normalized Pcode, brand group, SKU, own-vs-competitor, and currency. Re-ingesting the same file must update the existing aggregate row, not duplicate it.
+- **AC-010**: Transcript-verified financial mapping is authoritative for MVP: confirmed/contracted amount = `APPROVE/CONFIRMED TOTAL INTERVENTION`; estimated/FMV-like reference = `ESTIMATED INTERVENTION`; direct HCP/BTU spend = `ACTUAL EXPENSE AGAINST BTU`; overhead/BTC spend = `TOTAL ACTUAL BTC EXPENSE`; total ROI spend = `TOTAL ACTUAL EXPENSES FOR INTERVENTION`.
+- **AC-011**: Workflow governance must be modeled from actual consolidation lifecycle columns rather than inferred from event matching alone: `PENDING FOR APPROVAL Request`, `PENDING FOR CONFIRMATION Request`, `PENDING FOR APPROVAL POST`, `PENDING FOR CONFIRMATION POST`, `EXPENSE SUBMITTED DATE`, `EXPENSE CONFIRMED DATE`, and Level 1-6 approver fields.
+- **AC-012**: Intervention mix must be data-driven from `INTERVENTION TYPE` and `INTERVENTION SUB TYPE`; current source data shows eight observed intervention types, so fixed seven-type assumptions are invalid.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -193,6 +222,9 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **Event Match**: Explicit reconciliation record linking planner, execution snapshot, and consolidation evidence.
 - **KPI View**: Prepared execution, budget, doctor ROI, data quality, or unmatched-event output used by the dashboard.
 - **AI Query Log**: Record of a user question, structured context summary, answer, model metadata, latency, and error state.
+- **Workflow Governance View**: Prepared status output showing request approval stage, request confirmation state, report/post-event approval state, report confirmation state, owner/stage, pending counts, and overdue reporting indicators.
+- **Intervention Mix View**: Prepared output grouping intervention counts, spend, execution status, and workflow status by intervention type and subtype.
+- **ROI Quadrant**: Deterministic doctor/opportunity classification using effort/investment on one axis and prescription reward/result on the other.
 
 ## Success Criteria *(mandatory)*
 
@@ -208,6 +240,10 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **SC-008**: No AI answer presents a metric unless that metric is present in structured system context or the answer states that the data is unavailable.
 - **SC-009**: Known file quirks from finalplan.md are covered by automated tests before implementation is considered complete.
 - **SC-010**: The deployed dashboard remains demoable even when ingestion completed with warnings, by showing data quality and limitation states instead of blank screens.
+- **SC-011**: Users can distinguish estimated/FMV-like amount, confirmed/contracted amount, direct HCP/BTU spend, overhead/BTC spend, and total actual spend for a selected country/month.
+- **SC-012**: Users can identify pending request approvals, pending confirmations, report drafts, reports sent for correction, and report approvals for a selected market/month.
+- **SC-013**: Users can see intervention-type mix by count and spend without hard-coded intervention categories.
+- **SC-014**: Users can identify low-effort/high-reward dark-horse doctors from the ROI quadrant when enough spend and RCPA data exists.
 
 ## Assumptions
 
@@ -219,4 +255,6 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - Browser-based ingestion, role-based permissions, scheduled ingestion, manual match editing, and Power BI embedding are intentionally deferred.
 - The product must be deployable as a dashboard and backend service while ingestion remains a local controlled operation for MVP.
 - Real Cipla source workbooks are confidential project inputs and must not be committed; test fixtures should be synthetic and small.
+- Current supplied consolidation data is sufficient for request workflow and post-event reporting status, but not for inspecting actual proof image or agenda content.
+- Temporary manual FX seeds are allowed for MVP if visibly marked provisional; official company FX rates from Pralhad replace them when available.
 - The final technology choices and contracts will be detailed in the planning phase, but this specification defines the complete user value, data behavior, constraints, and quality obligations.

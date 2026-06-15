@@ -17,6 +17,8 @@ The core design decision is to treat the source workbooks as complementary evide
 
 AI provider choice is intentionally deferred. The architecture defines a backend-only `AIProvider` interface and requires all AI answers to summarize deterministic service results.
 
+Transcript 2026-06-15 adds confirmed financial governance scope: budget and ROI must use confirmed/contracted amounts and actual BTU/BTC spend splits from consolidation, not estimated/FMV-like values. Execution must include workflow governance for request approval, request confirmation, post-event report approval, and post-event report confirmation. ROI must include a leadership quadrant matrix and intervention-type mix analytics.
+
 ## Technical Context
 
 **Language/Version**: Python 3.11 for backend and ingestion; TypeScript 5.x for frontend; SQL for migrations and views.
@@ -34,6 +36,8 @@ AI provider choice is intentionally deferred. The architecture defines a backend
 **Performance Goals**: Profile all eight supplied workbooks without manual inspection; aggregate RCPA prescription rows before persistence; keep dashboard summary API responses under 1s against materialized views for MVP data volume; keep event/doctor detail tables paginated.
 
 **Constraints**: Real workbooks and generated extracts must not enter git; service-role database credentials and AI keys remain server-side; no browser upload in MVP; no AI calculation of KPIs; cross-country money comparisons require normalized currency or explicit warning; protected demo access is required for deployment.
+
+**Transcript-Verified Data Constraints**: `APPROVE/CONFIRMED TOTAL INTERVENTION` is the contracted/confirmed amount; `ESTIMATED INTERVENTION` is estimated/FMV-like reference only; `ACTUAL EXPENSE AGAINST BTU` is direct HCP/BTU spend; `TOTAL ACTUAL BTC EXPENSE` is overhead/BTC spend; `TOTAL ACTUAL EXPENSES FOR INTERVENTION` is total actual spend; `Association Amount` is preserved separately; manual FX may be used only with `provisional` status until official company FX is supplied.
 
 **Scale/Scope**: MVP supports Nepal and Sri Lanka as primary markets, Myanmar as modeled/ingested source coverage where present, FY27 planner analysis, execution data from November 2025 onward, historical Nepal/Myanmar RCPA baseline from April 2024 through March 2025, and current RCPA through March 2026.
 
@@ -64,6 +68,10 @@ AI provider choice is intentionally deferred. The architecture defines a backend
 10. `question_redacted` in AI logs requires concrete masking rules for Pcodes, monetary values, and likely doctor-name spans before storage.
 11. Sri Lanka May execution must be derived from consolidation requests in a deterministic, labeled path because no monthly execution country tab exists.
 12. RCPA aggregation must be idempotent through an explicit unique conflict target at the aggregate grain.
+13. Transcript-verified financial mapping must be modeled directly from consolidation columns: confirmed/contracted amount, estimated/FMV-like reference, BTU direct spend, BTC overhead spend, and total actual spend.
+14. Workflow governance must be modeled from request approval/confirmation and post-event report approval/confirmation fields, not inferred from execution status alone.
+15. Intervention type analytics must be data-driven from observed `INTERVENTION TYPE` and `INTERVENTION SUB TYPE` values; current files contain eight observed types.
+16. ROI quadrant must be deterministic and leadership-facing, with low-effort/high-reward doctors highlighted as dark-horse opportunities.
 
 ### Selected Architecture
 
@@ -97,7 +105,7 @@ specs/002-execution-intelligence-platform/
 |   |-- openapi.yaml
 |   |-- cli.md
 |   `-- dashboard-data-contract.md
-`-- tasks.md                 # created later by /speckit-tasks
+`-- tasks.md                 # dependency-ordered implementation tasks
 ```
 
 ### Source Code
@@ -200,12 +208,15 @@ Exit criteria:
 
 ### Phase 4: Reconciliation and KPI Views
 
-Deliver event matching, match coverage metrics, unmatched records, budget utilization views, doctor ROI views, and data-quality views.
+Deliver event matching, match coverage metrics, unmatched records, budget utilization views, workflow governance views, intervention mix views, doctor ROI views, ROI quadrant outputs, and data-quality views.
 
 Exit criteria:
 
 - weak and unmatched records are queryable,
 - KPI views include freshness and coverage flags,
+- budget views expose estimated, confirmed, BTU, BTC, actual total, variance, and FX status,
+- workflow views expose request approval, request confirmation, post/report approval, post/report confirmation, and owner/stage,
+- intervention mix views are driven by source values rather than hard-coded categories,
 - no KPI requires frontend-side business calculations.
 
 ### Phase 5: Backend API
@@ -231,11 +242,13 @@ Exit criteria:
 
 ### Phase 7: Advanced Analytics
 
-Deliver budget utilization, doctor ROI, doctor detail drawer, unmatched records/data-quality pages, and demo-ready business narratives.
+Deliver budget utilization, workflow governance drilldowns, intervention-type mix, doctor ROI, ROI quadrant matrix, doctor detail drawer, unmatched records/data-quality pages, and demo-ready business narratives.
 
 Exit criteria:
 
 - user can identify missed/action-due events, budget gaps, and doctor opportunities in under two minutes,
+- user can identify pending approval/reporting bottlenecks and intervention-type mix by country/month,
+- user can distinguish low-effort/high-reward dark-horse doctors from high-effort/high-return established voices,
 - local currency warnings and no-RCPA states are visible where applicable.
 
 ### Phase 8: AI Assistant

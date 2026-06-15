@@ -36,6 +36,7 @@
 - [x] Event reconciliation and weak/unmatched record behavior are covered
 - [x] Execution, budget, doctor ROI, data quality, and AI experiences are covered
 - [x] Known architecture corrections are explicitly documented
+- [x] Transcript-driven governance additions are covered: confirmed/contracted financial mapping, BTU/BTC split, provisional FX, workflow governance, intervention mix, and ROI quadrant/dark-horse logic
 
 ## Notes
 

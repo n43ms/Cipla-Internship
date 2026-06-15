@@ -36,6 +36,7 @@ Output:
 - required-column coverage,
 - row counts,
 - detected month value formats including Excel serial numbers,
+- detected transcript-critical consolidation fields for financial mapping, workflow governance, intervention mix, and reporting status,
 - anomalies and warnings.
 
 ### ingest
@@ -56,6 +57,8 @@ Behavior:
 - records validation errors,
 - parses RCPA month strings and Excel serial-number dates through the same canonical month normalizer,
 - upserts RCPA aggregates through the explicit aggregate unique key,
+- maps consolidation financial fields into estimated, confirmed/contracted, direct HCP/BTU, overhead/BTC, total actual, and association amount fields,
+- maps request approval, request confirmation, post/report approval, and post/report confirmation statuses from consolidation lifecycle columns,
 - produces a run summary.
 
 ### reconcile
@@ -96,3 +99,8 @@ Output:
 - Pcode coverage,
 - RCPA coverage,
 - missing-FX warnings.
+- provisional-FX warnings,
+- confirmed-vs-estimated variance summary,
+- BTU/BTC reconciliation warning summary,
+- workflow governance status summary,
+- intervention-type mix summary.

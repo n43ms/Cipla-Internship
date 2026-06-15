@@ -143,11 +143,13 @@ Fields:
 - `rate_to_usd`
 - `rate_date`
 - `source`
+- `rate_status`: `official`, `provisional`, `missing`
 
 Validation:
 
 - MVP uses static seed rows only, not a live FX integration,
-- seed one representative rate per supported currency with a documented `rate_date` and `source`,
+- seed one representative rate per supported currency with a documented `rate_date`, `source`, and `rate_status`,
+- temporary manual rates are allowed only with `rate_status = provisional`; official company-approved rates use `rate_status = official`,
 - USD fields stay null when FX is unavailable,
 - cross-country views must expose missing-FX warnings.
 
@@ -240,17 +242,42 @@ Fields:
 - `intervention_name`, `intervention_name_normalized`
 - `intervention_type`, `intervention_sub_type`
 - `topic_remarks`
-- `estimated_budget_local`
-- `confirmed_budget_local`
-- `actual_expense_local`
+- `estimated_intervention_local`
+- `confirmed_contracted_amount_local`
+- `confirmed_vs_estimated_variance_local`
+- `actual_total_expense_local`
+- `actual_btu_expense_local`
+- `actual_btc_expense_local`
+- `association_amount_local`
+- `association_contract_id`
+- `association_deliverables`
 - `currency_code`
-- `estimated_budget_usd`
-- `confirmed_budget_usd`
-- `actual_expense_usd`
+- `fx_rate_to_usd`
+- `fx_rate_source`
+- `fx_rate_date`
+- `fx_rate_status`: `official`, `provisional`, `missing`
+- `estimated_intervention_usd`
+- `confirmed_contracted_amount_usd`
+- `actual_total_expense_usd`
+- `actual_btu_expense_usd`
+- `actual_btc_expense_usd`
+- `direct_hcp_spend_local`
+- `overhead_spend_local`
+- `total_roi_spend_local`
+- `direct_hcp_spend_usd`
+- `overhead_spend_usd`
+- `total_roi_spend_usd`
 - `expected_customer_count`
 - `attended_customer_count`
 - `expected_category_raw`
 - `attended_category_raw`
+- `request_approval_status`
+- `request_confirmation_status`
+- `post_approval_status`
+- `post_confirmation_status`
+- `expense_submitted_date`
+- `expense_confirmed_date`
+- `current_owner_stage`
 - `approval_status`
 - `confirmation_status`
 - `cancellation_reason`
@@ -262,6 +289,17 @@ Validation:
 
 - unique `(source_system, req_id)` when valid,
 - duplicate `REQ_ID` values create validation errors and fallback `request_uid`,
+- `confirmed_contracted_amount_local` maps from `APPROVE/CONFIRMED TOTAL INTERVENTION`,
+- `estimated_intervention_local` maps from `ESTIMATED INTERVENTION` and is reference-only,
+- `actual_btu_expense_local` maps from `ACTUAL EXPENSE AGAINST BTU`,
+- `actual_btc_expense_local` maps from `TOTAL ACTUAL BTC EXPENSE`,
+- `actual_total_expense_local` maps from `TOTAL ACTUAL EXPENSES FOR INTERVENTION`,
+- `direct_hcp_spend_local = actual_btu_expense_local`,
+- `overhead_spend_local = actual_btc_expense_local`,
+- `total_roi_spend_local = actual_total_expense_local`,
+- when BTU, BTC, and actual total are populated, `actual_btu_expense_local + actual_btc_expense_local` should reconcile to `actual_total_expense_local`; mismatches create data-quality warnings,
+- `association_amount_local` is preserved separately and is not the default contracted HCP spend,
+- request and post/report lifecycle statuses map from the four pending approval/confirmation columns,
 - actual spend without plan match remains visible.
 
 ### request_doctors
@@ -382,11 +420,30 @@ Includes planned events, matched events, weak/unmatched events, executed events,
 
 ### mv_budget_utilization
 
-Includes planned budget, confirmed budget, actual spend, unspent gap, overrun, plan without spend, spend without plan, currency labels, and missing-FX flags.
+Includes planned budget, estimated intervention, confirmed/contracted amount, confirmed-vs-estimated variance, direct HCP/BTU spend, overhead/BTC spend, actual total spend, unspent gap, overrun, plan without spend, spend without plan, currency labels, FX source/date/status, provisional-FX flags, and missing-FX flags.
+
+### mv_workflow_governance
+
+Includes request approval status, request confirmation status, post/report approval status, post/report confirmation status, current owner/stage, market, month, rep, intervention type, pending counts, approved/rejected/corrected/deleted/draft counts, report draft counts, report sent-for-correction counts, report approved counts, expense submitted date coverage, and expense confirmed date coverage.
+
+Status derivation:
+
+- request approval stage from `PENDING FOR APPROVAL Request`,
+- request confirmation state from `PENDING FOR CONFIRMATION Request`,
+- report/post approval stage from `PENDING FOR APPROVAL POST`,
+- report/post confirmation state from `PENDING FOR CONFIRMATION POST`,
+- owner/stage parsed from status text such as `Request Submitted Pending With ...` or `Report in Approval Pending With ...`,
+- proof/reporting completion inferred from report approval/confirmation and expense submission/confirmation dates; actual proof files are not available in the supplied workbook.
+
+### mv_intervention_mix
+
+Includes intervention type, intervention subtype, country, month, request count, executed count, approved count, report pending count, confirmed/contracted amount, direct HCP/BTU spend, overhead/BTC spend, total actual spend, and FX status.
+
+The view must be data-driven from source values. Current observed types include Patient Benefit Program, Cipla Own CMEs/ Workshop, Pharmacy Benefit Program, National Local Conference, International Conference, Medical Survey, Cipla Digital initiatives, and Cipla International Conference.
 
 ### mv_doctor_roi
 
-Includes engagement count, last engagement, associated spend, Cipla prescriptions, competitor prescriptions, Cipla share, spend per Cipla prescription, and ROI segment.
+Includes engagement count, last engagement, associated spend, direct HCP/BTU spend, overhead/BTC spend, total ROI spend, Cipla prescriptions, competitor prescriptions, Cipla share, spend per Cipla prescription, ROI segment, ROI quadrant x/y values, ROI quadrant label, and dark-horse flag.
 
 Segments:
 
@@ -395,9 +452,23 @@ Segments:
 - `low_rx_high_spend`
 - `insufficient_data`
 
+Quadrants:
+
+- `low_effort_high_reward`
+- `high_effort_high_reward`
+- `low_effort_low_reward`
+- `high_effort_low_reward`
+
+Default quadrant logic:
+
+- x-axis investment/effort uses `total_roi_spend_local` or `total_roi_spend_usd` when official/provisional FX exists,
+- y-axis reward/result uses Cipla prescription quantity or value from RCPA,
+- thresholds are deterministic medians within the selected country/month/filter cohort unless a later configuration file supplies explicit thresholds,
+- `dark_horse = true` when quadrant is `low_effort_high_reward`.
+
 ### mv_data_quality
 
-Includes latest ingestion status, files loaded, rows seen/skipped, validation errors, match coverage, Pcode coverage, RCPA coverage, missing FX, stale run state, and unmatched counts.
+Includes latest ingestion status, files loaded, rows seen/skipped, validation errors, match coverage, Pcode coverage, RCPA coverage, missing FX, provisional FX, stale run state, unmatched counts, BTU/BTC reconciliation issues, missing confirmed amount counts, missing report/proof status counts, and intervention-type coverage.
 
 ### mv_unmatched_events
 

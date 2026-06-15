@@ -10,7 +10,7 @@ This guide proves the planned system works as a real data product before UI poli
 - Real source workbooks placed locally under `data/raw/`
 - `.env` configured from `.env.example`
 - Alembic configured with `sqlalchemy.url` resolved from `DATABASE_URL`
-- Static FX seed file available under `database/seeds/exchange_rates_static.sql` or equivalent migration seed
+- Static FX seed file available under `database/seeds/exchange_rates_static.sql` or equivalent migration seed; temporary manual rates must be marked `provisional`
 
 Required environment variables:
 
@@ -74,7 +74,7 @@ alembic upgrade head
 Expected outcome:
 
 - reference tables exist,
-- static exchange-rate seeds exist for supported currencies with a documented representative `rate_date`,
+- static exchange-rate seeds exist for supported currencies with documented `rate_date`, `source`, and `rate_status`,
 - canonical tables exist,
 - reconciliation tables exist,
 - materialized views compile.
@@ -93,6 +93,7 @@ Expected outcome:
 - Nepal planner marks `Yearly Planner FY27 v2` as canonical,
 - Sri Lanka planner marks `YP FY27` as canonical,
 - consolidation uses `Working`,
+- consolidation profile detects transcript-critical fields: `ESTIMATED INTERVENTION`, `APPROVE/CONFIRMED TOTAL INTERVENTION`, `TOTAL ACTUAL EXPENSES FOR INTERVENTION`, `ACTUAL EXPENSE AGAINST BTU`, `TOTAL ACTUAL BTC EXPENSE`, `INTERVENTION TYPE`, request pending columns, post/report pending columns, and Level 1-6 approval columns,
 - May execution reports missing Sri Lanka country tab as a limitation.
 
 ## 5. Ingest, Reconcile, and Refresh
@@ -113,6 +114,10 @@ Expected outcome:
 - repeated ingestion of the same RCPA file updates the same aggregate rows instead of duplicating them,
 - event matches include matched, weak, and unmatched records,
 - Sri Lanka May execution evidence is derived from consolidation records and marked `derived_from_consolidation`,
+- budget outputs separate estimated/FMV-like value, confirmed/contracted value, direct HCP/BTU spend, overhead/BTC spend, and total actual spend,
+- workflow governance outputs request approval, request confirmation, report approval, and report confirmation states,
+- intervention mix outputs are grouped by source `INTERVENTION TYPE` and `INTERVENTION SUB TYPE`,
+- doctor ROI outputs include quadrant labels and dark-horse flags when RCPA/spend data is sufficient,
 - KPI views return rows.
 
 ## 6. Run Backend
@@ -170,6 +175,8 @@ Each workbook fixture should contain three to five rows. Required fixture cases:
 - May execution with no Sri Lanka tab,
 - consolidation row with multiple expected/actual doctors and Pcodes,
 - currency rows with present and missing FX.
+- budget rows where estimated differs from confirmed and BTU + BTC reconcile to total actual expense.
+- workflow rows with request approved, rejected, sent for correction, pending with owner, report draft, report approved, and report sent for correction statuses.
 
 ```bash
 pytest ingestion/tests backend/tests
@@ -186,6 +193,12 @@ Required coverage:
 - missing Sri Lanka May execution derivation from consolidation,
 - consolidation multi-doctor parsing,
 - static FX seed and missing-FX behavior,
+- provisional FX labeling and replacement path for future official FX,
+- confirmed-vs-estimated variance,
+- BTU/BTC spend split and reconciliation warning behavior,
+- workflow governance status mapping,
+- intervention-type grouping,
+- ROI quadrant and dark-horse classification,
 - AI question redaction,
 - RCPA aggregate idempotency conflict target,
 - event reconciliation,
