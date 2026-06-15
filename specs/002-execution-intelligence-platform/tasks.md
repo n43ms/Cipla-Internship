@@ -12,20 +12,20 @@
 
 **Purpose**: Establish the repository structure, toolchain, dependency manifests, environment contracts, and local-only data boundaries.
 
-- [ ] T001 Create backend, ingestion, frontend, database, docs, scripts, and data directory structure in `backend/`, `ingestion/`, `frontend/`, `database/`, `docs/`, `scripts/`, and `data/`
-- [ ] T002 Create Python backend dependency manifest with FastAPI, Pydantic v2, Pydantic Settings, SQLAlchemy 2.0, Alembic, psycopg, pytest, httpx, and ruff in `backend/requirements.txt`
-- [ ] T003 Create Python ingestion dependency manifest with pandas, openpyxl, python-calamine, pyxlsb, Typer, SQLAlchemy 2.0, Alembic, pytest, and ruff in `ingestion/requirements.txt`
-- [ ] T004 Create frontend Vite React TypeScript dependency manifest with Tailwind CSS, TanStack Query, Zustand, Recharts, Lucide React, Vitest, and React Testing Library in `frontend/package.json`
-- [ ] T005 [P] Configure Python formatting, linting, import sorting, and pytest defaults for backend and ingestion in `pyproject.toml`
-- [ ] T006 [P] Configure TypeScript, Vite, Tailwind, path aliases, and Vitest setup in `frontend/tsconfig.json`, `frontend/vite.config.ts`, `frontend/tailwind.config.ts`, and `frontend/src/test/setup.ts`
-- [ ] T007 Create environment variable template for database, Supabase, data directory, backend URL, deployment mode, protected demo access, and AI provider configuration in `.env.example`
-- [ ] T008 Update git ignore rules for secrets, virtual environments, generated data, local raw workbooks, XLSX, XLSB, CSV extracts, reports, and local caches in `.gitignore`
-- [ ] T009 [P] Add backend application scaffolds in `backend/app/__init__.py`, `backend/app/main.py`, `backend/app/config.py`, and `backend/app/database.py`
-- [ ] T010 [P] Add ingestion package scaffolds in `ingestion/__init__.py`, `ingestion/main.py`, `ingestion/config.py`, and `ingestion/report.py`
-- [ ] T011 [P] Add frontend shell files in `frontend/src/main.tsx`, `frontend/src/App.tsx`, `frontend/src/styles.css`, and `frontend/src/api/client.ts`
-- [ ] T012 Create local-only data folder scaffolding without real workbook content in `data/.gitkeep`, `data/raw/.gitkeep`, `data/processed/.gitkeep`, and `data/reports/.gitkeep`
-- [ ] T013 Create repository setup instructions with Windows PowerShell commands in `README.md`
-- [ ] T014 Create local validation command wrapper skeleton in `scripts/validate_quickstart.ps1`
+- [X] T001 Create backend, ingestion, frontend, database, docs, scripts, and data directory structure in `backend/`, `ingestion/`, `frontend/`, `database/`, `docs/`, `scripts/`, and `data/`
+- [X] T002 Create Python backend dependency manifest with FastAPI, Pydantic v2, Pydantic Settings, SQLAlchemy 2.0, Alembic, psycopg, pytest, httpx, and ruff in `backend/requirements.txt`
+- [X] T003 Create Python ingestion dependency manifest with pandas, openpyxl, python-calamine, pyxlsb, Typer, SQLAlchemy 2.0, Alembic, pytest, and ruff in `ingestion/requirements.txt`
+- [X] T004 Create frontend Vite React TypeScript dependency manifest with Tailwind CSS, TanStack Query, Zustand, Recharts, Lucide React, Vitest, and React Testing Library in `frontend/package.json`
+- [X] T005 [P] Configure Python formatting, linting, import sorting, and pytest defaults for backend and ingestion in `pyproject.toml`
+- [X] T006 [P] Configure TypeScript, Vite, Tailwind, path aliases, and Vitest setup in `frontend/tsconfig.json`, `frontend/vite.config.ts`, `frontend/tailwind.config.ts`, and `frontend/src/test/setup.ts`
+- [X] T007 Create environment variable template for database, Supabase, data directory, backend URL, deployment mode, protected demo access, and AI provider configuration in `.env.example`
+- [X] T008 Update git ignore rules for secrets, virtual environments, generated data, local raw workbooks, XLSX, XLSB, CSV extracts, reports, and local caches in `.gitignore`
+- [X] T009 [P] Add backend application scaffolds in `backend/app/__init__.py`, `backend/app/main.py`, `backend/app/config.py`, and `backend/app/database.py`
+- [X] T010 [P] Add ingestion package scaffolds in `ingestion/__init__.py`, `ingestion/main.py`, `ingestion/config.py`, and `ingestion/report.py`
+- [X] T011 [P] Add frontend shell files in `frontend/src/main.tsx`, `frontend/src/App.tsx`, `frontend/src/styles.css`, and `frontend/src/api/client.ts`
+- [X] T012 Create local-only data folder scaffolding without real workbook content in `data/.gitkeep`, `data/raw/.gitkeep`, `data/processed/.gitkeep`, and `data/reports/.gitkeep`
+- [X] T013 Create repository setup instructions with Windows PowerShell commands in `README.md`
+- [X] T014 Create local validation command wrapper skeleton in `scripts/validate_quickstart.ps1`
 
 **Checkpoint**: Repository structure, dependency manifests, environment contracts, and confidentiality boundaries exist.
 

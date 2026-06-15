@@ -1,0 +1,690 @@
+Connect with AJ-20260615_150855-Meeting Transcript
+June 15, 2026, 9:38AM
+26m 0s
+
+Aditya Emmanual/EMEU/PBP started transcription
+
+Abhijeet Mudila/EMEU/PBP   0:05
+You know, there might be a section called actual contracted amount.
+
+Aditya Emmanual/EMEU/PBP   0:10
+Okay.
+
+Abhijeet Mudila/EMEU/PBP   0:10
+So in this system, I don't know if you recall, but in the system there is a automated calculation of the fair market value, which could be, let's say, for instance, $2,000. Okay.
+Or maybe 2000.
+
+Aditya Emmanual/EMEU/PBP   0:27
+Yeah, the fair market value, that one which you couldn't share because of like confidentiality issues and stuff.
+
+Abhijeet Mudila/EMEU/PBP   0:32
+No, no, no, in the extracted one in the consolidated view. Now, if you open that Excel, I'll show you, yeah.
+
+Aditya Emmanual/EMEU/PBP   0:37
+Oh, correct, correct. Sorry, I have it open right now in my personal laptop. The near consolidation.
+
+Abhijeet Mudila/EMEU/PBP   0:42
+Okay, yeah, it should be there. Like the, there might be some variance to it. For example, you might find that there might be a cost of, I'll just give you a random number, 2145.
+
+Aditya Emmanual/EMEU/PBP   0:56
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   0:58
+2145 Omani Riyals, okay? But as the contracted amount, it could be 1500 Omani Riyals. So the actual agreement was for only 1500 Omani Riyals, despite the recommendation of 2145. So we just have to be mindful.
+
+Aditya Emmanual/EMEU/PBP   0:59
+Cool.
+Okay.
+Hey.
+e.
+Oh.
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   1:18
+that we take the contracted amount instead of the FMV amount. That's one I would say frequently caused error even on our side because while making projections sometimes we look at only value what we FMV is suggesting rather than the contract values. So my recommendation is to take the contract value.
+
+Aditya Emmanual/EMEU/PBP   1:40
+Okay.
+
+Abhijeet Mudila/EMEU/PBP   1:40
+Now, one caveat there is...
+Contracted value is something you pay to the HCP. Okay, it is going directly to their pockets. Okay, there is another element which is like expenses. The expenses is something which are like overhead cost. For instance, if we book a venue or if there was a cab fare exchange or a flight ticket, or maybe there's some refreshments.
+
+Aditya Emmanual/EMEU/PBP   1:48
+Right, right.
+Mhm.
+Mm.
+Yeah.
+
+Abhijeet Mudila/EMEU/PBP   2:05
+So all those overheads are captured in the expenses. So.
+
+Aditya Emmanual/EMEU/PBP   2:05
+Rollout.
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   2:11
+So my understanding is.
+We need to capture that aspect as well. Now, let me give you an example. Let's say Aditya nema is an HCP who is recruited to do an event for Cipla. Okay, we are paying you $2,000 to be part of this event. On top of that, we are also...
+
+Aditya Emmanual/EMEU/PBP   2:28
+Mhm.
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   2:37
+bearing the cost of your flight tickets, your hotel stay, your cab fare, and some, you know, after party dinner. So that will be around, let's say, 500. So technically we have spent on you $2,500. So while doing the RCPA thing, we should...
+
+Aditya Emmanual/EMEU/PBP   2:44
+Yeah.
+Mm.
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   2:58
+Or maybe the ROI thing we should account for 2500 instead of 2000. That's the whole crux of it.
+
+Aditya Emmanual/EMEU/PBP   3:05
+Varad.
+
+Abhijeet Mudila/EMEU/PBP   3:06
+But there should be a way to have this as a breakdown. So like, let's say if I only want to look at how much I have paid for you as honorarium fee, that should reflect in a separate box, like honorarium maybe 2000 or expenses 2500.
+
+Aditya Emmanual/EMEU/PBP   3:22
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   3:24
+Let's say I'm giving you a context to it, right? Why we need this? So it's not very difficult to do, but it does lit will help business to understand.
+
+Aditya Emmanual/EMEU/PBP   3:25
+Mmh.
+Mmh.
+
+Abhijeet Mudila/EMEU/PBP   3:36
+from an absolute number basis, what are we paying the doctor? And what are the other overhead costs which are happening? The idea is not to reduce the cost or, you know, understand, but rather provisions, make provisions for those in future. You know, that's the whole game for it.
+
+Aditya Emmanual/EMEU/PBP   3:50
+Okay, but the thing is like with a lot of doctors, I feel like I would guess that you will have like overhead costs for I think about like 20 to 30% of the doctors, not all of them, right?
+
+Abhijeet Mudila/EMEU/PBP   3:56
+Yeah.
+Correct, only a handful of you, like not many events are.
+you know, done in a way that will require refreshments or cab fare, etc. I'll tell you why, because most of the events happen in hospitals. So what they do is they book a section for Cipla, they put a booth over there, maybe a screening thing.
+
+Aditya Emmanual/EMEU/PBP   4:28
+Mhm.
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   4:31
+And they then try to, you know, read out their patients like, hey, you are here for a checkup. Why don't you do a free checkup with supplies conducting on the 2nd floor? So they will go over there, you know, do the screening. And there is a doctor who has dedicated some time for that. And that's how it happened.
+
+Aditya Emmanual/EMEU/PBP   4:40
+Yeah.
+Ohh.
+Yeah.
+
+Abhijeet Mudila/EMEU/PBP   4:49
+Generally, there is nothing like refreshments, only for a few events. There might be, you might see that there is a venue cost or there is some refreshment cost. One more thing, I think just food for thought. You might think of how we can portray this.
+
+Aditya Emmanual/EMEU/PBP   5:01
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   5:08
+Especially in the ROI section.
+You know, there is like a quadrant, like 4 quadrant thing, like low effort, high result, high effort, high result, low effort, low result, and the inverse, like high effort, low result. But generally there's a quadrant which is used to make business decisions at a consulting level. I don't know how this call exactly.
+
+Aditya Emmanual/EMEU/PBP   5:21
+Mhm.
+Mm-hmm.
+Oh, I see, I see.
+
+Abhijeet Mudila/EMEU/PBP   5:32
+But it is like, generally, I'll find a link and ping you if we can get something, yeah, like very simply put, like only for the leadership front, because eventually this dashboard is used by decision makers, right? The top brass.
+
+Aditya Emmanual/EMEU/PBP   5:35
+Yeah, that would help, like...
+Right, right.
+
+Abhijeet Mudila/EMEU/PBP   5:47
+So one thing which they would be very, very excited to look at is like, what are the low effort, high reward things? How we can amplify those? What are the trends for that?
+
+Aditya Emmanual/EMEU/PBP   5:58
+Yeah, so that...
+Yeah, so I'll look at it like those ROI matrix kind of things, and if you could, you know, send some links and stuff, I can design a separate page also for that, and that would, you guys would love it.
+
+Abhijeet Mudila/EMEU/PBP   6:14
+Yeah, exactly. I think that that would be a game changer because a simple quadrant, maybe an interactive quadrant, will reflect who are your top performers and who are the ones, because most of the times you see from a data standpoint, a lot of times these good performers are overshadowed by the ones who are like the, you know, the top performers.
+
+Aditya Emmanual/EMEU/PBP   6:17
+Mhm.
+Yeah.
+
+Abhijeet Mudila/EMEU/PBP   6:35
+voices of the particular therapy. So what happens over there is you are spending a lot of money with them, but you are also getting a reward out of it, which is like high, high investment, high return. And but sometimes there are like dark horses which are generating revenue. So we want to also, you know.
+
+Aditya Emmanual/EMEU/PBP   6:36
+Mhm.
+Bing.
+Mhm.
+I.
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   6:54
+put headlights on those particular quadrant set, who we can, you know, cultivate as our next in line key speakers. Because if somebody is doing something, sometimes it is also for, you know, their own personal reasons, like they want to become a top voice in a particular therapy. And.
+
+Aditya Emmanual/EMEU/PBP   6:57
+Mhm.
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   7:13
+If we are able to spot them, I'm sure there are ways to do it, but it happens inside, and this dashboard is going to democratize that. But the idea is, again, to tap on those talents, nurture them, and try to milk it for Cipla.
+
+Aditya Emmanual/EMEU/PBP   7:31
+Hmm.
+
+Abhijeet Mudila/EMEU/PBP   7:31
+Okay, that's the whole, that's why I thought that, but you are moving in the right direction. Like we are looking for those four, you said those five things. I think you said five things, right? Five things where this split could be going on.
+
+Aditya Emmanual/EMEU/PBP   7:40
+Mm-hmm.
+I said four, but yeah, with the ROI quadrant, it would be 5 pages, yes.
+
+Abhijeet Mudila/EMEU/PBP   7:50
+Yeah, yeah. Let me also, so when do you think you would be ready to share something to us? Because you are in the right direction at the moment, Aditya. I am confident of that because surprisingly you are like pretty sharp and you have got the hold of this very, very quickly. So I'm thoroughly impressed.
+
+Aditya Emmanual/EMEU/PBP   8:01
+Mm.
+Yes.
+Thank you. Actually, I spent a lot of the time all weekend to, you know, figure stuff out, analyze each exchange sheet, and, you know, try to figure the architecture out for the distinct dashboards.
+
+Abhijeet Mudila/EMEU/PBP   8:27
+And you are going to build this in a third party tool, right? Not the Power BI.
+
+Aditya Emmanual/EMEU/PBP   8:32
+Yeah, yeah, I'll be building it in third party tools, yes. But it will be, you know, like the thing, like self-sufficient software, so you guys will be able to do whatever you want with it.
+
+Abhijeet Mudila/EMEU/PBP   8:36
+Okay.
+Be exciting to see how this will look out, actually. Also, feel free to have a look at other aspects.
+
+Aditya Emmanual/EMEU/PBP   8:59
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   9:06
+If you find certain things are missing in the data, or maybe there is a which is creating like a gap or maybe a bias into the database, so let us know because I...
+
+Aditya Emmanual/EMEU/PBP   9:19
+I actually did have one this thing, a bit of like a mismatch kind of thing. Like in this Sri Lanka data set, like all the data sets except the Sri Lanka data set have values in USD and the Sri Lanka data set has value.
+
+Abhijeet Mudila/EMEU/PBP   9:26
+Mhm.
+
+Aditya Emmanual/EMEU/PBP   9:39
+in the Sri Lankan real or whatever their currency is. LKR, right? So should I normalize the currency and convert it to USD? Because that's how you'll get the unified view of all the doctors and stuff like that.
+
+Abhijeet Mudila/EMEU/PBP   9:42
+LKR, LKR.
+On.
+
+Aditya Emmanual/EMEU/PBP   10:00
+Because.
+
+Abhijeet Mudila/EMEU/PBP   10:04
+You can add a formula to convert it. Let me check with Pralhad, my boss. I think there is a constant or maybe a defined conversion rate. I need to check with him what is the company wide conversion rate which would give you a clear.
+conversion formula. Otherwise, what will happen if we keep it moving now? What happens today? The dollar is strong, so it will reflect something different. So let me check with them what is the...
+
+Aditya Emmanual/EMEU/PBP   10:27
+Oh, Jha.
+Mm.
+Yeah, that's what I was just gonna grab it from the internet and you know, paste it, but yeah.
+
+Abhijeet Mudila/EMEU/PBP   10:39
+No, no, no, I'll check with them. I'll give it to you. Should not be a second to use that. But you are right that we need a common denominator, which is like the US dollar, to help business understand like apple for apple, how we are doing.
+
+Aditya Emmanual/EMEU/PBP   10:42
+Yeah.
+Uh-huh.
+Mm.
+Right, right.
+
+Abhijeet Mudila/EMEU/PBP   10:57
+Okay, I think I will share that with you.
+
+Aditya Emmanual/EMEU/PBP   11:02
+Yeah, so please share a conversion. Yeah, yeah, go ahead, but sorry.
+
+Abhijeet Mudila/EMEU/PBP   11:04
+Also, also what?
+One more thing I would, sorry, I just thought like there is, I just wanted to put it out before this thought vaporizes.
+
+Aditya Emmanual/EMEU/PBP   11:14
+Yeah.
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   11:22
+Yeah.
+Send it.
+Number.
+What?
+So, in the, you know, the...
+Intervention summary like execution tab, the execution once planned versus this.
+
+Aditya Emmanual/EMEU/PBP   11:42
+No.
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   11:46
+A view of this will also help you know like what are the no fee agreements, consultancy advisory board, medical camp. There are total seven types.
+
+Aditya Emmanual/EMEU/PBP   11:52
+Mhm, mhm.
+
+Abhijeet Mudila/EMEU/PBP   11:55
+This will also help to understand, like...
+What is the breakup of the total number of interventions slash events we are doing for a particular market?
+
+Aditya Emmanual/EMEU/PBP   12:08
+Oh, so like contract type, like, like type of intervention and okay, okay, so type of intervention. Okay, so I'll add three things to the thing I mentioned. So you'll have like a contract, I'm sorry, intervention type.
+
+Abhijeet Mudila/EMEU/PBP   12:10
+Yeah, contract type is type of intervention, correct?
+
+Aditya Emmanual/EMEU/PBP   12:27
+And like a visualization with intervention type, plus the ROI matrix, especially, you know, highlighting the low effort, high return, and one more thing was there you mentioned, yeah, the sorry, the yeah, the quadrant, and...
+
+Abhijeet Mudila/EMEU/PBP   12:44
+Important.
+
+Aditya Emmanual/EMEU/PBP   12:47
+You know, the all your conversion, so yeah.
+
+Abhijeet Mudila/EMEU/PBP   12:50
+Dollar conversion as well.
+
+Aditya Emmanual/EMEU/PBP   12:52
+Yep.
+
+Abhijeet Mudila/EMEU/PBP   12:53
+Uh, this is...
+The simple, this is a simple report which I have shared today.
+
+Aditya Emmanual/EMEU/PBP   13:03
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   13:03
+Here is the types which are listed here. So it helps them understand which activities they are doing. Because many a time we lay out a plan, but there is a weak governance to it at a local level. So what we do is we share it with them, like, look guys, this is what.
+
+Aditya Emmanual/EMEU/PBP   13:12
+Mhm.
+Aditya.
+
+Abhijeet Mudila/EMEU/PBP   13:23
+you should be doing. So as you can see, everything is in Excel. There is nothing. That's why what you are building is going to add value. Even in the morning, I have shared one report. So I do this every day. Like they have certain questions. If there is any insight for them, I need to share it with them. Like compared to report of last Thursday, we see a reduction number by 35.
+
+Aditya Emmanual/EMEU/PBP   13:30
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   13:48
+They ideally they should be closing this to 0, and the deadline was Sunday.
+
+Aditya Emmanual/EMEU/PBP   13:48
+Mm.
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   13:55
+Okay, so they are behind it. Now, let's pretend that your dashboard was ready, that this would not have been the case. Because now leadership would have, nobody looks at emails and looks at reams and reams of data and you know, and interpret like what exactly is they have to do, especially on the leadership side.
+
+Aditya Emmanual/EMEU/PBP   13:55
+Okay.
+Mm.
+Mhm.
+Ohh.
+Bird.
+
+Abhijeet Mudila/EMEU/PBP   14:15
+You know, like try to make it simple for them, like, okay guys, this is the outstanding, this are awaiting action. Rest of the things are breaking up into, you know, different stages of approval. Now, what I also did was I gave them a rep level or MR level view, like.
+
+Aditya Emmanual/EMEU/PBP   14:27
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   14:35
+What is the pending count? Now, if you look at this guy, Anil Arial, he is at 42. He has not started anything. His total is also 42. So ideally, he should have concluded this. Not related to your action, but I'm just giving you like what I'm doing at the moment. Like I'm giving them.
+
+Aditya Emmanual/EMEU/PBP   14:42
+Mhm.
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   14:55
+How many are pending? Now, this brings to the part of...
+If I may put it in a simple way, short. This is one more thing I just wanted to, you know, take the opportunity to share with you. Like what else we do is...
+But this one.
+Pralhad, Pralhad.
+Okay.
+Reporting data.
+No.
+Yeah, this one.
+Now, if you see now, once you...
+Create the, I'll forward this to you, OK?
+
+Aditya Emmanual/EMEU/PBP   15:57
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   15:58
+I agree.
+The report is...
+Aditya.
+Uh, need execution.
+Also.
+Action.
+Three key attributes, now the three key attributes which I'm trying to.
+Illudicate at the moment is #1 is your execution tab should reflect where are the things. Okay. So for instance, there should be a filter of the month, like for this month, where are things? Okay. There are like a total of 13 requests out of which one is.
+With somebody who is with a country lead, these are different approval flow entities where things are.
+
+Aditya Emmanual/EMEU/PBP   16:48
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   16:49
+Okay, this is like a first slicer. If somebody filters the month, they should know where their activities are in progress. Now, #2 is...
+After the execution of the activity, there is a, before making the payment, they have to submit proofs, evidences that this event was concluded successfully and for that they submit pictures and they supplement it with some agenda item, et cetera. All that is done in the system itself.
+So just for your understanding, it is like out of the 530 requests that are raised or may be requested, out of which 437 are approved. Okay, so ideally they should be reporting this 537, 437, sorry.
+
+Aditya Emmanual/EMEU/PBP   17:28
+Mmh.
+
+Abhijeet Mudila/EMEU/PBP   17:37
+Pardon my, I think the I said 587. So 437 are reported. And in order to make a payment to all these HCPs, they have to report these successfully. Now whatever the report is pending, that should also be reflected in the system. Now there are three aspects. Okay.
+
+Aditya Emmanual/EMEU/PBP   17:54
+OK.
+
+Abhijeet Mudila/EMEU/PBP   17:56
+The first one, just to recap, is the request status. Where is your request currently? Whether it is with the first line manager FLM, whether it is with your country lead. So that is all present in the consolidated report. It shows like where your things are.
+
+Aditya Emmanual/EMEU/PBP   18:06
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   18:12
+Number 2 is what is the status of your request? Okay, request is something which is...
+either approved, rejected, or corrected. And only after the approval of your request, you can proceed with the reporting of the data. Like I'll repeat, reporting is where you submit the documents, the evidence, the images, and proofs on the system before the payment is made. So.
+
+Aditya Emmanual/EMEU/PBP   18:22
+Mhm.
+Mhm.
+Okay.
+
+Abhijeet Mudila/EMEU/PBP   18:38
+These are the three life cycles. First is your current one.
+
+Aditya Emmanual/EMEU/PBP   18:41
+Just.
+
+Abhijeet Mudila/EMEU/PBP   18:42
+Number 2 is the overview of whatever you have approved so far, and the third one is the reporting data, so...
+
+Aditya Emmanual/EMEU/PBP   18:46
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   18:51
+I'll share this three with you and think of, you know, this is more like a drill down under each tab. Like you remember you said to me, execution part, under that there should be these three elements which are really, really important for them to understand where their things are as a user. Now, I told you today.
+And I shared something with them, like they should be closing out this, right?
+which I was just showing you before.
+So this is again the outcome of what we are doing over an email. Now, the email which I shared with you, it has 437, if you remember. It was from the month of March.
+
+Aditya Emmanual/EMEU/PBP   19:25
+Mm.
+Right, right, right.
+Mmh.
+
+Abhijeet Mudila/EMEU/PBP   19:33
+A total now is 625.
+And we are telling them like, please guys close 450 from till the month of March because rest of the things can wait, but these 450 are behind schedule. So all this is because nobody's governing this and that's where your tool will come in and you know, help us weaponize.
+
+Aditya Emmanual/EMEU/PBP   19:52
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   19:57
+the data.
+
+Aditya Emmanual/EMEU/PBP   19:58
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   20:00
+That's why I wanted to share this with you, like what I'm doing right now, what are my challenges? More like a rant and a gripe. Like this is what I deal with every day. And how having a system is kind of like...
+
+Aditya Emmanual/EMEU/PBP   20:07
+Uh-huh.
+Yeah.
+Mmh.
+Mm.
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   20:32
+approximately 3 to 4 hours, double check everything, validate. Once everything is mapped out, I think all I have to do is ensure that the right report is getting uploaded and we are able to kind of, you know, do it. Yeah, which brings me to one thing. How are we going to?
+
+Aditya Emmanual/EMEU/PBP   20:36
+Mhm.
+Mhm.
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   20:52
+You know, feed the data. Is it going to be via a simple upload or a batch upload which we can do regularly every day or would it be through a different mechanism? Let's say example tomorrow versus today. If things have changed, how would we refresh the dashboard?
+
+Aditya Emmanual/EMEU/PBP   21:08
+Mm.
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   21:11
+Would it be like there would be an upload thing like upload ABC over here?
+
+Aditya Emmanual/EMEU/PBP   21:16
+See, I can make it however you want, like I can make a static database in which, you know, you have to replace everything, or you know, I can make like a upload section that will automatically merge the data, but you will have to, you know, have no, no, not not feed it every day, like.
+
+Abhijeet Mudila/EMEU/PBP   21:33
+Read it everyday.
+
+Aditya Emmanual/EMEU/PBP   21:37
+feed it according to your vision, but you'll have to take a look at the data once, because you have all these, a lot of your actions, right? And basically what I'm going to be doing is ingest all of the useful data into one.
+One, you know, master table, like one master table that has all the relevant data, you know, with all the joins and all that stuff, so...
+
+Abhijeet Mudila/EMEU/PBP   22:08
+Okay.
+
+Aditya Emmanual/EMEU/PBP   22:09
+And that's what my plan is, and I can, you know...
+
+Abhijeet Mudila/EMEU/PBP   22:12
+Okay.
+
+Aditya Emmanual/EMEU/PBP   22:16
+configure it to accept new data and integrate that into the current data, providing the new data, you know, ordered and matches a specific P code and stuff like that. Yeah.
+
+Abhijeet Mudila/EMEU/PBP   22:26
+Right, structure the structure, right?
+Okay.
+
+Aditya Emmanual/EMEU/PBP   22:32
+Yeah, so...
+
+Abhijeet Mudila/EMEU/PBP   22:32
+I think that would be the easier one, like we defined a structure and people can, you know...
+upload things in future we can
+
+Aditya Emmanual/EMEU/PBP   22:40
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   22:42
+Finalize, okay, this is the exact.
+structure we need to follow because few things will change. You remember, like once it is reviewed by me, Pralhad again, there might be some progressive elaboration like, okay, why don't we add this aspect? So that is like a moving goal post, but we can, once we arrive at a...
+
+Aditya Emmanual/EMEU/PBP   22:54
+Right.
+Right.
+
+Abhijeet Mudila/EMEU/PBP   23:03
+You know, final decision and things are set in stone, like this is what the final output will look like. I think at that juncture, we can think of ways to ingest the data, like you said.
+
+Aditya Emmanual/EMEU/PBP   23:16
+Yeah, that's what I was going to say. Like, it's in like very early stages of development, even the front end hasn't been decided how it should look and stuff like that. So once you know we've fully decided that I can configure the database to properly reflect whatever, you know, mode of input.
+
+Abhijeet Mudila/EMEU/PBP   23:24
+Mmh.
+
+Aditya Emmanual/EMEU/PBP   23:34
+You guys need, I would prefer.
+
+Abhijeet Mudila/EMEU/PBP   23:34
+Yeah.
+Okay, I think I'm more or less aligned. I'm afraid, Aditya, I have to hop off into another meeting. I'm slightly overrun by two minutes. Did I answer all your questions or do you need a follow-up meeting? Because if needed, I can look for evening slot, otherwise we should be good, right?
+
+Aditya Emmanual/EMEU/PBP   23:39
+Mhm.
+Yeah, sure.
+Yeah, we should be good. Just like 30 seconds of your time. So summarizing it, meeting like basically, we decided on like 2 new features that is your RY matrix with, you know, that quadrant.
+
+Abhijeet Mudila/EMEU/PBP   24:02
+Yeah, yeah, yeah, go on, go on.
+I'll tell you one more thing. Wait, wait, you're already transcripting this right with the AI. Let it do its job. Let it recap and you ping me. If anything is missing, I can ping you, right? Don't worry.
+
+Aditya Emmanual/EMEU/PBP   24:16
+Oh.
+Mmh.
+Yeah, yeah, that that that's perfect.
+
+Abhijeet Mudila/EMEU/PBP   24:25
+Generally, it works well, right? Yeah, I haven't tested it, but I've seen your summaries. Generally, they are comprehensive.
+
+Aditya Emmanual/EMEU/PBP   24:31
+Yeah, it works, it works good, yeah.
+
+Abhijeet Mudila/EMEU/PBP   24:33
+It works good, right? So let's look at the summary. Then you put like, hey, this is a recap. I just want to see how robust or sophisticated this summaries are.
+
+Aditya Emmanual/EMEU/PBP   24:35
+Jha.
+Mhm.
+Yeah, fine, sure. I'll ping you in a while then.
+
+Abhijeet Mudila/EMEU/PBP   24:46
+Okay.
+It's a test. Let's see if this passes or not.
+
+Aditya Emmanual/EMEU/PBP   24:53
+Mhm.
+
+Abhijeet Mudila/EMEU/PBP   24:55
+All right, have a good one, buddy. Yeah. And in case you need any support, just ping me. I have a few meetings because we have our UAE delegates over here. So a few ad hoc meetings are also happening. But in any case, I'll try to make some time.
+
+Aditya Emmanual/EMEU/PBP   24:55
+Thank you.
+You too, bye-bye.
+Mm.
+Mm.
+
+Abhijeet Mudila/EMEU/PBP   25:13
+Support is needed.
+
+Aditya Emmanual/EMEU/PBP   25:15
+Yeah, that's perfect. I'll give you, you know, like the minimum viable product and like I'll run you through everything again and I'll give you like a small dashboard by the end of this week so that you guys can, you know, gauge likes.
+
+Abhijeet Mudila/EMEU/PBP   25:23
+Okay.
+
+Aditya Emmanual/EMEU/PBP   25:33
+What kind of, like, what do you need and all that? Yeah, yeah, exactly.
+
+Abhijeet Mudila/EMEU/PBP   25:33
+For this Friday, right, to share a proof of concept.
+Okay, lovely.
+
+Aditya Emmanual/EMEU/PBP   25:39
+Okay, thank you.
+
+Abhijeet Mudila/EMEU/PBP   25:41
+Yeah, yeah, awesome. I'll book some time for Friday and for tomorrow we'll keep it.
+Like, Cipla, like whenever you just ping me in the morning, like, hey, let's connect. I'll just give you a slot and we should connect, okay?
+
+Aditya Emmanual/EMEU/PBP   25:54
+Yeah, yeah, that's perfect.
+
+Abhijeet Mudila/EMEU/PBP   25:56
+Okay, awesome. Have a nice one. Cheers.
+
+Aditya Emmanual/EMEU/PBP   25:58
+Thank you.
+You too, bye bye.
+
+Aditya Emmanual/EMEU/PBP stopped transcription
+
+
+SUMAMRY-
+
+Here is a detailed summary of the meeting, organized by key topics, followed by the actionable insights discussed by Abhijeet and Aditya.
+
+### **Detailed Meeting Summary**
+
+**Financial Tracking and Variances**
+Abhijeet emphasized that the new system must prioritize the actual contracted amount over the system-generated "fair market value" (FMV). He explained that relying on the FMV recommendation has historically caused projection errors, as an FMV might suggest $2,000 or 2,145 Omani Riyals, while the finalized contract might only be for 1,500 Omani Riyals.
+
+Furthermore, Abhijeet requested that the dashboard clearly separate direct honorarium payments made to Healthcare Professionals (HCPs) from overhead expenses. For example, a $2,000 HCP payment combined with $500 in travel or refreshment overhead should be itemized, calculating total spend at $2,500. This separation will assist the business in making accurate financial provisions for the future.
+
+**Currency Normalization**
+Aditya pointed out a mismatch in the data where the Sri Lanka dataset is recorded in Sri Lankan Rupees (LKR) instead of USD. To ensure unified, "apple for apple" business reporting, Abhijeet will consult his manager, Pralhad, to provide the official company-wide conversion rate rather than relying on daily fluctuating internet rates.
+
+**Dashboard Visualizations and ROI Matrix**
+Aditya is building the platform as a self-sufficient application using third-party tools (excluding Power BI) and will consolidate data into a single master table. A major focal point for the dashboard is an ROI (Return on Investment) quadrant meant for company leadership. This matrix will classify interventions (e.g., low effort/high reward) to help decision-makers identify top performers and high-revenue "dark horses". Spotting these trends will allow Cipla to nurture rising speakers and maximize their value. Aditya will also implement visualizations tracking the seven different types of contract interventions, such as advisory boards and medical camps.
+
+**Workflow Governance and Reporting**
+Abhijeet shared his current struggle with manual daily Excel tracking, noting a massive backlog of uncompleted actions (e.g., 450 overdue items from March). To fix this governance issue, he requested that the new execution tab track three crucial life-cycle attributes:
+
+1. 
+**Request Status:** Displaying where a request currently is in the approval flow (e.g., with a first-line manager or country lead).
+
+
+2. 
+**Request Overview:** Showing whether a request is approved, rejected, or corrected.
+
+
+3. 
+**Reporting Data:** Tracking whether users have successfully uploaded post-event evidence (pictures, agendas) required before HCPs can receive payment.
+
+
+
+**AI Summary Evaluation and Next Steps**
+Towards the end of the call, Aditya began to manually summarize the action items, but Abhijeet stopped him, suggesting they use the AI transcription tool's summary feature instead. Abhijeet wants to review the AI's recap to test how robust and sophisticated the tool truly is.
+
+---
+
+### **Actionable Insights**
+
+* 
+**Implement Accurate Financial Logic:** The dashboard must calculate totals using actual contracted values instead of the automated Fair Market Value (FMV).
+
+
+* 
+**Itemize Expenses:** Create a financial breakdown that separates HCP honorariums from event overhead expenses.
+
+
+* 
+**Standardize Currency:** Abhijeet needs to secure and share the official corporate USD conversion rate for the Sri Lankan dataset from Pralhad.
+
+
+* 
+**Develop the ROI Matrix:** Aditya is to build a 4-quadrant ROI matrix to help leadership visualize high-reward HCPs and "dark horses".
+
+
+* 
+**Add Intervention Visualizations:** Aditya will add data visualizations categorizing the seven different types of contract interventions.
+
+
+* 
+**Build the 3-Tier Workflow View:** The execution tab must clearly show the request location, the approval status, and the post-event evidence reporting status.
+
+
+* 
+**Evaluate AI Summarization:** Aditya will send the AI-generated meeting summary to Abhijeet to test its accuracy.
+
+
+* 
+**Deliver Proof of Concept:** Aditya will supply a Minimum Viable Product (MVP) and a small dashboard for review by this Friday.
+
+
+* 
+**Coordinate Schedules:** Aditya will message Abhijeet tomorrow morning to schedule a quick check-in slot, and Abhijeet will specifically block out time on Friday to review the MVP, despite his busy schedule hosting UAE delegates.
