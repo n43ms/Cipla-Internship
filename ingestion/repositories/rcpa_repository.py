@@ -18,13 +18,15 @@ class RcpaRepository(CanonicalRepository):
             """
             insert into rcpa_prescriptions (
                 source_file_id, ingestion_run_id, country_id, calendar_month_id, pcode_raw,
-                pcode_normalized, doctor_name, brand_group, sku, own_or_competitor,
+                pcode_normalized, doctor_name, speciality, doctor_class, patch_name, active_status,
+                brand_group, sku, sku_detail, own_or_competitor,
                 prescription_qty, prescription_value_local, currency_code, prescription_value_usd,
                 row_count_aggregated
             )
             values (
                 :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :pcode_raw,
-                :pcode_normalized, :doctor_name, :brand_group, :sku, :own_or_competitor,
+                :pcode_normalized, :doctor_name, :speciality, :doctor_class, :patch_name, :active_status,
+                :brand_group, :sku, :sku_detail, :own_or_competitor,
                 :prescription_qty, :prescription_value_local, :currency_code, :prescription_value_usd,
                 :row_count_aggregated
             )
@@ -35,6 +37,11 @@ class RcpaRepository(CanonicalRepository):
             set
                 ingestion_run_id = excluded.ingestion_run_id,
                 doctor_name = excluded.doctor_name,
+                speciality = excluded.speciality,
+                doctor_class = excluded.doctor_class,
+                patch_name = excluded.patch_name,
+                active_status = excluded.active_status,
+                sku_detail = excluded.sku_detail,
                 prescription_qty = excluded.prescription_qty,
                 prescription_value_local = excluded.prescription_value_local,
                 prescription_value_usd = excluded.prescription_value_usd,
@@ -58,10 +65,16 @@ class RcpaRepository(CanonicalRepository):
         rows_by_key: dict[tuple[str, str], dict[str, Any]] = {}
         for record in records:
             key = (str(record["country"]), str(record["pcode_normalized"]))
+            month_start_date = record.get("month_start_date")
             rows_by_key[key] = {
                 "country_id": self.country_id(str(record["country"])),
+                "calendar_month_id": self.month_id(month_start_date) if month_start_date is not None else None,
                 "pcode_normalized": record["pcode_normalized"],
                 "latest_doctor_name": record.get("doctor_name"),
+                "speciality": record.get("speciality"),
+                "doctor_class": record.get("doctor_class"),
+                "patch_name": record.get("patch_name"),
+                "active_status": record.get("active_status"),
                 "source_count": 1,
             }
         if not rows_by_key:
@@ -69,14 +82,22 @@ class RcpaRepository(CanonicalRepository):
         statement = text(
             """
             insert into doctors (
-                country_id, pcode_normalized, latest_doctor_name, source_count, updated_at
+                country_id, pcode_normalized, latest_doctor_name, speciality, doctor_class, patch_name,
+                active_status, first_seen_month_id, last_seen_month_id, source_count, updated_at
             )
             values (
-                :country_id, :pcode_normalized, :latest_doctor_name, :source_count, now()
+                :country_id, :pcode_normalized, :latest_doctor_name, :speciality, :doctor_class, :patch_name,
+                :active_status, :calendar_month_id, :calendar_month_id, :source_count, now()
             )
             on conflict (country_id, pcode_normalized) do update
             set
                 latest_doctor_name = coalesce(excluded.latest_doctor_name, doctors.latest_doctor_name),
+                speciality = coalesce(excluded.speciality, doctors.speciality),
+                doctor_class = coalesce(excluded.doctor_class, doctors.doctor_class),
+                patch_name = coalesce(excluded.patch_name, doctors.patch_name),
+                active_status = coalesce(excluded.active_status, doctors.active_status),
+                first_seen_month_id = coalesce(doctors.first_seen_month_id, excluded.first_seen_month_id),
+                last_seen_month_id = coalesce(excluded.last_seen_month_id, doctors.last_seen_month_id),
                 source_count = doctors.source_count + 1,
                 updated_at = now()
             """

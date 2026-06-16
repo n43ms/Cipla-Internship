@@ -44,8 +44,13 @@ def load_rcpa(profile: WorkbookProfile) -> LoadResult:
                     "pcode_raw": None if row.get("pcode") is None else str(row.get("pcode")),
                     "pcode_normalized": pcode.value,
                     "doctor_name": row.get("doctor_name"),
+                    "speciality": row.get("speciality"),
+                    "doctor_class": row.get("doctor_class"),
+                    "patch_name": row.get("patch_name"),
+                    "active_status": row.get("active_status"),
                     "brand_group": brand,
                     "sku": sku,
+                    "sku_detail": row.get("sku_detail"),
                     "own_or_competitor": own_or_competitor.lower(),
                     "prescription_qty": Decimal("0"),
                     "prescription_value_local": Decimal("0"),
@@ -65,4 +70,3 @@ def _text(value: object) -> str | None:
         return None
     text = str(value).strip()
     return text or None
-

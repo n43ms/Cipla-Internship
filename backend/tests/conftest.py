@@ -24,6 +24,7 @@ def migration_files() -> list[str]:
         "0004_canonical_tables.py",
         "0005_reconciliation_ai_tables.py",
         "0006_indexes_constraints.py",
+        "0007_phase_1_3_schema_completion.py",
     ]
 
 

@@ -17,4 +17,7 @@ def test_profile_and_dry_run_ingest_cli_contracts() -> None:
     assert profile_result.exit_code == 0
     assert ingest_result.exit_code == 0
     assert "dry_run=True" in ingest_result.output
-
+    report = Path("data/reports/ingestion-report.md").read_text(encoding="utf-8")
+    assert "## Source Type Row Summary" in report
+    assert "## FX Status Summary" in report
+    assert "| LKR | official |" in report

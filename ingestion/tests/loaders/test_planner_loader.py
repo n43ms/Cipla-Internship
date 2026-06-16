@@ -12,4 +12,6 @@ def test_planner_loader_selects_nepal_canonical_sheet() -> None:
     assert result.rows_loaded == 1
     assert result.records[0]["country"] == "Nepal"
     assert result.records[0]["event_name_normalized"] == "diabetes cme"
-
+    assert result.records[0]["planned_honorarium_hcps"] == 10
+    assert result.records[0]["planned_delegate_hcps"] == 2
+    assert result.records[0]["comments"] == "priority"

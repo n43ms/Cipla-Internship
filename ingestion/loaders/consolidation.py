@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import date
+from decimal import Decimal
 
 from ingestion.loaders.common import canonical_sheet_data, iter_mapped_rows
 from ingestion.loaders.request_doctors import split_request_doctors
-from ingestion.models import LoadResult, WorkbookProfile, to_decimal
+from ingestion.models import LoadResult, WorkbookProfile, to_date, to_decimal, to_int, to_usd
 from ingestion.normalizers import (
     currency_for_country,
     month_start,
@@ -14,6 +16,9 @@ from ingestion.normalizers import (
 )
 from ingestion.schema_maps import CONSOLIDATION_SCHEMA
 from ingestion.validators import IssueCollector
+
+LKR_RATE_TO_USD = Decimal("1") / Decimal("310")
+LKR_RATE_DATE = date(2026, 6, 16)
 
 
 def load_consolidation(profile: WorkbookProfile) -> LoadResult:
@@ -42,7 +47,14 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
             request_uid = req_id or _fallback_request_uid(profile.file_hash, sheet.name, row_number, row)
             estimated = to_decimal(row.get("estimated_intervention"))
             confirmed = to_decimal(row.get("confirmed_contracted_amount"))
+            actual_total = to_decimal(row.get("actual_total_expense"))
+            actual_btu = to_decimal(row.get("actual_btu_expense"))
+            actual_btc = to_decimal(row.get("actual_btc_expense"))
             currency_code = currency_for_country(country) or "UNKNOWN"
+            fx_rate_to_usd = LKR_RATE_TO_USD if currency_code == "LKR" else None
+            fx_rate_status = "official" if currency_code == "LKR" else "missing"
+            fx_rate_source = "company" if currency_code == "LKR" else "pending_company_rate"
+            fx_rate_date = LKR_RATE_DATE if currency_code == "LKR" else None
             record = {
                 "request_key": request_uid,
                 "req_id": req_id,
@@ -51,25 +63,55 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
                 "month_start_date": month.value,
                 "rep_code": row.get("rep_code"),
                 "rep_name": row.get("rep_name"),
+                "intervention_date": to_date(row.get("intervention_date")),
+                "actual_intervention_date": to_date(row.get("actual_intervention_date")),
                 "venue": row.get("venue"),
                 "intervention_name": str(intervention_name).strip(),
                 "intervention_name_normalized": normalize_event_name(intervention_name),
                 "intervention_type": row.get("intervention_type"),
                 "intervention_sub_type": row.get("intervention_sub_type"),
+                "topic_remarks": row.get("topic_remarks"),
                 "estimated_intervention_local": estimated,
                 "confirmed_contracted_amount_local": confirmed,
                 "confirmed_vs_estimated_variance_local": (confirmed - estimated) if estimated and confirmed else None,
-                "actual_total_expense_local": to_decimal(row.get("actual_total_expense")),
-                "actual_btu_expense_local": to_decimal(row.get("actual_btu_expense")),
-                "actual_btc_expense_local": to_decimal(row.get("actual_btc_expense")),
+                "actual_total_expense_local": actual_total,
+                "actual_btu_expense_local": actual_btu,
+                "actual_btc_expense_local": actual_btc,
                 "association_amount_local": to_decimal(row.get("association_amount")),
+                "association_contract_id": row.get("association_contract_id"),
+                "association_deliverables": row.get("association_deliverables"),
                 "currency_code": currency_code,
-                "fx_rate_status": "official" if currency_code == "LKR" else "missing",
+                "fx_rate_to_usd": fx_rate_to_usd,
+                "fx_rate_source": fx_rate_source,
+                "fx_rate_date": fx_rate_date,
+                "fx_rate_status": fx_rate_status,
+                "estimated_intervention_usd": to_usd(estimated, fx_rate_to_usd),
+                "confirmed_contracted_amount_usd": to_usd(confirmed, fx_rate_to_usd),
+                "actual_total_expense_usd": to_usd(actual_total, fx_rate_to_usd),
+                "actual_btu_expense_usd": to_usd(actual_btu, fx_rate_to_usd),
+                "actual_btc_expense_usd": to_usd(actual_btc, fx_rate_to_usd),
+                "direct_hcp_spend_local": actual_btu,
+                "overhead_spend_local": actual_btc,
+                "total_roi_spend_local": actual_total,
+                "direct_hcp_spend_usd": to_usd(actual_btu, fx_rate_to_usd),
+                "overhead_spend_usd": to_usd(actual_btc, fx_rate_to_usd),
+                "total_roi_spend_usd": to_usd(actual_total, fx_rate_to_usd),
+                "expected_customer_count": to_int(row.get("expected_customer_count")),
+                "attended_customer_count": to_int(row.get("attended_customer_count")),
+                "expected_category_raw": row.get("expected_category_raw"),
+                "attended_category_raw": row.get("attended_category_raw"),
                 "request_approval_status": normalize_workflow_status(row.get("request_approval_status")),
                 "request_confirmation_status": normalize_workflow_status(row.get("request_confirmation_status")),
                 "post_approval_status": normalize_workflow_status(row.get("post_approval_status")),
                 "post_confirmation_status": normalize_workflow_status(row.get("post_confirmation_status")),
+                "expense_submitted_date": to_date(row.get("expense_submitted_date")),
+                "expense_confirmed_date": to_date(row.get("expense_confirmed_date")),
                 "current_owner_stage": row.get("current_owner_stage"),
+                "approval_status": normalize_workflow_status(row.get("approval_status")),
+                "confirmation_status": normalize_workflow_status(row.get("confirmation_status")),
+                "cancellation_reason": row.get("cancellation_reason"),
+                "city": row.get("city"),
+                "state": row.get("state"),
                 "approval_chain_json": {},
                 "source_row_number": row_number,
             }
@@ -111,4 +153,3 @@ def _clean_text(value: object) -> str | None:
 def _fallback_request_uid(file_hash: str, sheet_name: str, row_number: int, row: dict[str, object]) -> str:
     payload = f"{file_hash}|{sheet_name}|{row_number}|{row.get('country')}|{row.get('month')}|{row.get('intervention_name')}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
-

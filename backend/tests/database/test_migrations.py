@@ -24,3 +24,21 @@ def test_official_lkr_company_rate_seed_is_present() -> None:
     assert "1.0 / 310.0" in seed_sql
     assert "'official'" in seed_sql
     assert "'company'" in seed_sql
+
+
+def test_phase_1_3_schema_completion_migration_contains_required_columns() -> None:
+    migration_sql = Path("database/migrations/versions/0007_phase_1_3_schema_completion.py").read_text(
+        encoding="utf-8"
+    )
+    for column_name in [
+        "planned_honorarium_hcps",
+        "yp_total_doctors",
+        "fx_rate_source",
+        "confirmed_contracted_amount_usd",
+        "direct_hcp_spend_local",
+        "expense_confirmed_date",
+        "first_seen_month_id",
+        "speciality",
+        "sku_detail",
+    ]:
+        assert column_name in migration_sql

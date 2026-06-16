@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -157,3 +157,29 @@ def to_int(value: Any) -> int | None:
         return None
     return int(decimal_value)
 
+
+def to_date(value: Any) -> date | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    serial = to_decimal(value)
+    if serial is not None and serial == serial.to_integral_value() and serial > 0:
+        return date(1899, 12, 30) + timedelta(days=int(serial))
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none", "null", "-"}:
+        return None
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%m/%d/%Y", "%d %b %Y", "%d-%b-%Y"):
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def to_usd(value: Decimal | None, rate_to_usd: Decimal | None) -> Decimal | None:
+    if value is None or rate_to_usd is None:
+        return None
+    return (value * rate_to_usd).quantize(Decimal("0.01"))

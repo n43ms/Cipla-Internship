@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from sqlalchemy import text
@@ -35,18 +36,25 @@ class CanonicalRepository:
         return self._months[key]
 
     def insert_plan_events(self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]) -> None:
+        self.session.execute(text("delete from plan_events where source_file_id = :source_file_id"), {"source_file_id": source_file_id})
         self._execute_many(
             """
             insert into plan_events (
                 source_file_id, ingestion_run_id, country_id, calendar_month_id, fiscal_year, therapy,
                 event_type, event_name, event_name_normalized, central_or_local, brand_name_1, brand_name_2,
-                planned_total_hcps, planned_patients, planned_pharmacies, total_planned_cost_usd,
+                planned_honorarium_hcps, planned_delegate_hcps, planned_total_hcps, planned_patients,
+                planned_pharmacies, honorarium_cost_per_hcp_usd, total_honorarium_cost_usd,
+                operational_cost_per_unit_usd, total_operational_cost_usd, total_planned_cost_usd,
+                comments, country_comment, ho_finalized,
                 source_sheet_name, source_row_number
             )
             values (
                 :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :fiscal_year, :therapy,
                 :event_type, :event_name, :event_name_normalized, :central_or_local, :brand_name_1, :brand_name_2,
-                :planned_total_hcps, :planned_patients, :planned_pharmacies, :total_planned_cost_usd,
+                :planned_honorarium_hcps, :planned_delegate_hcps, :planned_total_hcps, :planned_patients,
+                :planned_pharmacies, :honorarium_cost_per_hcp_usd, :total_honorarium_cost_usd,
+                :operational_cost_per_unit_usd, :total_operational_cost_usd, :total_planned_cost_usd,
+                :comments, :country_comment, :ho_finalized,
                 :source_sheet_name, :source_row_number
             )
             """,
@@ -58,16 +66,24 @@ class CanonicalRepository:
     def insert_execution_snapshots(
         self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
     ) -> None:
+        self.session.execute(
+            text("delete from execution_snapshots where source_file_id = :source_file_id"),
+            {"source_file_id": source_file_id},
+        )
         self._execute_many(
             """
             insert into execution_snapshots (
                 source_file_id, ingestion_run_id, country_id, calendar_month_id, therapy, event_type,
                 event_name, event_name_normalized, planned_hcps, engaged_hcps, raised_request_count,
+                yp_total_doctors, raised_total_doctors, approved_total_doctors, request_total_doctors,
+                event_created_count,
                 snapshot_source, status_source_value, normalized_status, source_sheet_name, source_row_number
             )
             values (
                 :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :therapy, :event_type,
                 :event_name, :event_name_normalized, :planned_hcps, :engaged_hcps, :raised_request_count,
+                :yp_total_doctors, :raised_total_doctors, :approved_total_doctors, :request_total_doctors,
+                :event_created_count,
                 :snapshot_source, :status_source_value, :normalized_status, :source_sheet_name, :source_row_number
             )
             """,
@@ -85,31 +101,101 @@ class CanonicalRepository:
             """
             insert into execution_requests (
                 source_file_id, ingestion_run_id, req_id, request_uid, country_id, calendar_month_id,
-                rep_code, rep_name, venue, intervention_name, intervention_name_normalized,
+                rep_code, rep_name, intervention_date, actual_intervention_date, venue,
+                intervention_name, intervention_name_normalized,
                 intervention_type, intervention_sub_type, estimated_intervention_local,
                 confirmed_contracted_amount_local, confirmed_vs_estimated_variance_local,
                 actual_total_expense_local, actual_btu_expense_local, actual_btc_expense_local,
-                association_amount_local, currency_code, fx_rate_status, request_approval_status,
+                association_amount_local, topic_remarks, association_contract_id, association_deliverables,
+                currency_code, fx_rate_to_usd, fx_rate_source, fx_rate_date, fx_rate_status,
+                estimated_intervention_usd, confirmed_contracted_amount_usd, actual_total_expense_usd,
+                actual_btu_expense_usd, actual_btc_expense_usd, direct_hcp_spend_local,
+                overhead_spend_local, total_roi_spend_local, direct_hcp_spend_usd, overhead_spend_usd,
+                total_roi_spend_usd, expected_customer_count, attended_customer_count,
+                expected_category_raw, attended_category_raw, request_approval_status,
                 request_confirmation_status, post_approval_status, post_confirmation_status,
-                current_owner_stage, approval_chain_json, source_row_number
+                expense_submitted_date, expense_confirmed_date, current_owner_stage, approval_status,
+                confirmation_status, cancellation_reason, city, state, approval_chain_json, source_row_number
             )
             values (
                 :source_file_id, :ingestion_run_id, :req_id, :request_uid, :country_id, :calendar_month_id,
-                :rep_code, :rep_name, :venue, :intervention_name, :intervention_name_normalized,
+                :rep_code, :rep_name, :intervention_date, :actual_intervention_date, :venue,
+                :intervention_name, :intervention_name_normalized,
                 :intervention_type, :intervention_sub_type, :estimated_intervention_local,
                 :confirmed_contracted_amount_local, :confirmed_vs_estimated_variance_local,
                 :actual_total_expense_local, :actual_btu_expense_local, :actual_btc_expense_local,
-                :association_amount_local, :currency_code, :fx_rate_status, :request_approval_status,
+                :association_amount_local, :topic_remarks, :association_contract_id, :association_deliverables,
+                :currency_code, :fx_rate_to_usd, :fx_rate_source, :fx_rate_date, :fx_rate_status,
+                :estimated_intervention_usd, :confirmed_contracted_amount_usd, :actual_total_expense_usd,
+                :actual_btu_expense_usd, :actual_btc_expense_usd, :direct_hcp_spend_local,
+                :overhead_spend_local, :total_roi_spend_local, :direct_hcp_spend_usd, :overhead_spend_usd,
+                :total_roi_spend_usd, :expected_customer_count, :attended_customer_count,
+                :expected_category_raw, :attended_category_raw, :request_approval_status,
                 :request_confirmation_status, :post_approval_status, :post_confirmation_status,
-                :current_owner_stage, cast(:approval_chain_json as json), :source_row_number
+                :expense_submitted_date, :expense_confirmed_date, :current_owner_stage, :approval_status,
+                :confirmation_status, :cancellation_reason, :city, :state, cast(:approval_chain_json as json),
+                :source_row_number
             )
             on conflict (request_uid) do update
             set
                 ingestion_run_id = excluded.ingestion_run_id,
                 source_file_id = excluded.source_file_id,
                 req_id = excluded.req_id,
+                country_id = excluded.country_id,
+                calendar_month_id = excluded.calendar_month_id,
+                rep_code = excluded.rep_code,
+                rep_name = excluded.rep_name,
+                intervention_date = excluded.intervention_date,
+                actual_intervention_date = excluded.actual_intervention_date,
+                venue = excluded.venue,
                 intervention_name = excluded.intervention_name,
-                intervention_name_normalized = excluded.intervention_name_normalized
+                intervention_name_normalized = excluded.intervention_name_normalized,
+                intervention_type = excluded.intervention_type,
+                intervention_sub_type = excluded.intervention_sub_type,
+                estimated_intervention_local = excluded.estimated_intervention_local,
+                confirmed_contracted_amount_local = excluded.confirmed_contracted_amount_local,
+                confirmed_vs_estimated_variance_local = excluded.confirmed_vs_estimated_variance_local,
+                actual_total_expense_local = excluded.actual_total_expense_local,
+                actual_btu_expense_local = excluded.actual_btu_expense_local,
+                actual_btc_expense_local = excluded.actual_btc_expense_local,
+                association_amount_local = excluded.association_amount_local,
+                topic_remarks = excluded.topic_remarks,
+                association_contract_id = excluded.association_contract_id,
+                association_deliverables = excluded.association_deliverables,
+                currency_code = excluded.currency_code,
+                fx_rate_to_usd = excluded.fx_rate_to_usd,
+                fx_rate_source = excluded.fx_rate_source,
+                fx_rate_date = excluded.fx_rate_date,
+                fx_rate_status = excluded.fx_rate_status,
+                estimated_intervention_usd = excluded.estimated_intervention_usd,
+                confirmed_contracted_amount_usd = excluded.confirmed_contracted_amount_usd,
+                actual_total_expense_usd = excluded.actual_total_expense_usd,
+                actual_btu_expense_usd = excluded.actual_btu_expense_usd,
+                actual_btc_expense_usd = excluded.actual_btc_expense_usd,
+                direct_hcp_spend_local = excluded.direct_hcp_spend_local,
+                overhead_spend_local = excluded.overhead_spend_local,
+                total_roi_spend_local = excluded.total_roi_spend_local,
+                direct_hcp_spend_usd = excluded.direct_hcp_spend_usd,
+                overhead_spend_usd = excluded.overhead_spend_usd,
+                total_roi_spend_usd = excluded.total_roi_spend_usd,
+                expected_customer_count = excluded.expected_customer_count,
+                attended_customer_count = excluded.attended_customer_count,
+                expected_category_raw = excluded.expected_category_raw,
+                attended_category_raw = excluded.attended_category_raw,
+                request_approval_status = excluded.request_approval_status,
+                request_confirmation_status = excluded.request_confirmation_status,
+                post_approval_status = excluded.post_approval_status,
+                post_confirmation_status = excluded.post_confirmation_status,
+                expense_submitted_date = excluded.expense_submitted_date,
+                expense_confirmed_date = excluded.expense_confirmed_date,
+                current_owner_stage = excluded.current_owner_stage,
+                approval_status = excluded.approval_status,
+                confirmation_status = excluded.confirmation_status,
+                cancellation_reason = excluded.cancellation_reason,
+                city = excluded.city,
+                state = excluded.state,
+                approval_chain_json = excluded.approval_chain_json,
+                source_row_number = excluded.source_row_number
             """
         )
         params = [self._params(ingestion_run_id, source_file_id, record) for record in records]
@@ -175,7 +261,7 @@ class CanonicalRepository:
         params["source_file_id"] = source_file_id
         params["country_id"] = self.country_id(str(record["country"]))
         params["calendar_month_id"] = self.month_id(record["month_start_date"])
-        params["approval_chain_json"] = "{}"
+        params["approval_chain_json"] = json.dumps(record.get("approval_chain_json") or {})
         return params
 
 

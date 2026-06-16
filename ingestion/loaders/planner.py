@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ingestion.loaders.common import canonical_sheet_data, iter_mapped_rows
-from ingestion.models import LoadResult, WorkbookProfile, to_int
+from ingestion.models import LoadResult, WorkbookProfile, to_decimal, to_int
 from ingestion.normalizers import fiscal_year_for, month_start, normalize_country_name, normalize_event_name
 from ingestion.schema_maps import PLANNER_SCHEMA
 from ingestion.validators import IssueCollector
@@ -40,10 +40,19 @@ def load_planner(profile: WorkbookProfile) -> LoadResult:
                     "central_or_local": row.get("central_or_local"),
                     "brand_name_1": row.get("brand_name_1"),
                     "brand_name_2": row.get("brand_name_2"),
+                    "planned_honorarium_hcps": to_int(row.get("planned_honorarium_hcps")),
+                    "planned_delegate_hcps": to_int(row.get("planned_delegate_hcps")),
                     "planned_total_hcps": to_int(row.get("planned_total_hcps")),
                     "planned_patients": to_int(row.get("planned_patients")),
                     "planned_pharmacies": to_int(row.get("planned_pharmacies")),
-                    "total_planned_cost_usd": row.get("total_planned_cost_usd"),
+                    "honorarium_cost_per_hcp_usd": to_decimal(row.get("honorarium_cost_per_hcp_usd")),
+                    "total_honorarium_cost_usd": to_decimal(row.get("total_honorarium_cost_usd")),
+                    "operational_cost_per_unit_usd": to_decimal(row.get("operational_cost_per_unit_usd")),
+                    "total_operational_cost_usd": to_decimal(row.get("total_operational_cost_usd")),
+                    "total_planned_cost_usd": to_decimal(row.get("total_planned_cost_usd")),
+                    "comments": row.get("comments"),
+                    "country_comment": row.get("country_comment"),
+                    "ho_finalized": row.get("ho_finalized"),
                     "source_sheet_name": sheet.name,
                     "source_row_number": row_number,
                 }

@@ -53,6 +53,8 @@ def profile_report_markdown(profiles: list[WorkbookProfile]) -> str:
 
 
 def ingestion_report_markdown(summary: IngestionSummary) -> str:
+    source_rows = _source_row_summary(summary)
+    fx_rows = _fx_summary(summary)
     lines = [
         "# Ingestion Report",
         "",
@@ -65,11 +67,39 @@ def ingestion_report_markdown(summary: IngestionSummary) -> str:
         f"- Errors: `{summary.error_count}`",
         "- Official Sri Lanka FX: `1 USD = 310 LKR`",
         "",
-        "## Files",
+        "## Source Type Row Summary",
         "",
-        "| File | Source | Canonical Sheets | Rows Loaded | Issues |",
-        "|---|---|---|---:|---:|",
+        "| Source Type | Files | Rows Seen | Rows Loaded | Rows Skipped |",
+        "|---|---:|---:|---:|---:|",
     ]
+    for source_type, stats in sorted(source_rows.items()):
+        lines.append(
+            f"| {source_type} | {stats['files']} | {stats['rows_seen']} | "
+            f"{stats['rows_loaded']} | {stats['rows_skipped']} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## FX Status Summary",
+            "",
+            "| Currency | FX Status | Rows |",
+            "|---|---|---:|",
+        ]
+    )
+    if fx_rows:
+        for (currency, status), count in sorted(fx_rows.items()):
+            lines.append(f"| {currency} | {status} | {count} |")
+    else:
+        lines.append("| none | none | 0 |")
+    lines.extend(
+        [
+            "",
+            "## Files",
+            "",
+            "| File | Source | Canonical Sheets | Rows Loaded | Issues |",
+            "|---|---|---|---:|---:|",
+        ]
+    )
     for profile, result in zip(summary.profiles, summary.load_results, strict=False):
         issue_count = len(result.issues) if result else 0
         rows_loaded = result.rows_loaded if result else 0
@@ -92,3 +122,29 @@ def _append_issues(lines: list[str], result: LoadResult) -> None:
             f"{issue.sheet_name or ''} | {issue.row_number or ''} |"
         )
     lines.append("")
+
+
+def _source_row_summary(summary: IngestionSummary) -> dict[str, dict[str, int]]:
+    stats: dict[str, dict[str, int]] = {}
+    for profile, result in zip(summary.profiles, summary.load_results, strict=False):
+        source_stats = stats.setdefault(
+            profile.source_type,
+            {"files": 0, "rows_seen": 0, "rows_loaded": 0, "rows_skipped": 0},
+        )
+        source_stats["files"] += 1
+        source_stats["rows_seen"] += result.rows_seen
+        source_stats["rows_loaded"] += result.rows_loaded
+        source_stats["rows_skipped"] += result.rows_skipped
+    return stats
+
+
+def _fx_summary(summary: IngestionSummary) -> dict[tuple[str, str], int]:
+    stats: dict[tuple[str, str], int] = {}
+    for result in summary.load_results:
+        for record in result.records:
+            currency = record.get("currency_code")
+            status = record.get("fx_rate_status")
+            if currency and status:
+                key = (str(currency), str(status))
+                stats[key] = stats.get(key, 0) + 1
+    return stats

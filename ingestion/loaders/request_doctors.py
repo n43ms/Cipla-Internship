@@ -34,6 +34,9 @@ def split_request_doctors(
     for index in range(count):
         pcode_raw = pcodes[index] if index < len(pcodes) else None
         pcode = normalize_pcode(pcode_raw)
+        parse_status = "parsed" if pcode.value else "missing_pcode"
+        if pcode.status in {"ambiguous", "invalid"}:
+            parse_status = pcode.status
         records.append(
             {
                 "request_key": request_key,
@@ -42,9 +45,8 @@ def split_request_doctors(
                 "doctor_class_raw": classes[index] if index < len(classes) else None,
                 "pcode_raw": None if pcode_raw is None else str(pcode_raw),
                 "pcode_normalized": pcode.value,
-                "parse_status": pcode.status if pcode.value else "missing_pcode",
+                "parse_status": parse_status,
                 "source_position": index + 1,
             }
         )
     return records
-

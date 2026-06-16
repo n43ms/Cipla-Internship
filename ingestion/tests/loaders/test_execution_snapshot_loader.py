@@ -12,4 +12,5 @@ def test_execution_loader_maps_may_status_values() -> None:
     assert result.rows_loaded == 1
     assert result.records[0]["normalized_status"] == "executed"
     assert result.records[0]["country"] == "Nepal"
-
+    assert result.records[0]["yp_total_doctors"] == 15
+    assert result.records[0]["approved_total_doctors"] == 12
