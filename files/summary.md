@@ -68,8 +68,8 @@ Excel / XLSB files
 - AI only summarizes trusted backend results and must refuse unsupported questions.
 - RCPA rows are aggregated before database persistence.
 - Pcodes are stored as text, not numbers.
-- Currency values preserve local currency; USD values are only used when FX rates exist.
-- Temporary FX rates are allowed but must be marked `provisional`.
+- Currency values preserve local currency; Sri Lanka/LKR USD values use the official company rate `1 USD = 310 LKR`, and other USD values are used only when FX rates exist.
+- Temporary FX rates for non-LKR currencies are allowed but must be marked `provisional`; LKR is official at `1 USD = 310 LKR`.
 
 ## Main Build Phases From tasks.md
 

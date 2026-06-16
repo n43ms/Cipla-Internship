@@ -32,15 +32,15 @@
 
 ## Decision: Static Exchange-Rate Seeds for MVP
 
-**Rationale**: Currency normalization is needed for cross-country comparison, but live FX integration is not necessary for the MVP. A static seed file with one representative rate per supported currency keeps monetary logic explicit and testable while still showing missing-FX warnings when rates are absent.
+**Rationale**: Currency normalization is needed for cross-country comparison, but live FX integration is not necessary for the MVP. The LKR seed must use the company-approved rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`, `source = company`, `rate_status = official`). Other currencies may use documented provisional seeds or remain missing until company-approved rates are supplied.
 
 **Alternatives considered**: Live FX API integration was rejected as a deployment and reliability distraction. Ignoring FX entirely was rejected because it would make cross-country money charts misleading.
 
-## Decision: Provisional Manual FX Until Official Company Rate Arrives
+## Decision: Official Company LKR FX Rate
 
-**Rationale**: The transcript confirms that Cipla wants a common USD denominator, but the conversion rate should come from Pralhad/company guidance rather than daily internet rates. Until that official rate is provided, the system may use a manually seeded rate only when it is visibly marked `provisional`.
+**Rationale**: The user has now provided the company-approved Sri Lanka exchange rate. LKR conversion must use `1 USD = 310 LKR` everywhere, stored as `rate_to_usd = 1/310`, `source = company`, and `rate_status = official`. This removes ambiguity for Sri Lanka while preserving stable business reporting.
 
-**Alternatives considered**: Live internet rates were rejected because they create moving business numbers. Blocking all USD views was considered safer but rejected for MVP practicality because the user chose temporary manual rates with a provisional label.
+**Alternatives considered**: Keeping LKR provisional was rejected because an official company rate is now available. Live internet rates remain rejected because they create moving business numbers. Other currencies may remain provisional or missing until company-approved rates are supplied.
 
 ## Decision: Confirmed + BTU/BTC Financial Mapping
 

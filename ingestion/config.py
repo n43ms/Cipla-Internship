@@ -14,6 +14,13 @@ class IngestionSettings(BaseSettings):
     data_dir: Path = Field(default=Path("data/raw"), alias="DATA_DIR")
     processed_data_dir: Path = Field(default=Path("data/processed"), alias="PROCESSED_DATA_DIR")
     reports_dir: Path = Field(default=Path("data/reports"), alias="REPORTS_DIR")
+    company_lkr_per_usd: float = Field(default=310.0, alias="COMPANY_LKR_PER_USD")
+
+    def redacted_dict(self) -> dict[str, object]:
+        values = self.model_dump()
+        if values.get("database_url"):
+            values["database_url"] = "***"
+        return values
 
 
 @lru_cache

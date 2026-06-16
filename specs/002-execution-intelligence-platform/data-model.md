@@ -148,8 +148,8 @@ Fields:
 Validation:
 
 - MVP uses static seed rows only, not a live FX integration,
-- seed one representative rate per supported currency with a documented `rate_date`, `source`, and `rate_status`,
-- temporary manual rates are allowed only with `rate_status = provisional`; official company-approved rates use `rate_status = official`,
+- seed LKR with the official company rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`), `source = company`, and `rate_status = official`,
+- temporary manual rates are allowed only for currencies without company-approved rates and must use `rate_status = provisional`; official company-approved rates use `rate_status = official`,
 - USD fields stay null when FX is unavailable,
 - cross-country views must expose missing-FX warnings.
 

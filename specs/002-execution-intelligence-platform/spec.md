@@ -17,7 +17,7 @@
 ### Session 2026-06-15
 
 - Q: Which consolidation columns should drive contracted amount and spend split? -> A: Use `APPROVE/CONFIRMED TOTAL INTERVENTION` as the confirmed/contracted amount, `ESTIMATED INTERVENTION` as the estimated/FMV-like reference, `ACTUAL EXPENSE AGAINST BTU` as direct HCP/BTU spend, `TOTAL ACTUAL BTC EXPENSE` as overhead/BTC spend, and `TOTAL ACTUAL EXPENSES FOR INTERVENTION` as total actual spend.
-- Q: How should USD conversion work until Pralhad shares the official company rate? -> A: Use a temporary manual FX seed marked `provisional`; replace it later with the official company-approved rate and keep warnings visible while provisional.
+- Q: What official company exchange rate should be used for Sri Lanka? -> A: Use the company-approved rate `1 USD = 310 LKR` everywhere for Sri Lanka/LKR conversion. Store this as an official static exchange-rate seed (`rate_to_usd = 1/310`) and keep provisional/missing-FX warnings only for currencies without company-approved rates.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -139,7 +139,7 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - Post-event reporting/proof status is inferred from report approval/confirmation and expense submission/confirmation columns; actual proof images/agendas are not present in the supplied workbook.
 - Intervention types currently include eight observed values, not exactly seven; the system must be data-driven rather than hard-coded to seven.
 - Currency values are local by country and cannot be compared across countries unless normalized.
-- USD normalization must use official company FX when available; before that, manually seeded rates must be visibly marked provisional.
+- USD normalization for LKR must use the official company rate `1 USD = 310 LKR`; currencies without company-approved rates must remain visibly provisional or missing.
 - RCPA coverage may be absent for a doctor, country, month, or brand.
 - Ingestion may be stale, partially successful, or completed with warnings.
 - AI questions may request unsupported facts, causal claims, or calculations not present in trusted data.
@@ -161,7 +161,7 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **FR-010a**: System MUST support Excel serial-number dates in month normalization, including RCPA files where the month cell is numeric rather than a formatted string.
 - **FR-011**: System MUST store Pcodes as raw and normalized text, never as business identifiers that depend on numeric precision.
 - **FR-012**: System MUST preserve local currency values and currency codes, and MUST distinguish local-currency metrics from normalized monetary metrics.
-- **FR-012a**: MVP exchange rates MUST be loaded from a documented static seed file with one representative rate per supported currency; live FX feeds are out of MVP scope.
+- **FR-012a**: MVP exchange rates MUST be loaded from a documented static seed file; LKR MUST use the official company rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`) and live FX feeds are out of MVP scope.
 - **FR-013**: System MUST reconcile plan events, execution snapshots, and consolidation requests using explicit match records that include match method, confidence, status, source references, and notes.
 - **FR-014**: System MUST expose weak and unmatched event records as first-class data quality outputs rather than hiding them from dashboard metrics.
 - **FR-015**: System MUST provide execution KPIs covering planned events, matched events, unmatched events, executed events, action-due events, planned HCPs, engaged HCPs, HCP execution rate, event execution rate, and match coverage.
@@ -188,7 +188,7 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **FR-028**: System MUST document a data dictionary, ingestion runbook, deployment guide, and demo validation flow.
 - **FR-029**: MVP deployment MUST be protected from public access through a simple demo-appropriate access control such as deployment-provider protection, a shared password, or an allowlist; full user accounts and role-based access remain out of MVP.
 - **FR-030**: System MUST preserve `Association Amount`, `Association Contract ID`, and `Association Deliverables` separately for association/event rows and MUST NOT use them as the default contracted HCP amount unless a later business rule explicitly changes this.
-- **FR-031**: System MUST support provisional manual FX seed rates with `fx_rate_status = provisional`, and MUST distinguish them from future official company-approved FX rates.
+- **FR-031**: System MUST store LKR with `fx_rate_status = official`, `source = company`, and the rate `1 USD = 310 LKR`; provisional manual FX seed rates remain allowed only for currencies without company-approved rates.
 
 ### Architecture Corrections and Clarifications
 
@@ -256,5 +256,5 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - The product must be deployable as a dashboard and backend service while ingestion remains a local controlled operation for MVP.
 - Real Cipla source workbooks are confidential project inputs and must not be committed; test fixtures should be synthetic and small.
 - Current supplied consolidation data is sufficient for request workflow and post-event reporting status, but not for inspecting actual proof image or agenda content.
-- Temporary manual FX seeds are allowed for MVP if visibly marked provisional; official company FX rates from Pralhad replace them when available.
+- The LKR seed is no longer provisional: Sri Lanka/LKR conversion must use `1 USD = 310 LKR`. Temporary manual FX seeds are allowed only for other currencies without company-approved rates and must be visibly marked provisional.
 - The final technology choices and contracts will be detailed in the planning phase, but this specification defines the complete user value, data behavior, constraints, and quality obligations.

@@ -70,7 +70,7 @@ Required fields:
 - missing-FX flag
 - FX rate date
 - FX rate source
-- FX rate status: `official`, `provisional`, or `missing`
+- FX rate status: `official`, `provisional`, or `missing`; LKR must be `official` at `1 USD = 310 LKR`
 
 ## Workflow Governance
 
@@ -148,7 +148,7 @@ Required fields:
 - unmatched records by source
 - missing-FX warning
 - Excel serial month parse count
-- static FX seed date
+- static FX seed date, including official LKR company rate date
 - provisional FX count
 - BTU/BTC reconciliation issue count
 - missing confirmed/contracted amount count

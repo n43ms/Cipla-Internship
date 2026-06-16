@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 
 from backend.app.config import get_settings
+from backend.app.routers import register_routers
+from backend.app.utils.errors import register_exception_handlers
 
 
 def create_app() -> FastAPI:
@@ -11,9 +13,8 @@ def create_app() -> FastAPI:
         debug=settings.app_env == "local",
     )
 
-    @app.get("/api/health")
-    def health() -> dict[str, str]:
-        return {"status": "ok"}
+    register_exception_handlers(app)
+    register_routers(app)
 
     return app
 

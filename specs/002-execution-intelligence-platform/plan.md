@@ -37,7 +37,7 @@ Transcript 2026-06-15 adds confirmed financial governance scope: budget and ROI 
 
 **Constraints**: Real workbooks and generated extracts must not enter git; service-role database credentials and AI keys remain server-side; no browser upload in MVP; no AI calculation of KPIs; cross-country money comparisons require normalized currency or explicit warning; protected demo access is required for deployment.
 
-**Transcript-Verified Data Constraints**: `APPROVE/CONFIRMED TOTAL INTERVENTION` is the contracted/confirmed amount; `ESTIMATED INTERVENTION` is estimated/FMV-like reference only; `ACTUAL EXPENSE AGAINST BTU` is direct HCP/BTU spend; `TOTAL ACTUAL BTC EXPENSE` is overhead/BTC spend; `TOTAL ACTUAL EXPENSES FOR INTERVENTION` is total actual spend; `Association Amount` is preserved separately; manual FX may be used only with `provisional` status until official company FX is supplied.
+**Transcript-Verified Data Constraints**: `APPROVE/CONFIRMED TOTAL INTERVENTION` is the contracted/confirmed amount; `ESTIMATED INTERVENTION` is estimated/FMV-like reference only; `ACTUAL EXPENSE AGAINST BTU` is direct HCP/BTU spend; `TOTAL ACTUAL BTC EXPENSE` is overhead/BTC spend; `TOTAL ACTUAL EXPENSES FOR INTERVENTION` is total actual spend; `Association Amount` is preserved separately; LKR must use the official company rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`) with `fx_rate_status = official`; other currencies may remain provisional or missing until company rates are supplied.
 
 **Scale/Scope**: MVP supports Nepal and Sri Lanka as primary markets, Myanmar as modeled/ingested source coverage where present, FY27 planner analysis, execution data from November 2025 onward, historical Nepal/Myanmar RCPA baseline from April 2024 through March 2025, and current RCPA through March 2026.
 
@@ -64,7 +64,7 @@ Transcript 2026-06-15 adds confirmed financial governance scope: budget and ROI 
 6. AI query logs must store compact structured context summaries, not raw prompts containing sensitive workbook data.
 7. Manual match editing is deferred. Therefore unmatched and weak matches must be sufficiently visible for operational review from day one.
 8. Excel serial-number dates are real source data in current RCPA files. The month normalizer must parse serials such as `45772` into canonical calendar months and test them explicitly.
-9. FX conversion is static-seeded for MVP. Seed one representative rate per supported currency and expose missing-FX flags rather than adding a live exchange-rate integration.
+9. FX conversion is static-seeded for MVP. Seed LKR using the official company rate `1 USD = 310 LKR`; seed other currencies only when a documented company/provisional rate exists, and expose missing-FX flags rather than adding a live exchange-rate integration.
 10. `question_redacted` in AI logs requires concrete masking rules for Pcodes, monetary values, and likely doctor-name spans before storage.
 11. Sri Lanka May execution must be derived from consolidation requests in a deterministic, labeled path because no monthly execution country tab exists.
 12. RCPA aggregation must be idempotent through an explicit unique conflict target at the aggregate grain.
@@ -191,7 +191,7 @@ Exit criteria:
 
 - database can be rebuilt from migrations,
 - uniqueness rules reflect country-scoped Pcodes and run/file separation,
-- static exchange-rate seeds exist for `NPR`, `LKR`, `MMK`, `OMR`, `AED`, and `MYR` with documented `rate_date` and source label,
+- static exchange-rate seeds include official LKR at `1 USD = 310 LKR` with documented `rate_date`, `source = company`, and `rate_status = official`; other supported currencies have documented provisional or missing status,
 - materialized views compile on empty or seeded data.
 
 ### Phase 3: Ingestion MVP

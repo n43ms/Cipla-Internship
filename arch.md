@@ -299,7 +299,7 @@ The final dashboard should show:
 - planned vs confirmed vs actual budget,
 - confirmed-vs-estimated variance,
 - BTU/BTC spend split,
-- provisional/missing FX warnings,
+- official LKR FX at `1 USD = 310 LKR`, plus provisional/missing FX warnings for other currencies,
 - doctor engagement and RCPA prescription behavior,
 - ROI segments,
 - ROI quadrant,

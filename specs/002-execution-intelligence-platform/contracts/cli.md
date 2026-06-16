@@ -99,7 +99,7 @@ Output:
 - Pcode coverage,
 - RCPA coverage,
 - missing-FX warnings.
-- provisional-FX warnings,
+- official LKR FX confirmation and provisional-FX warnings for non-official rates,
 - confirmed-vs-estimated variance summary,
 - BTU/BTC reconciliation warning summary,
 - workflow governance status summary,

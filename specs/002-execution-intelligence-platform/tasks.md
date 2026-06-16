@@ -37,35 +37,35 @@
 
 **Critical**: No user story implementation should start until this phase is complete.
 
-- [ ] T015 Initialize Alembic migration environment and DATABASE_URL loading in `alembic.ini` and `database/migrations/env.py`
-- [ ] T016 Create SQLAlchemy engine/session helpers, transaction utilities, and retry-safe connection handling in `backend/app/database.py` and `ingestion/database.py`
-- [ ] T017 Create shared settings models with safe environment-variable handling and secret redaction in `backend/app/config.py` and `ingestion/config.py`
-- [ ] T018 Create base database migration for schemas, UUID extension, audit timestamps, and enum types in `database/migrations/versions/0001_base_schema.py`
-- [ ] T019 Create audit/source migration for `ingestion_runs`, reusable `source_files`, `ingestion_run_files`, and `validation_errors` in `database/migrations/versions/0002_audit_source_tables.py`
-- [ ] T020 Create reference migration for `countries`, `calendar_months`, and `exchange_rates` including `rate_status` in `database/migrations/versions/0003_reference_tables.py`
-- [ ] T021 Create canonical table migration for `plan_events`, `execution_snapshots`, `execution_requests`, `request_doctors`, `doctors`, and `rcpa_prescriptions` in `database/migrations/versions/0004_canonical_tables.py`
-- [ ] T022 Create reconciliation and AI migration for `event_matches` and `ai_query_logs` in `database/migrations/versions/0005_reconciliation_ai_tables.py`
-- [ ] T023 Create index and uniqueness migration for source file hash, run-file participation, country-scoped Pcodes, request identity, and RCPA aggregate conflict target in `database/migrations/versions/0006_indexes_constraints.py`
-- [ ] T024 Create country seed SQL for Nepal, Sri Lanka, Myanmar, Oman, UAE, and Malaysia in `database/seeds/countries.sql`
-- [ ] T025 Create FY26 and FY27 fiscal calendar seed generator with April fiscal-year start in `database/seeds/calendar_months.sql`
-- [ ] T026 Create static exchange-rate seed with representative provisional rates for NPR, LKR, MMK, OMR, AED, and MYR in `database/seeds/exchange_rates_static.sql`
-- [ ] T027 Create materialized-view refresh utility with dependency-ordered refresh behavior in `database/views/refresh_materialized_views.sql`
-- [ ] T028 [P] Create backend pytest database fixture utilities and migration reset helper in `backend/tests/conftest.py`
-- [ ] T029 [P] Create ingestion pytest database fixture utilities and temporary workbook helper in `ingestion/tests/conftest.py`
-- [ ] T030 [P] Create frontend testing utility wrapper for router, query client, and mocked API responses in `frontend/tests/test-utils.tsx`
-- [ ] T031 [P] Create synthetic fixture folder structure and README in `ingestion/tests/fixtures/xlsx/`, `ingestion/tests/fixtures/xlsb/`, `ingestion/tests/fixtures/expected/`, and `ingestion/tests/fixtures/README.md`
-- [ ] T032 [P] Create synthetic fixture generation script for tiny planner, execution, consolidation, and RCPA workbook samples in `ingestion/tests/fixtures/build_fixtures.py`
-- [ ] T033 [P] Create shared constants for source types, countries, fiscal years, status values, match statuses, ROI segments, workflow statuses, and snapshot sources in `ingestion/constants.py` and `backend/app/constants.py`
-- [ ] T034 [P] Create shared normalizer package exports for months, Pcodes, event names, currencies, execution statuses, and workflow statuses in `ingestion/normalizers/__init__.py`
-- [ ] T035 [P] Create backend typed error response schema and exception handlers in `backend/app/schemas/errors.py` and `backend/app/utils/errors.py`
-- [ ] T036 [P] Create API router registration and health route skeleton in `backend/app/routers/__init__.py`, `backend/app/routers/health.py`, and `backend/app/main.py`
-- [ ] T037 [P] Create OpenAPI-derived frontend API type definitions in `frontend/src/types/api.ts`
-- [ ] T038 Create smoke test for Alembic migration and seed application in `backend/tests/database/test_migrations.py`
-- [ ] T039 Create smoke test for settings validation, secret redaction, and missing secret handling in `backend/tests/unit/test_config.py` and `ingestion/tests/unit/test_config.py`
-- [ ] T040 Create API error handling smoke tests for validation errors and unhandled exceptions in `backend/tests/api/test_error_handling.py`
-- [ ] T041 Create frontend smoke test for app shell rendering and failed API fallback state in `frontend/tests/app-shell.test.tsx`
-- [ ] T042 Create project-level architecture notes for runtime boundaries and data ownership in `docs/architecture.md`
-- [ ] T043 Create source-file confidentiality and local workbook handling notes in `docs/source-data-policy.md`
+- [X] T015 Initialize Alembic migration environment and DATABASE_URL loading in `alembic.ini` and `database/migrations/env.py`
+- [X] T016 Create SQLAlchemy engine/session helpers, transaction utilities, and retry-safe connection handling in `backend/app/database.py` and `ingestion/database.py`
+- [X] T017 Create shared settings models with safe environment-variable handling and secret redaction in `backend/app/config.py` and `ingestion/config.py`
+- [X] T018 Create base database migration for schemas, UUID extension, audit timestamps, and enum types in `database/migrations/versions/0001_base_schema.py`
+- [X] T019 Create audit/source migration for `ingestion_runs`, reusable `source_files`, `ingestion_run_files`, and `validation_errors` in `database/migrations/versions/0002_audit_source_tables.py`
+- [X] T020 Create reference migration for `countries`, `calendar_months`, and `exchange_rates` including `rate_status` in `database/migrations/versions/0003_reference_tables.py`
+- [X] T021 Create canonical table migration for `plan_events`, `execution_snapshots`, `execution_requests`, `request_doctors`, `doctors`, and `rcpa_prescriptions` in `database/migrations/versions/0004_canonical_tables.py`
+- [X] T022 Create reconciliation and AI migration for `event_matches` and `ai_query_logs` in `database/migrations/versions/0005_reconciliation_ai_tables.py`
+- [X] T023 Create index and uniqueness migration for source file hash, run-file participation, country-scoped Pcodes, request identity, and RCPA aggregate conflict target in `database/migrations/versions/0006_indexes_constraints.py`
+- [X] T024 Create country seed SQL for Nepal, Sri Lanka, Myanmar, Oman, UAE, and Malaysia in `database/seeds/countries.sql`
+- [X] T025 Create FY26 and FY27 fiscal calendar seed generator with April fiscal-year start in `database/seeds/calendar_months.sql`
+- [X] T026 Create static exchange-rate seed with official LKR company rate `1 USD = 310 LKR` plus documented provisional/missing statuses for NPR, MMK, OMR, AED, and MYR in `database/seeds/exchange_rates_static.sql`
+- [X] T027 Create materialized-view refresh utility with dependency-ordered refresh behavior in `database/views/refresh_materialized_views.sql`
+- [X] T028 [P] Create backend pytest database fixture utilities and migration reset helper in `backend/tests/conftest.py`
+- [X] T029 [P] Create ingestion pytest database fixture utilities and temporary workbook helper in `ingestion/tests/conftest.py`
+- [X] T030 [P] Create frontend testing utility wrapper for router, query client, and mocked API responses in `frontend/tests/test-utils.tsx`
+- [X] T031 [P] Create synthetic fixture folder structure and README in `ingestion/tests/fixtures/xlsx/`, `ingestion/tests/fixtures/xlsb/`, `ingestion/tests/fixtures/expected/`, and `ingestion/tests/fixtures/README.md`
+- [X] T032 [P] Create synthetic fixture generation script for tiny planner, execution, consolidation, and RCPA workbook samples in `ingestion/tests/fixtures/build_fixtures.py`
+- [X] T033 [P] Create shared constants for source types, countries, fiscal years, status values, match statuses, ROI segments, workflow statuses, and snapshot sources in `ingestion/constants.py` and `backend/app/constants.py`
+- [X] T034 [P] Create shared normalizer package exports for months, Pcodes, event names, currencies, execution statuses, and workflow statuses in `ingestion/normalizers/__init__.py`
+- [X] T035 [P] Create backend typed error response schema and exception handlers in `backend/app/schemas/errors.py` and `backend/app/utils/errors.py`
+- [X] T036 [P] Create API router registration and health route skeleton in `backend/app/routers/__init__.py`, `backend/app/routers/health.py`, and `backend/app/main.py`
+- [X] T037 [P] Create OpenAPI-derived frontend API type definitions in `frontend/src/types/api.ts`
+- [X] T038 Create smoke test for Alembic migration and seed application in `backend/tests/database/test_migrations.py`
+- [X] T039 Create smoke test for settings validation, secret redaction, and missing secret handling in `backend/tests/unit/test_config.py` and `ingestion/tests/unit/test_config.py`
+- [X] T040 Create API error handling smoke tests for validation errors and unhandled exceptions in `backend/tests/api/test_error_handling.py`
+- [X] T041 Create frontend smoke test for app shell rendering and failed API fallback state in `frontend/tests/app-shell.test.tsx`
+- [X] T042 Create project-level architecture notes for runtime boundaries and data ownership in `docs/architecture.md`
+- [X] T043 Create source-file confidentiality and local workbook handling notes in `docs/source-data-policy.md`
 
 **Checkpoint**: Database, migrations, seeds, fixtures, settings, test harness, and common application shells exist.
 
@@ -176,16 +176,16 @@
 
 **Goal**: Show planned budget, estimated/FMV-like reference, confirmed/contracted amount, actual total spend, BTU direct spend, BTC overhead spend, unused budget, overruns, spend-without-plan, and safe currency status.
 
-**Independent Test**: Select a country/month and verify budget summary and detail rows show local currency, USD only when FX exists, provisional-FX warnings, confirmed-vs-estimated variance, BTU/BTC split, reconciliation warnings, and unmatched spend.
+**Independent Test**: Select a country/month and verify budget summary and detail rows show local currency, official LKR USD conversion at `1 USD = 310 LKR`, provisional-FX warnings only for non-official rates, confirmed-vs-estimated variance, BTU/BTC split, reconciliation warnings, and unmatched spend.
 
 ### Tests for User Story 3
 
 - [ ] T113 [P] [US3] Add tests for consolidation financial mapping from estimated, confirmed/contracted, BTU, BTC, total actual, association amount, and variance source columns in `ingestion/tests/loaders/test_consolidation_financial_mapping.py`
-- [ ] T114 [P] [US3] Add tests for static FX seeds, provisional FX status, missing-FX flags, future official FX replacement, and local-vs-USD behavior in `backend/tests/database/test_exchange_rates.py`
+- [ ] T114 [P] [US3] Add tests for static FX seeds, official LKR company rate `1 USD = 310 LKR`, provisional FX status for non-official rates, missing-FX flags, and local-vs-USD behavior in `backend/tests/database/test_exchange_rates.py`
 - [ ] T115 [P] [US3] Add database tests for `mv_budget_utilization` including planned budget, estimated reference, confirmed amount, variance, BTU/BTC split, total actual spend, unspent gap, overrun, plan without spend, and spend without plan in `backend/tests/database/test_budget_view.py`
 - [ ] T116 [P] [US3] Add tests for BTU plus BTC reconciliation warnings when populated values do not match total actual spend in `backend/tests/database/test_budget_reconciliation_quality.py`
-- [ ] T117 [P] [US3] Add API contract tests for `/api/budget/summary` including confirmedContractedAmount, actualTotalSpend, fxRateStatus, and provisional-FX limitations in `backend/tests/api/test_budget_api.py`
-- [ ] T118 [P] [US3] Add frontend tests for budget cards, confirmed-vs-estimated variance, BTU/BTC split, provisional-FX warning, unmatched spend table, and empty states in `frontend/tests/budget-utilization.test.tsx`
+- [ ] T117 [P] [US3] Add API contract tests for `/api/budget/summary` including confirmedContractedAmount, actualTotalSpend, fxRateStatus, official LKR conversion, and provisional-FX limitations for non-official rates in `backend/tests/api/test_budget_api.py`
+- [ ] T118 [P] [US3] Add frontend tests for budget cards, confirmed-vs-estimated variance, BTU/BTC split, official LKR FX display, provisional-FX warning for non-official rates, unmatched spend table, and empty states in `frontend/tests/budget-utilization.test.tsx`
 
 ### Implementation for User Story 3
 
@@ -433,7 +433,7 @@ T182, T184, T185, T191, T192, T193, and T194 can run in parallel after the relev
 2. Complete US1 tests and implementation.
 3. Run profiling and ingestion against synthetic fixtures.
 4. Run profiling against the real local workbooks without committing them.
-5. Stop and validate row counts, validation errors, canonical sheet choices, serial dates, Pcodes, static/provisional FX, and RCPA aggregation.
+5. Stop and validate row counts, validation errors, canonical sheet choices, serial dates, Pcodes, official LKR FX at `1 USD = 310 LKR`, static/provisional FX for other currencies, and RCPA aggregation.
 
 ### Business Demo Increment
 

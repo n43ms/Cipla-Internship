@@ -40,6 +40,11 @@ data/reports/*
 *.csv
 *.tsv
 *.parquet
+!ingestion/tests/fixtures/**/*.xlsx
+!ingestion/tests/fixtures/**/*.xlsb
+!ingestion/tests/fixtures/**/*.xls
+!ingestion/tests/fixtures/**/*.csv
+!ingestion/tests/fixtures/**/*.tsv
 
 # Generated reports and caches
 reports/

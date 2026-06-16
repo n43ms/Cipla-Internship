@@ -494,9 +494,9 @@ Fields:
 MVP behavior:
 
 - Store local amounts reliably.
-- Seed one representative static exchange rate per supported currency for MVP with documented `rate_date` and `source`.
-- Use USD amounts only where a seeded exchange rate exists.
-- Temporary manual rates are allowed only when marked `provisional`; official company-approved rates should replace them when provided.
+- Seed LKR with the official company exchange rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`, `source = company`, `rate_status = official`). Seed other currencies only when a documented company or provisional rate exists.
+- Use USD amounts only where a seeded exchange rate exists; Sri Lanka/LKR USD values must use the official `1 USD = 310 LKR` rate.
+- Temporary manual rates are allowed only for currencies without company-approved rates and must be marked `provisional`; LKR is already official at `1 USD = 310 LKR`.
 - Do not compare local-currency values across countries without normalization.
 
 ### 7.3 Canonical Business Tables
@@ -1117,7 +1117,7 @@ Rules:
 
 - preserve local value and currency code
 - compute USD only when a static seeded exchange rate exists in MVP
-- label manual temporary rates as provisional until official company rates are provided
+- label manual temporary rates as provisional until official company rates are provided; LKR uses official company FX at `1 USD = 310 LKR`
 - label metrics clearly when local currency is used
 - avoid cross-country monetary comparisons without USD normalization
 
@@ -1537,8 +1537,8 @@ Required checks:
 - unmatched events appear in `mv_unmatched_events`
 - doctor ROI view does not divide by zero
 - currency fields are not mixed silently
-- static FX seed rows exist and missing-FX behavior is visible
-- provisional FX rows are labeled and can be replaced by official company FX
+- static FX seed rows exist, including official LKR at `1 USD = 310 LKR`, and missing-FX behavior is visible
+- provisional FX rows for non-official currencies are labeled and can be replaced by official company FX
 - repeated RCPA ingestion updates existing aggregate rows through the explicit unique key
 - BTU plus BTC reconciles to total actual spend where populated, otherwise warning is visible
 - workflow governance and intervention mix views refresh successfully
@@ -1731,7 +1731,7 @@ Mitigation:
 
 - store currency code
 - preserve local amounts
-- normalize only with static seeded exchange rates in MVP
+- normalize only with static seeded exchange rates in MVP, with LKR fixed at the official company rate `1 USD = 310 LKR`
 - label charts clearly
 
 ### Risk: AI hallucination
