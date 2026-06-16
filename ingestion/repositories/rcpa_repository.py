@@ -5,7 +5,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from ingestion.repositories.canonical_repository import CanonicalRepository
+from ingestion.repositories.canonical_repository import BATCH_SIZE, CanonicalRepository
 
 
 class RcpaRepository(CanonicalRepository):
@@ -14,35 +14,34 @@ class RcpaRepository(CanonicalRepository):
     ) -> None:
         if not records:
             return
-        self.session.execute(
-            text(
-                """
-                insert into rcpa_prescriptions (
-                    source_file_id, ingestion_run_id, country_id, calendar_month_id, pcode_raw,
-                    pcode_normalized, doctor_name, brand_group, sku, own_or_competitor,
-                    prescription_qty, prescription_value_local, currency_code, prescription_value_usd,
-                    row_count_aggregated
-                )
-                values (
-                    :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :pcode_raw,
-                    :pcode_normalized, :doctor_name, :brand_group, :sku, :own_or_competitor,
-                    :prescription_qty, :prescription_value_local, :currency_code, :prescription_value_usd,
-                    :row_count_aggregated
-                )
-                on conflict (
-                    source_file_id, country_id, calendar_month_id, pcode_normalized,
-                    brand_group, sku, own_or_competitor, currency_code
-                ) do update
-                set
-                    ingestion_run_id = excluded.ingestion_run_id,
-                    doctor_name = excluded.doctor_name,
-                    prescription_qty = excluded.prescription_qty,
-                    prescription_value_local = excluded.prescription_value_local,
-                    prescription_value_usd = excluded.prescription_value_usd,
-                    row_count_aggregated = excluded.row_count_aggregated
-                """
-            ),
-            [
+        statement = text(
+            """
+            insert into rcpa_prescriptions (
+                source_file_id, ingestion_run_id, country_id, calendar_month_id, pcode_raw,
+                pcode_normalized, doctor_name, brand_group, sku, own_or_competitor,
+                prescription_qty, prescription_value_local, currency_code, prescription_value_usd,
+                row_count_aggregated
+            )
+            values (
+                :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :pcode_raw,
+                :pcode_normalized, :doctor_name, :brand_group, :sku, :own_or_competitor,
+                :prescription_qty, :prescription_value_local, :currency_code, :prescription_value_usd,
+                :row_count_aggregated
+            )
+            on conflict (
+                source_file_id, country_id, calendar_month_id, pcode_normalized,
+                brand_group, sku, own_or_competitor, currency_code
+            ) do update
+            set
+                ingestion_run_id = excluded.ingestion_run_id,
+                doctor_name = excluded.doctor_name,
+                prescription_qty = excluded.prescription_qty,
+                prescription_value_local = excluded.prescription_value_local,
+                prescription_value_usd = excluded.prescription_value_usd,
+                row_count_aggregated = excluded.row_count_aggregated
+            """
+        )
+        rows = [
                 {
                     **record,
                     "ingestion_run_id": ingestion_run_id,
@@ -51,8 +50,9 @@ class RcpaRepository(CanonicalRepository):
                     "calendar_month_id": self.month_id(record["month_start_date"]),
                 }
                 for record in records
-            ],
-        )
+            ]
+        for batch in _chunks(rows):
+            self.session.execute(statement, batch)
 
     def upsert_doctors_from_rcpa(self, records: list[dict[str, Any]]) -> None:
         rows_by_key: dict[tuple[str, str], dict[str, Any]] = {}
@@ -66,21 +66,24 @@ class RcpaRepository(CanonicalRepository):
             }
         if not rows_by_key:
             return
-        self.session.execute(
-            text(
-                """
-                insert into doctors (
-                    country_id, pcode_normalized, latest_doctor_name, source_count, updated_at
-                )
-                values (
-                    :country_id, :pcode_normalized, :latest_doctor_name, :source_count, now()
-                )
-                on conflict (country_id, pcode_normalized) do update
-                set
-                    latest_doctor_name = coalesce(excluded.latest_doctor_name, doctors.latest_doctor_name),
-                    source_count = doctors.source_count + 1,
-                    updated_at = now()
-                """
-            ),
-            list(rows_by_key.values()),
+        statement = text(
+            """
+            insert into doctors (
+                country_id, pcode_normalized, latest_doctor_name, source_count, updated_at
+            )
+            values (
+                :country_id, :pcode_normalized, :latest_doctor_name, :source_count, now()
+            )
+            on conflict (country_id, pcode_normalized) do update
+            set
+                latest_doctor_name = coalesce(excluded.latest_doctor_name, doctors.latest_doctor_name),
+                source_count = doctors.source_count + 1,
+                updated_at = now()
+            """
         )
+        for batch in _chunks(list(rows_by_key.values())):
+            self.session.execute(statement, batch)
+
+
+def _chunks(rows: list[dict[str, Any]], size: int = BATCH_SIZE) -> list[list[dict[str, Any]]]:
+    return [rows[index : index + size] for index in range(0, len(rows), size)]

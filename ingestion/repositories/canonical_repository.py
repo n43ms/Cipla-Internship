@@ -6,6 +6,9 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 
+BATCH_SIZE = 5000
+
+
 class CanonicalRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -76,41 +79,51 @@ class CanonicalRepository:
     def insert_execution_requests(
         self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
     ) -> dict[str, str]:
+        if not records:
+            return {}
+        statement = text(
+            """
+            insert into execution_requests (
+                source_file_id, ingestion_run_id, req_id, request_uid, country_id, calendar_month_id,
+                rep_code, rep_name, venue, intervention_name, intervention_name_normalized,
+                intervention_type, intervention_sub_type, estimated_intervention_local,
+                confirmed_contracted_amount_local, confirmed_vs_estimated_variance_local,
+                actual_total_expense_local, actual_btu_expense_local, actual_btc_expense_local,
+                association_amount_local, currency_code, fx_rate_status, request_approval_status,
+                request_confirmation_status, post_approval_status, post_confirmation_status,
+                current_owner_stage, approval_chain_json, source_row_number
+            )
+            values (
+                :source_file_id, :ingestion_run_id, :req_id, :request_uid, :country_id, :calendar_month_id,
+                :rep_code, :rep_name, :venue, :intervention_name, :intervention_name_normalized,
+                :intervention_type, :intervention_sub_type, :estimated_intervention_local,
+                :confirmed_contracted_amount_local, :confirmed_vs_estimated_variance_local,
+                :actual_total_expense_local, :actual_btu_expense_local, :actual_btc_expense_local,
+                :association_amount_local, :currency_code, :fx_rate_status, :request_approval_status,
+                :request_confirmation_status, :post_approval_status, :post_confirmation_status,
+                :current_owner_stage, cast(:approval_chain_json as json), :source_row_number
+            )
+            on conflict (request_uid) do update
+            set
+                ingestion_run_id = excluded.ingestion_run_id,
+                source_file_id = excluded.source_file_id,
+                req_id = excluded.req_id,
+                intervention_name = excluded.intervention_name,
+                intervention_name_normalized = excluded.intervention_name_normalized
+            """
+        )
+        params = [self._params(ingestion_run_id, source_file_id, record) for record in records]
+        for batch in _chunks(params):
+            self.session.execute(statement, batch)
+        uids = [str(record["request_uid"]) for record in records]
         request_ids: dict[str, str] = {}
-        for record in records:
-            params = self._params(ingestion_run_id, source_file_id, record)
-            execution_request_id = self.session.execute(
-                text(
-                    """
-                    insert into execution_requests (
-                        source_file_id, ingestion_run_id, req_id, request_uid, country_id, calendar_month_id,
-                        rep_code, rep_name, venue, intervention_name, intervention_name_normalized,
-                        intervention_type, intervention_sub_type, estimated_intervention_local,
-                        confirmed_contracted_amount_local, confirmed_vs_estimated_variance_local,
-                        actual_total_expense_local, actual_btu_expense_local, actual_btc_expense_local,
-                        association_amount_local, currency_code, fx_rate_status, request_approval_status,
-                        request_confirmation_status, post_approval_status, post_confirmation_status,
-                        current_owner_stage, approval_chain_json, source_row_number
-                    )
-                    values (
-                        :source_file_id, :ingestion_run_id, :req_id, :request_uid, :country_id, :calendar_month_id,
-                        :rep_code, :rep_name, :venue, :intervention_name, :intervention_name_normalized,
-                        :intervention_type, :intervention_sub_type, :estimated_intervention_local,
-                        :confirmed_contracted_amount_local, :confirmed_vs_estimated_variance_local,
-                        :actual_total_expense_local, :actual_btu_expense_local, :actual_btc_expense_local,
-                        :association_amount_local, :currency_code, :fx_rate_status, :request_approval_status,
-                        :request_confirmation_status, :post_approval_status, :post_confirmation_status,
-                        :current_owner_stage, cast(:approval_chain_json as json), :source_row_number
-                    )
-                    on conflict (request_uid) do update
-                    set ingestion_run_id = excluded.ingestion_run_id
-                    returning id
-                    """
-                ),
-                params,
-            ).scalar_one()
-            request_ids[str(record["request_key"])] = str(execution_request_id)
-        return request_ids
+        for batch in [uids[index : index + BATCH_SIZE] for index in range(0, len(uids), BATCH_SIZE)]:
+            rows = self.session.execute(
+                text("select request_uid, id from execution_requests where request_uid = any(:request_uids)"),
+                {"request_uids": batch},
+            ).all()
+            request_ids.update({str(row[0]): str(row[1]) for row in rows})
+        return {str(record["request_key"]): request_ids[str(record["request_uid"])] for record in records}
 
     def insert_request_doctors(self, request_ids: dict[str, str], records: list[dict[str, Any]]) -> None:
         rows = []
@@ -121,28 +134,27 @@ class CanonicalRepository:
             rows.append({**record, "execution_request_id": execution_request_id})
         if not rows:
             return
-        self.session.execute(
-            text(
-                """
-                insert into request_doctors (
-                    execution_request_id, attendance_type, doctor_name_raw, doctor_class_raw, pcode_raw,
-                    pcode_normalized, parse_status, source_position
-                )
-                values (
-                    :execution_request_id, :attendance_type, :doctor_name_raw, :doctor_class_raw, :pcode_raw,
-                    :pcode_normalized, :parse_status, :source_position
-                )
-                on conflict (execution_request_id, attendance_type, source_position) do update
-                set
-                    doctor_name_raw = excluded.doctor_name_raw,
-                    doctor_class_raw = excluded.doctor_class_raw,
-                    pcode_raw = excluded.pcode_raw,
-                    pcode_normalized = excluded.pcode_normalized,
-                    parse_status = excluded.parse_status
-                """
-            ),
-            rows,
+        statement = text(
+            """
+            insert into request_doctors (
+                execution_request_id, attendance_type, doctor_name_raw, doctor_class_raw, pcode_raw,
+                pcode_normalized, parse_status, source_position
+            )
+            values (
+                :execution_request_id, :attendance_type, :doctor_name_raw, :doctor_class_raw, :pcode_raw,
+                :pcode_normalized, :parse_status, :source_position
+            )
+            on conflict (execution_request_id, attendance_type, source_position) do update
+            set
+                doctor_name_raw = excluded.doctor_name_raw,
+                doctor_class_raw = excluded.doctor_class_raw,
+                pcode_raw = excluded.pcode_raw,
+                pcode_normalized = excluded.pcode_normalized,
+                parse_status = excluded.parse_status
+            """
         )
+        for batch in _chunks(rows):
+            self.session.execute(statement, batch)
 
     def _execute_many(
         self,
@@ -153,10 +165,9 @@ class CanonicalRepository:
     ) -> None:
         if not records:
             return
-        self.session.execute(
-            text(sql),
-            [self._params(ingestion_run_id, source_file_id, record) for record in records],
-        )
+        statement = text(sql)
+        for batch in _chunks([self._params(ingestion_run_id, source_file_id, record) for record in records]):
+            self.session.execute(statement, batch)
 
     def _params(self, ingestion_run_id: str, source_file_id: str, record: dict[str, Any]) -> dict[str, Any]:
         params = dict(record)
@@ -167,3 +178,6 @@ class CanonicalRepository:
         params["approval_chain_json"] = "{}"
         return params
 
+
+def _chunks(rows: list[dict[str, Any]], size: int = BATCH_SIZE) -> list[list[dict[str, Any]]]:
+    return [rows[index : index + size] for index in range(0, len(rows), size)]
