@@ -79,43 +79,43 @@
 
 ### Tests for User Story 1
 
-- [ ] T044 [P] [US1] Add tests for workbook discovery, file hashing, file identity reuse, and gitignored data path validation in `ingestion/tests/test_file_registry.py`
-- [ ] T045 [P] [US1] Add tests for XLSX/XLSB reader behavior using openpyxl, python-calamine, and pyxlsb fallback in `ingestion/tests/test_workbook_reader.py`
-- [ ] T046 [P] [US1] Add tests for workbook type detection, sheet profiling, used ranges, header detection, required-column coverage, and source classification in `ingestion/tests/test_profiler.py`
-- [ ] T047 [P] [US1] Add tests for month normalization including `Apr-24`, `25-Apr`, `Oct-25`, `Apr'26`, `May-26`, date objects, and Excel serial `45772` in `ingestion/tests/test_month_normalizer.py`
-- [ ] T048 [P] [US1] Add tests for Pcode normalization preserving text identifiers, blanks, decimal-looking numeric values, and duplicate raw values in `ingestion/tests/test_pcode_normalizer.py`
-- [ ] T049 [P] [US1] Add tests for event-name, execution-status, workflow-status, and currency normalization in `ingestion/tests/test_normalizers.py`
-- [ ] T050 [P] [US1] Add tests for Nepal and Sri Lanka planner canonical sheet selection and alternate-sheet profiling without double counting in `ingestion/tests/loaders/test_planner_loader.py`
-- [ ] T051 [P] [US1] Add tests for April and May monthly execution status normalization, summary rows, country tabs, and missing Sri Lanka May tab detection in `ingestion/tests/loaders/test_execution_snapshot_loader.py`
-- [ ] T052 [P] [US1] Add tests for consolidation `Working` sheet required fields, request IDs, approval chain capture, and raw doctor field preservation in `ingestion/tests/loaders/test_consolidation_loader.py`
-- [ ] T053 [P] [US1] Add tests for RCPA column aliases, active-status aliases, own/competitor aliases, serial months, local currency preservation, and aggregate grain in `ingestion/tests/loaders/test_rcpa_loader.py`
-- [ ] T054 [P] [US1] Add tests for expected and actual doctor participation splitting from multi-doctor consolidation fields in `ingestion/tests/loaders/test_request_doctors.py`
-- [ ] T055 [P] [US1] Add tests for ingestion run, source file, run-file, validation error, and partial warning persistence in `ingestion/tests/test_ingestion_audit.py`
-- [ ] T056 [P] [US1] Add tests for idempotent RCPA aggregate upsert and re-run behavior in `ingestion/tests/repositories/test_rcpa_repository.py`
-- [ ] T057 [P] [US1] Add CLI contract tests for `profile`, `ingest --source all`, and `report` commands in `ingestion/tests/test_cli_contract.py`
+- [X] T044 [P] [US1] Add tests for workbook discovery, file hashing, file identity reuse, and gitignored data path validation in `ingestion/tests/test_file_registry.py`
+- [X] T045 [P] [US1] Add tests for XLSX/XLSB reader behavior using openpyxl, python-calamine, and pyxlsb fallback in `ingestion/tests/test_workbook_reader.py`
+- [X] T046 [P] [US1] Add tests for workbook type detection, sheet profiling, used ranges, header detection, required-column coverage, and source classification in `ingestion/tests/test_profiler.py`
+- [X] T047 [P] [US1] Add tests for month normalization including `Apr-24`, `25-Apr`, `Oct-25`, `Apr'26`, `May-26`, date objects, and Excel serial `45772` in `ingestion/tests/test_month_normalizer.py`
+- [X] T048 [P] [US1] Add tests for Pcode normalization preserving text identifiers, blanks, decimal-looking numeric values, and duplicate raw values in `ingestion/tests/test_pcode_normalizer.py`
+- [X] T049 [P] [US1] Add tests for event-name, execution-status, workflow-status, and currency normalization in `ingestion/tests/test_normalizers.py`
+- [X] T050 [P] [US1] Add tests for Nepal and Sri Lanka planner canonical sheet selection and alternate-sheet profiling without double counting in `ingestion/tests/loaders/test_planner_loader.py`
+- [X] T051 [P] [US1] Add tests for April and May monthly execution status normalization, summary rows, country tabs, and missing Sri Lanka May tab detection in `ingestion/tests/loaders/test_execution_snapshot_loader.py`
+- [X] T052 [P] [US1] Add tests for consolidation `Working` sheet required fields, request IDs, approval chain capture, and raw doctor field preservation in `ingestion/tests/loaders/test_consolidation_loader.py`
+- [X] T053 [P] [US1] Add tests for RCPA column aliases, active-status aliases, own/competitor aliases, serial months, local currency preservation, and aggregate grain in `ingestion/tests/loaders/test_rcpa_loader.py`
+- [X] T054 [P] [US1] Add tests for expected and actual doctor participation splitting from multi-doctor consolidation fields in `ingestion/tests/loaders/test_request_doctors.py`
+- [X] T055 [P] [US1] Add tests for ingestion run, source file, run-file, validation error, and partial warning persistence in `ingestion/tests/test_ingestion_audit.py`
+- [X] T056 [P] [US1] Add tests for idempotent RCPA aggregate upsert and re-run behavior in `ingestion/tests/repositories/test_rcpa_repository.py`
+- [X] T057 [P] [US1] Add CLI contract tests for `profile`, `ingest --source all`, and `report` commands in `ingestion/tests/test_cli_contract.py`
 
 ### Implementation for User Story 1
 
-- [ ] T058 [P] [US1] Implement source file discovery, hashing, metadata inference, duplicate hash handling, and gitignored path validation in `ingestion/file_registry.py`
-- [ ] T059 [P] [US1] Implement workbook reader adapter using openpyxl for XLSX, python-calamine primary for XLSB, and pyxlsb fallback in `ingestion/workbook_reader.py`
-- [ ] T060 [US1] Implement workbook profiler for sheet names, used ranges, header detection, row counts, sample rows, anomalies, and transcript-critical field detection in `ingestion/profiler.py`
-- [ ] T061 [P] [US1] Implement month normalizer with fiscal-year mapping, date objects, Excel serial support, and parse diagnostics in `ingestion/normalizers/months.py`
-- [ ] T062 [P] [US1] Implement Pcode normalizer preserving raw and normalized text values without numeric precision loss in `ingestion/normalizers/pcodes.py`
-- [ ] T063 [P] [US1] Implement event-name, execution-status, workflow-status, and currency normalizers in `ingestion/normalizers/events.py`, `ingestion/normalizers/statuses.py`, `ingestion/normalizers/workflow_status.py`, and `ingestion/normalizers/currencies.py`
-- [ ] T064 [P] [US1] Implement validation issue collector, severity model, and row-continuation policy in `ingestion/validators/errors.py`
-- [ ] T065 [US1] Implement audit persistence for ingestion runs, source files, run-file records, and validation errors in `ingestion/repositories/audit_repository.py`
-- [ ] T066 [US1] Implement planner loader with Nepal `Yearly Planner FY27 v2`, Sri Lanka `YP FY27`, source row references, and planner budget fields in `ingestion/loaders/planner.py`
-- [ ] T067 [US1] Implement execution snapshot loader for April and May status values, country tabs, summary rows, source sheet references, and missing-tab limitations in `ingestion/loaders/execution_snapshot.py`
-- [ ] T068 [US1] Implement consolidation loader for `Working` rows, request identity, dates, venues, interventions, status columns, approval chain, location, and raw doctor fields in `ingestion/loaders/consolidation.py`
-- [ ] T069 [US1] Implement request doctor splitter for expected and actual names/classes/Pcodes with parse status and source positions in `ingestion/loaders/request_doctors.py`
-- [ ] T070 [US1] Implement RCPA loader with alias maps, serial month parsing, local currency preservation, aggregation before persistence, and row-count summaries in `ingestion/loaders/rcpa.py`
-- [ ] T071 [US1] Implement repositories for plan events, execution snapshots, execution requests, request doctors, doctors, and RCPA aggregates in `ingestion/repositories/canonical_repository.py`
-- [ ] T072 [US1] Implement idempotent RCPA aggregate upsert against the explicit aggregate conflict target in `ingestion/repositories/rcpa_repository.py`
-- [ ] T073 [US1] Implement ingestion orchestrator run order, transaction boundaries, partial warning behavior, fatal validation behavior, and terminal run status in `ingestion/orchestrator.py`
-- [ ] T074 [US1] Implement Typer CLI commands `profile`, `ingest`, and `report` in `ingestion/main.py`
-- [ ] T075 [US1] Implement markdown and JSON ingestion report generation with file participation, row counts, validation summaries, serial-month counts, Pcode coverage, and missing-FX warnings in `ingestion/report.py`
-- [ ] T076 [US1] Add data dictionary entries for source workbooks, canonical sheets, source columns, normalized fields, and load rules in `docs/data-dictionary.md`
-- [ ] T077 [US1] Add ingestion runbook section for local file placement, profiling, ingesting, rerunning, and interpreting validation output in `docs/ingestion-runbook.md`
+- [X] T058 [P] [US1] Implement source file discovery, hashing, metadata inference, duplicate hash handling, and gitignored path validation in `ingestion/file_registry.py`
+- [X] T059 [P] [US1] Implement workbook reader adapter using openpyxl for XLSX, python-calamine primary for XLSB, and pyxlsb fallback in `ingestion/workbook_reader.py`
+- [X] T060 [US1] Implement workbook profiler for sheet names, used ranges, header detection, row counts, sample rows, anomalies, and transcript-critical field detection in `ingestion/profiler.py`
+- [X] T061 [P] [US1] Implement month normalizer with fiscal-year mapping, date objects, Excel serial support, and parse diagnostics in `ingestion/normalizers/months.py`
+- [X] T062 [P] [US1] Implement Pcode normalizer preserving raw and normalized text values without numeric precision loss in `ingestion/normalizers/pcodes.py`
+- [X] T063 [P] [US1] Implement event-name, execution-status, workflow-status, and currency normalizers in `ingestion/normalizers/events.py`, `ingestion/normalizers/statuses.py`, `ingestion/normalizers/workflow_status.py`, and `ingestion/normalizers/currencies.py`
+- [X] T064 [P] [US1] Implement validation issue collector, severity model, and row-continuation policy in `ingestion/validators/errors.py`
+- [X] T065 [US1] Implement audit persistence for ingestion runs, source files, run-file records, and validation errors in `ingestion/repositories/audit_repository.py`
+- [X] T066 [US1] Implement planner loader with Nepal `Yearly Planner FY27 v2`, Sri Lanka `YP FY27`, source row references, and planner budget fields in `ingestion/loaders/planner.py`
+- [X] T067 [US1] Implement execution snapshot loader for April and May status values, country tabs, summary rows, source sheet references, and missing-tab limitations in `ingestion/loaders/execution_snapshot.py`
+- [X] T068 [US1] Implement consolidation loader for `Working` rows, request identity, dates, venues, interventions, status columns, approval chain, location, and raw doctor fields in `ingestion/loaders/consolidation.py`
+- [X] T069 [US1] Implement request doctor splitter for expected and actual names/classes/Pcodes with parse status and source positions in `ingestion/loaders/request_doctors.py`
+- [X] T070 [US1] Implement RCPA loader with alias maps, serial month parsing, local currency preservation, aggregation before persistence, and row-count summaries in `ingestion/loaders/rcpa.py`
+- [X] T071 [US1] Implement repositories for plan events, execution snapshots, execution requests, request doctors, doctors, and RCPA aggregates in `ingestion/repositories/canonical_repository.py`
+- [X] T072 [US1] Implement idempotent RCPA aggregate upsert against the explicit aggregate conflict target in `ingestion/repositories/rcpa_repository.py`
+- [X] T073 [US1] Implement ingestion orchestrator run order, transaction boundaries, partial warning behavior, fatal validation behavior, and terminal run status in `ingestion/orchestrator.py`
+- [X] T074 [US1] Implement Typer CLI commands `profile`, `ingest`, and `report` in `ingestion/main.py`
+- [X] T075 [US1] Implement markdown and JSON ingestion report generation with file participation, row counts, validation summaries, serial-month counts, Pcode coverage, and missing-FX warnings in `ingestion/report.py`
+- [X] T076 [US1] Add data dictionary entries for source workbooks, canonical sheets, source columns, normalized fields, and load rules in `docs/data-dictionary.md`
+- [X] T077 [US1] Add ingestion runbook section for local file placement, profiling, ingesting, rerunning, and interpreting validation output in `docs/ingestion-runbook.md`
 
 **Checkpoint**: US1 is complete when all workbook families are profiled and ingested into auditable canonical records or explicit validation outputs.
 
