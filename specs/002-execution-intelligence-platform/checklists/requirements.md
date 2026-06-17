@@ -41,7 +41,7 @@
 ## Notes
 
 - The specification intentionally names business entities such as ingestion runs,
-  plan events, execution requests, event matches, and RCPA prescriptions because
+  plan events, execution requests, event matches, and RCPA summaries because
   they are part of the required product language and data accountability model.
 - The detailed implementation architecture, technical contracts, and runnable
   validation guide should be produced next with `/speckit-plan`.

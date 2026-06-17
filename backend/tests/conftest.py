@@ -25,6 +25,8 @@ def migration_files() -> list[str]:
         "0005_reconciliation_ai_tables.py",
         "0006_indexes_constraints.py",
         "0007_phase_1_3_schema_completion.py",
+        "0008_supabase_free_tier_rcpa_storage.py",
+        "0009_drop_obsolete_rcpa_prescriptions.py",
     ]
 
 

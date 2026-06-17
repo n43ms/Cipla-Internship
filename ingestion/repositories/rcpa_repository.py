@@ -3,36 +3,40 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
 from ingestion.repositories.canonical_repository import BATCH_SIZE, CanonicalRepository
 
 
 class RcpaRepository(CanonicalRepository):
-    def upsert_rcpa_aggregates(
+    def replace_rcpa_doctor_month_summaries(
         self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
     ) -> None:
+        self.session.execute(
+            text("delete from rcpa_doctor_month_summary where source_file_id = :source_file_id"),
+            {"source_file_id": source_file_id},
+        )
         if not records:
             return
         statement = text(
             """
-            insert into rcpa_prescriptions (
+            insert into rcpa_doctor_month_summary (
                 source_file_id, ingestion_run_id, country_id, calendar_month_id, pcode_raw,
                 pcode_normalized, doctor_name, speciality, doctor_class, patch_name, active_status,
-                brand_group, sku, sku_detail, own_or_competitor,
-                prescription_qty, prescription_value_local, currency_code, prescription_value_usd,
+                own_prescription_qty, own_prescription_value_local,
+                competitor_prescription_qty, competitor_prescription_value_local,
+                total_prescription_qty, total_prescription_value_local, currency_code,
                 row_count_aggregated
             )
             values (
                 :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :pcode_raw,
                 :pcode_normalized, :doctor_name, :speciality, :doctor_class, :patch_name, :active_status,
-                :brand_group, :sku, :sku_detail, :own_or_competitor,
-                :prescription_qty, :prescription_value_local, :currency_code, :prescription_value_usd,
+                :own_prescription_qty, :own_prescription_value_local,
+                :competitor_prescription_qty, :competitor_prescription_value_local,
+                :total_prescription_qty, :total_prescription_value_local, :currency_code,
                 :row_count_aggregated
             )
             on conflict (
-                source_file_id, country_id, calendar_month_id, pcode_normalized,
-                brand_group, sku, own_or_competitor, currency_code
+                source_file_id, country_id, calendar_month_id, pcode_normalized, currency_code
             ) do update
             set
                 ingestion_run_id = excluded.ingestion_run_id,
@@ -41,23 +45,101 @@ class RcpaRepository(CanonicalRepository):
                 doctor_class = excluded.doctor_class,
                 patch_name = excluded.patch_name,
                 active_status = excluded.active_status,
-                sku_detail = excluded.sku_detail,
+                own_prescription_qty = excluded.own_prescription_qty,
+                own_prescription_value_local = excluded.own_prescription_value_local,
+                competitor_prescription_qty = excluded.competitor_prescription_qty,
+                competitor_prescription_value_local = excluded.competitor_prescription_value_local,
+                total_prescription_qty = excluded.total_prescription_qty,
+                total_prescription_value_local = excluded.total_prescription_value_local,
+                row_count_aggregated = excluded.row_count_aggregated
+            """
+        )
+        rows = self._rows_with_ids(ingestion_run_id, source_file_id, records)
+        for batch in _chunks(rows):
+            self.session.execute(statement, batch)
+
+    def replace_rcpa_doctor_brand_summaries(
+        self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
+    ) -> None:
+        self.session.execute(
+            text("delete from rcpa_doctor_brand_summary where source_file_id = :source_file_id"),
+            {"source_file_id": source_file_id},
+        )
+        if not records:
+            return
+        statement = text(
+            """
+            insert into rcpa_doctor_brand_summary (
+                source_file_id, ingestion_run_id, country_id, first_calendar_month_id,
+                last_calendar_month_id, pcode_normalized, doctor_name, brand_group,
+                own_or_competitor, prescription_qty, prescription_value_local, currency_code,
+                row_count_aggregated
+            )
+            values (
+                :source_file_id, :ingestion_run_id, :country_id, :first_calendar_month_id,
+                :last_calendar_month_id, :pcode_normalized, :doctor_name, :brand_group,
+                :own_or_competitor, :prescription_qty, :prescription_value_local, :currency_code,
+                :row_count_aggregated
+            )
+            on conflict (
+                source_file_id, country_id, pcode_normalized, brand_group, own_or_competitor, currency_code
+            ) do update
+            set
+                ingestion_run_id = excluded.ingestion_run_id,
+                first_calendar_month_id = excluded.first_calendar_month_id,
+                last_calendar_month_id = excluded.last_calendar_month_id,
+                doctor_name = excluded.doctor_name,
                 prescription_qty = excluded.prescription_qty,
                 prescription_value_local = excluded.prescription_value_local,
-                prescription_value_usd = excluded.prescription_value_usd,
                 row_count_aggregated = excluded.row_count_aggregated
             """
         )
         rows = [
-                {
-                    **record,
-                    "ingestion_run_id": ingestion_run_id,
-                    "source_file_id": source_file_id,
-                    "country_id": self.country_id(str(record["country"])),
-                    "calendar_month_id": self.month_id(record["month_start_date"]),
-                }
-                for record in records
-            ]
+            {
+                **record,
+                "ingestion_run_id": ingestion_run_id,
+                "source_file_id": source_file_id,
+                "country_id": self.country_id(str(record["country"])),
+                "first_calendar_month_id": self.month_id(record["first_month_start_date"]),
+                "last_calendar_month_id": self.month_id(record["last_month_start_date"]),
+            }
+            for record in records
+        ]
+        for batch in _chunks(rows):
+            self.session.execute(statement, batch)
+
+    def replace_rcpa_country_brand_month_summaries(
+        self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
+    ) -> None:
+        self.session.execute(
+            text("delete from rcpa_country_brand_month_summary where source_file_id = :source_file_id"),
+            {"source_file_id": source_file_id},
+        )
+        if not records:
+            return
+        statement = text(
+            """
+            insert into rcpa_country_brand_month_summary (
+                source_file_id, ingestion_run_id, country_id, calendar_month_id, brand_group,
+                own_or_competitor, prescription_qty, prescription_value_local, currency_code,
+                row_count_aggregated
+            )
+            values (
+                :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :brand_group,
+                :own_or_competitor, :prescription_qty, :prescription_value_local, :currency_code,
+                :row_count_aggregated
+            )
+            on conflict (
+                source_file_id, country_id, calendar_month_id, brand_group, own_or_competitor, currency_code
+            ) do update
+            set
+                ingestion_run_id = excluded.ingestion_run_id,
+                prescription_qty = excluded.prescription_qty,
+                prescription_value_local = excluded.prescription_value_local,
+                row_count_aggregated = excluded.row_count_aggregated
+            """
+        )
+        rows = self._rows_with_ids(ingestion_run_id, source_file_id, records)
         for batch in _chunks(rows):
             self.session.execute(statement, batch)
 
@@ -104,6 +186,20 @@ class RcpaRepository(CanonicalRepository):
         )
         for batch in _chunks(list(rows_by_key.values())):
             self.session.execute(statement, batch)
+
+    def _rows_with_ids(
+        self, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                **record,
+                "ingestion_run_id": ingestion_run_id,
+                "source_file_id": source_file_id,
+                "country_id": self.country_id(str(record["country"])),
+                "calendar_month_id": self.month_id(record["month_start_date"]),
+            }
+            for record in records
+        ]
 
 
 def _chunks(rows: list[dict[str, Any]], size: int = BATCH_SIZE) -> list[list[dict[str, Any]]]:

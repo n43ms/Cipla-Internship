@@ -210,7 +210,7 @@ CREATE TABLE public.doctors (
   CONSTRAINT doctors_pkey PRIMARY KEY (id),
   CONSTRAINT doctors_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
 );
-CREATE TABLE public.rcpa_prescriptions (
+CREATE TABLE public.rcpa_doctor_month_summary (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   source_file_id uuid NOT NULL,
   ingestion_run_id uuid NOT NULL,
@@ -219,19 +219,63 @@ CREATE TABLE public.rcpa_prescriptions (
   pcode_raw text,
   pcode_normalized text NOT NULL,
   doctor_name text,
+  speciality text,
+  doctor_class text,
+  patch_name text,
+  active_status text,
+  own_prescription_qty numeric NOT NULL DEFAULT 0,
+  own_prescription_value_local numeric NOT NULL DEFAULT 0,
+  competitor_prescription_qty numeric NOT NULL DEFAULT 0,
+  competitor_prescription_value_local numeric NOT NULL DEFAULT 0,
+  total_prescription_qty numeric NOT NULL DEFAULT 0,
+  total_prescription_value_local numeric NOT NULL DEFAULT 0,
+  currency_code text NOT NULL,
+  row_count_aggregated integer NOT NULL,
+  CONSTRAINT rcpa_doctor_month_summary_pkey PRIMARY KEY (id),
+  CONSTRAINT rcpa_doctor_month_summary_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id),
+  CONSTRAINT rcpa_doctor_month_summary_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id),
+  CONSTRAINT rcpa_doctor_month_summary_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id),
+  CONSTRAINT rcpa_doctor_month_summary_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id)
+);
+CREATE TABLE public.rcpa_doctor_brand_summary (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  source_file_id uuid NOT NULL,
+  ingestion_run_id uuid NOT NULL,
+  country_id uuid NOT NULL,
+  first_calendar_month_id uuid,
+  last_calendar_month_id uuid,
+  pcode_normalized text NOT NULL,
+  doctor_name text,
   brand_group text NOT NULL,
-  sku text NOT NULL,
   own_or_competitor text NOT NULL,
   prescription_qty numeric NOT NULL,
   prescription_value_local numeric,
   currency_code text NOT NULL,
-  prescription_value_usd numeric,
   row_count_aggregated integer NOT NULL,
-  CONSTRAINT rcpa_prescriptions_pkey PRIMARY KEY (id),
-  CONSTRAINT rcpa_prescriptions_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id),
-  CONSTRAINT rcpa_prescriptions_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id),
-  CONSTRAINT rcpa_prescriptions_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id),
-  CONSTRAINT rcpa_prescriptions_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id)
+  CONSTRAINT rcpa_doctor_brand_summary_pkey PRIMARY KEY (id),
+  CONSTRAINT rcpa_doctor_brand_summary_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id),
+  CONSTRAINT rcpa_doctor_brand_summary_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id),
+  CONSTRAINT rcpa_doctor_brand_summary_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id),
+  CONSTRAINT rcpa_doctor_brand_summary_first_calendar_month_id_fkey FOREIGN KEY (first_calendar_month_id) REFERENCES public.calendar_months(id),
+  CONSTRAINT rcpa_doctor_brand_summary_last_calendar_month_id_fkey FOREIGN KEY (last_calendar_month_id) REFERENCES public.calendar_months(id)
+);
+CREATE TABLE public.rcpa_country_brand_month_summary (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  source_file_id uuid NOT NULL,
+  ingestion_run_id uuid NOT NULL,
+  country_id uuid NOT NULL,
+  calendar_month_id uuid NOT NULL,
+  brand_group text NOT NULL,
+  own_or_competitor text NOT NULL,
+  prescription_qty numeric NOT NULL,
+  prescription_value_local numeric,
+  currency_code text NOT NULL,
+  row_count_aggregated integer NOT NULL,
+  CONSTRAINT rcpa_country_brand_month_summary_pkey PRIMARY KEY (id),
+  CONSTRAINT rcpa_country_brand_month_summary_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id),
+  CONSTRAINT rcpa_country_brand_month_summary_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id),
+  CONSTRAINT rcpa_country_brand_month_summary_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id),
+  CONSTRAINT rcpa_country_brand_month_summary_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id)
 );
 CREATE TABLE public.event_matches (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

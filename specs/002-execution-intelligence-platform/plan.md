@@ -25,7 +25,7 @@ Transcript 2026-06-15 adds confirmed financial governance scope: budget and ROI 
 
 **Primary Dependencies**: FastAPI, Pydantic v2, Pydantic Settings, SQLAlchemy 2.0, Alembic, psycopg, pandas, openpyxl, python-calamine as the primary XLSB reader with pyxlsb fallback, Typer, pytest, ruff; React, Vite, Tailwind CSS, TanStack Query, Zustand, Recharts, Lucide React.
 
-**Storage**: Supabase PostgreSQL for canonical data, reconciliation records, validation records, materialized KPI views, and AI query logs. Local filesystem for confidential raw workbooks and generated ingestion reports.
+**Storage**: Supabase PostgreSQL for canonical data, compact RCPA summary tables, reconciliation records, validation records, materialized KPI views, and AI query logs. Local filesystem for confidential raw workbooks, generated ingestion reports, and detailed RCPA aggregate extracts.
 
 **Testing**: pytest for ingestion, normalization, reconciliation, database/view, and API tests; React Testing Library/Vitest for frontend states and query behavior; contract tests against OpenAPI schemas.
 
@@ -33,7 +33,7 @@ Transcript 2026-06-15 adds confirmed financial governance scope: budget and ROI 
 
 **Project Type**: Data-heavy full-stack web application with local ingestion CLI, read-only web API, React dashboard, and backend-mediated AI assistant.
 
-**Performance Goals**: Profile all eight supplied workbooks without manual inspection; aggregate RCPA prescription rows before persistence; keep dashboard summary API responses under 1s against materialized views for MVP data volume; keep event/doctor detail tables paginated.
+**Performance Goals**: Profile all eight supplied workbooks without manual inspection; aggregate RCPA prescription rows before persistence; keep Supabase under the free-tier storage limit by persisting compact RCPA summaries online and detailed RCPA extracts locally; keep dashboard summary API responses under 1s against materialized views for MVP data volume; keep event/doctor detail tables paginated.
 
 **Constraints**: Real workbooks and generated extracts must not enter git; service-role database credentials and AI keys remain server-side; no browser upload in MVP; no AI calculation of KPIs; cross-country money comparisons require normalized currency or explicit warning; protected demo access is required for deployment.
 
@@ -67,7 +67,7 @@ Transcript 2026-06-15 adds confirmed financial governance scope: budget and ROI 
 9. FX conversion is static-seeded for MVP. Seed LKR using the official company rate `1 USD = 310 LKR`; seed other currencies only when a documented company/provisional rate exists, and expose missing-FX flags rather than adding a live exchange-rate integration.
 10. `question_redacted` in AI logs requires concrete masking rules for Pcodes, monetary values, and likely doctor-name spans before storage.
 11. Sri Lanka May execution must be derived from consolidation requests in a deterministic, labeled path because no monthly execution country tab exists.
-12. RCPA aggregation must be idempotent through an explicit unique conflict target at the aggregate grain.
+12. RCPA aggregation must be idempotent through explicit unique conflict targets on compact online summary grains. Detailed SKU-level aggregate evidence belongs in local generated extracts, not in Supabase.
 13. Transcript-verified financial mapping must be modeled directly from consolidation columns: confirmed/contracted amount, estimated/FMV-like reference, BTU direct spend, BTC overhead spend, and total actual spend.
 14. Workflow governance must be modeled from request approval/confirmation and post-event report approval/confirmation fields, not inferred from execution status alone.
 15. Intervention type analytics must be data-driven from observed `INTERVENTION TYPE` and `INTERVENTION SUB TYPE` values; current files contain eight observed types.
@@ -196,15 +196,15 @@ Exit criteria:
 
 ### Phase 3: Ingestion MVP
 
-Deliver loaders for planners, consolidation, monthly execution snapshots, and aggregated RCPA facts. Add validation errors, ingestion summaries, and deterministic normalizers for months, Pcodes, event names, status values, and currencies. Month normalization must cover string months and Excel serial numbers. Use SQLAlchemy transactions and Alembic-owned schema objects; do not use the Supabase client as the primary write/read abstraction.
+Deliver loaders for planners, consolidation, monthly execution snapshots, and aggregated RCPA facts. Add validation errors, ingestion summaries, and deterministic normalizers for months, Pcodes, event names, status values, and currencies. Month normalization must cover string months and Excel serial numbers. Use SQLAlchemy transactions and Alembic-owned schema objects; do not use the Supabase client as the primary write/read abstraction. RCPA writes compact online summaries to Supabase and detailed SKU-level aggregate extracts to local `data/processed/` files.
 
 Exit criteria:
 
 - supplied files load or produce explicit validation errors,
-- RCPA is aggregated before persistence,
+- RCPA is aggregated before persistence, compact summaries are written to Supabase, and detailed SKU-level aggregate evidence is written locally,
 - consolidation doctor fields split into traceable participation rows,
 - Sri Lanka missing May tab is handled by deterministic consolidation-derived rows labeled `derived_from_consolidation`,
-- repeated RCPA ingestion of the same file is idempotent through the aggregate unique key.
+- repeated RCPA ingestion of the same file is idempotent through the summary unique keys.
 
 ### Phase 4: Reconciliation and KPI Views
 

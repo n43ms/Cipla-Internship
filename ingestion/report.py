@@ -55,6 +55,7 @@ def profile_report_markdown(profiles: list[WorkbookProfile]) -> str:
 def ingestion_report_markdown(summary: IngestionSummary) -> str:
     source_rows = _source_row_summary(summary)
     fx_rows = _fx_summary(summary)
+    rcpa_storage_rows = _rcpa_storage_summary(summary)
     lines = [
         "# Ingestion Report",
         "",
@@ -91,6 +92,21 @@ def ingestion_report_markdown(summary: IngestionSummary) -> str:
             lines.append(f"| {currency} | {status} | {count} |")
     else:
         lines.append("| none | none | 0 |")
+    if rcpa_storage_rows:
+        lines.extend(
+            [
+                "",
+                "## RCPA Free-Tier Storage Summary",
+                "",
+                "| File | Online Rows | Detail Rows | Detail Extract |",
+                "|---|---:|---:|---|",
+            ]
+        )
+        for row in rcpa_storage_rows:
+            lines.append(
+                f"| {row['file']} | {row['online_rows']} | {row['detail_rows']} | "
+                f"{row['detail_extract']} |"
+            )
     lines.extend(
         [
             "",
@@ -148,3 +164,19 @@ def _fx_summary(summary: IngestionSummary) -> dict[tuple[str, str], int]:
                 key = (str(currency), str(status))
                 stats[key] = stats.get(key, 0) + 1
     return stats
+
+
+def _rcpa_storage_summary(summary: IngestionSummary) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for profile, result in zip(summary.profiles, summary.load_results, strict=False):
+        if result.source_type != "rcpa":
+            continue
+        rows.append(
+            {
+                "file": profile.original_filename,
+                "online_rows": result.summaries.get("rcpa_online_record_count", result.rows_loaded),
+                "detail_rows": result.summaries.get("rcpa_detail_record_count", 0),
+                "detail_extract": result.summaries.get("rcpa_detail_export_path", "dry-run"),
+            }
+        )
+    return rows

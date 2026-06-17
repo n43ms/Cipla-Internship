@@ -710,9 +710,9 @@ Validation:
 - cross-country Pcode reuse is allowed and reported as a data-quality observation.
 - same-country duplicate Pcodes with conflicting doctor names/classes are validation warnings requiring review.
 
-#### `rcpa_prescriptions`
+#### `rcpa_doctor_month_summary`
 
-Aggregated prescription facts.
+Compact online doctor/month prescription summary.
 
 Fields:
 
@@ -727,23 +727,71 @@ Fields:
 - `doctor_class`
 - `patch_name`
 - `active_status`
-- `brand_group`
-- `sku`
-- `sku_detail`
-- `own_or_competitor`
-- `prescription_qty`
-- `prescription_value_local`
+- `own_prescription_qty`
+- `own_prescription_value_local`
+- `competitor_prescription_qty`
+- `competitor_prescription_value_local`
+- `total_prescription_qty`
+- `total_prescription_value_local`
 - `currency_code`
-- `prescription_value_usd`
 - `row_count_aggregated`
 
 Unique key:
 
-- `source_file_id`, `country_id`, `calendar_month_id`, `pcode_normalized`, `brand_group`, `sku`, `own_or_competitor`, `currency_code`
+- `source_file_id`, `country_id`, `calendar_month_id`, `pcode_normalized`, `currency_code`
 
-`ingestion_run_id` records the latest run that wrote the aggregate row, but it is not part of the uniqueness boundary. Re-ingesting the same file must update the same aggregate row instead of duplicating it.
+This table drives Doctor ROI trend, Cipla-vs-competitor split, no-RCPA flags, and ROI quadrant reward metrics.
 
-Do not store every raw RCPA row in Postgres for MVP. Store aggregated facts and ingestion quality metrics.
+#### `rcpa_doctor_brand_summary`
+
+Compact online all-period doctor brand mix.
+
+Fields:
+
+- `id`
+- `source_file_id`
+- `country_id`
+- `first_calendar_month_id`
+- `last_calendar_month_id`
+- `pcode_normalized`
+- `doctor_name`
+- `brand_group`
+- `own_or_competitor`
+- `prescription_qty`
+- `prescription_value_local`
+- `currency_code`
+- `row_count_aggregated`
+
+Unique key:
+
+- `source_file_id`, `country_id`, `pcode_normalized`, `brand_group`, `own_or_competitor`, `currency_code`
+
+This table supports doctor detail brand mix without storing every monthly SKU row online.
+
+#### `rcpa_country_brand_month_summary`
+
+Compact online country/month/brand trend.
+
+Fields:
+
+- `id`
+- `source_file_id`
+- `country_id`
+- `calendar_month_id`
+- `brand_group`
+- `own_or_competitor`
+- `prescription_qty`
+- `prescription_value_local`
+- `currency_code`
+- `row_count_aggregated`
+
+Unique key:
+
+- `source_file_id`, `country_id`, `calendar_month_id`, `brand_group`, `own_or_competitor`, `currency_code`
+
+This table supports aggregate brand trend analysis.
+
+Detailed SKU-level RCPA aggregate evidence is stored locally under `data/processed/*.csv.gz` and is not loaded into Supabase. Do not store every raw or SKU-level RCPA row in Postgres for MVP.
 
 ### 7.4 Reconciliation Tables
 

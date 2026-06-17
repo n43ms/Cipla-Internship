@@ -111,7 +111,8 @@ Expected outcome:
 - valid rows are loaded,
 - invalid rows are listed with validation reasons,
 - RCPA rows are aggregated before database write,
-- repeated ingestion of the same RCPA file updates the same aggregate rows instead of duplicating them,
+- compact RCPA summaries are written to Supabase while detailed SKU-level aggregate extracts are written to `data/processed/`,
+- repeated ingestion of the same RCPA file updates or replaces the same summary rows instead of duplicating them,
 - event matches include matched, weak, and unmatched records,
 - Sri Lanka May execution evidence is derived from consolidation records and marked `derived_from_consolidation`,
 - budget outputs separate estimated/FMV-like value, confirmed/contracted value, direct HCP/BTU spend, overhead/BTC spend, and total actual spend,
@@ -200,7 +201,7 @@ Required coverage:
 - intervention-type grouping,
 - ROI quadrant and dark-horse classification,
 - AI question redaction,
-- RCPA aggregate idempotency conflict target,
+- RCPA summary idempotency conflict targets,
 - event reconciliation,
 - KPI view query contracts,
 - frontend loading/error/empty/data-quality states.

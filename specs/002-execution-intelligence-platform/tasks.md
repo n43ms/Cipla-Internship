@@ -43,9 +43,9 @@
 - [X] T018 Create base database migration for schemas, UUID extension, audit timestamps, and enum types in `database/migrations/versions/0001_base_schema.py`
 - [X] T019 Create audit/source migration for `ingestion_runs`, reusable `source_files`, `ingestion_run_files`, and `validation_errors` in `database/migrations/versions/0002_audit_source_tables.py`
 - [X] T020 Create reference migration for `countries`, `calendar_months`, and `exchange_rates` including `rate_status` in `database/migrations/versions/0003_reference_tables.py`
-- [X] T021 Create canonical table migration for `plan_events`, `execution_snapshots`, `execution_requests`, `request_doctors`, `doctors`, and `rcpa_prescriptions` in `database/migrations/versions/0004_canonical_tables.py`
+- [X] T021 Create canonical table migration for `plan_events`, `execution_snapshots`, `execution_requests`, `request_doctors`, `doctors`, and initial RCPA aggregate storage in `database/migrations/versions/0004_canonical_tables.py`
 - [X] T022 Create reconciliation and AI migration for `event_matches` and `ai_query_logs` in `database/migrations/versions/0005_reconciliation_ai_tables.py`
-- [X] T023 Create index and uniqueness migration for source file hash, run-file participation, country-scoped Pcodes, request identity, and RCPA aggregate conflict target in `database/migrations/versions/0006_indexes_constraints.py`
+- [X] T023 Create index and uniqueness migration for source file hash, run-file participation, country-scoped Pcodes, request identity, and initial RCPA aggregate conflict target in `database/migrations/versions/0006_indexes_constraints.py`
 - [X] T024 Create country seed SQL for Nepal, Sri Lanka, Myanmar, Oman, UAE, and Malaysia in `database/seeds/countries.sql`
 - [X] T025 Create FY26 and FY27 fiscal calendar seed generator with April fiscal-year start in `database/seeds/calendar_months.sql`
 - [X] T026 Create static exchange-rate seed with official LKR company rate `1 USD = 310 LKR` plus documented provisional/missing statuses for NPR, MMK, OMR, AED, and MYR in `database/seeds/exchange_rates_static.sql`
@@ -88,10 +88,10 @@
 - [X] T050 [P] [US1] Add tests for Nepal and Sri Lanka planner canonical sheet selection and alternate-sheet profiling without double counting in `ingestion/tests/loaders/test_planner_loader.py`
 - [X] T051 [P] [US1] Add tests for April and May monthly execution status normalization, summary rows, country tabs, and missing Sri Lanka May tab detection in `ingestion/tests/loaders/test_execution_snapshot_loader.py`
 - [X] T052 [P] [US1] Add tests for consolidation `Working` sheet required fields, request IDs, approval chain capture, and raw doctor field preservation in `ingestion/tests/loaders/test_consolidation_loader.py`
-- [X] T053 [P] [US1] Add tests for RCPA column aliases, active-status aliases, own/competitor aliases, serial months, local currency preservation, and aggregate grain in `ingestion/tests/loaders/test_rcpa_loader.py`
+- [X] T053 [P] [US1] Add tests for RCPA column aliases, active-status aliases, own/competitor aliases, serial months, local currency preservation, local detail extracts, and compact summary grains in `ingestion/tests/loaders/test_rcpa_loader.py`
 - [X] T054 [P] [US1] Add tests for expected and actual doctor participation splitting from multi-doctor consolidation fields in `ingestion/tests/loaders/test_request_doctors.py`
 - [X] T055 [P] [US1] Add tests for ingestion run, source file, run-file, validation error, and partial warning persistence in `ingestion/tests/test_ingestion_audit.py`
-- [X] T056 [P] [US1] Add tests for idempotent RCPA aggregate upsert and re-run behavior in `ingestion/tests/repositories/test_rcpa_repository.py`
+- [X] T056 [P] [US1] Add tests for idempotent RCPA summary replacement/upsert and re-run behavior in `ingestion/tests/repositories/test_rcpa_repository.py`
 - [X] T057 [P] [US1] Add CLI contract tests for `profile`, `ingest --source all`, and `report` commands in `ingestion/tests/test_cli_contract.py`
 
 ### Implementation for User Story 1
@@ -108,9 +108,9 @@
 - [X] T067 [US1] Implement execution snapshot loader for April and May status values, country tabs, summary rows, source sheet references, and missing-tab limitations in `ingestion/loaders/execution_snapshot.py`
 - [X] T068 [US1] Implement consolidation loader for `Working` rows, request identity, dates, venues, interventions, status columns, approval chain, location, and raw doctor fields in `ingestion/loaders/consolidation.py`
 - [X] T069 [US1] Implement request doctor splitter for expected and actual names/classes/Pcodes with parse status and source positions in `ingestion/loaders/request_doctors.py`
-- [X] T070 [US1] Implement RCPA loader with alias maps, serial month parsing, local currency preservation, aggregation before persistence, and row-count summaries in `ingestion/loaders/rcpa.py`
-- [X] T071 [US1] Implement repositories for plan events, execution snapshots, execution requests, request doctors, doctors, and RCPA aggregates in `ingestion/repositories/canonical_repository.py`
-- [X] T072 [US1] Implement idempotent RCPA aggregate upsert against the explicit aggregate conflict target in `ingestion/repositories/rcpa_repository.py`
+- [X] T070 [US1] Implement RCPA loader with alias maps, serial month parsing, local currency preservation, compact online summaries, local detailed aggregate extract summaries, and row-count summaries in `ingestion/loaders/rcpa.py`
+- [X] T071 [US1] Implement repositories for plan events, execution snapshots, execution requests, request doctors, doctors, and compact RCPA summaries in `ingestion/repositories/canonical_repository.py` and `ingestion/repositories/rcpa_repository.py`
+- [X] T072 [US1] Implement idempotent RCPA summary persistence against explicit summary conflict targets in `ingestion/repositories/rcpa_repository.py`
 - [X] T073 [US1] Implement ingestion orchestrator run order, transaction boundaries, partial warning behavior, fatal validation behavior, and terminal run status in `ingestion/orchestrator.py`
 - [X] T074 [US1] Implement Typer CLI commands `profile`, `ingest`, and `report` in `ingestion/main.py`
 - [X] T075 [US1] Implement markdown and JSON ingestion report generation with file participation, row counts, validation summaries, serial-month counts, Pcode coverage, and missing-FX warnings in `ingestion/report.py`

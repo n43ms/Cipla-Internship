@@ -349,9 +349,9 @@ Validation:
 - blank/invalid Pcodes do not create doctor master rows,
 - cross-country Pcode collisions are reported.
 
-### rcpa_prescriptions
+### rcpa_doctor_month_summary
 
-Aggregated prescription behavior.
+Compact online prescription trend by doctor and month.
 
 Fields:
 
@@ -364,24 +364,84 @@ Fields:
 - `doctor_class`
 - `patch_name`
 - `active_status`
-- `brand_group`
-- `sku`
-- `sku_detail`
-- `own_or_competitor`
-- `prescription_qty`
-- `prescription_value_local`
+- `own_prescription_qty`
+- `own_prescription_value_local`
+- `competitor_prescription_qty`
+- `competitor_prescription_value_local`
+- `total_prescription_qty`
+- `total_prescription_value_local`
 - `currency_code`
-- `prescription_value_usd`
 - `row_count_aggregated`
 
 Validation:
 
-- aggregate grain and unique conflict target: `source_file_id`, `country_id`, `calendar_month_id`, `pcode_normalized`, `brand_group`, `sku`, `own_or_competitor`, `currency_code`,
-- `ingestion_run_id` records the latest run that wrote or updated the aggregate row; it is not part of the uniqueness boundary,
-- supports aliases `O & C` and `Own/Competitor`,
-- supports active-status aliases from historical/current RCPA,
-- supports string month labels and Excel serial-number month cells,
-- no raw prescription-level RCPA table for MVP.
+- unique conflict target: `source_file_id`, `country_id`, `calendar_month_id`, `pcode_normalized`, `currency_code`,
+- drives Doctor ROI trend, Cipla vs competitor split, no-RCPA flags, and ROI quadrant reward metrics,
+- `ingestion_run_id` records the latest run that wrote or replaced the summary row.
+
+### rcpa_doctor_brand_summary
+
+Compact online all-period brand mix by doctor.
+
+Fields:
+
+- `id`
+- `source_file_id`, `ingestion_run_id`
+- `country_id`
+- `first_calendar_month_id`, `last_calendar_month_id`
+- `pcode_normalized`
+- `doctor_name`
+- `brand_group`
+- `own_or_competitor`
+- `prescription_qty`
+- `prescription_value_local`
+- `currency_code`
+- `row_count_aggregated`
+
+Validation:
+
+- unique conflict target: `source_file_id`, `country_id`, `pcode_normalized`, `brand_group`, `own_or_competitor`, `currency_code`,
+- supports doctor detail brand mix without storing every monthly SKU row online,
+- detailed SKU-level aggregate evidence is retained in local compressed extracts under `data/processed/`.
+
+### rcpa_country_brand_month_summary
+
+Compact online country/month/brand market trend.
+
+Fields:
+
+- `id`
+- `source_file_id`, `ingestion_run_id`
+- `country_id`, `calendar_month_id`
+- `brand_group`
+- `own_or_competitor`
+- `prescription_qty`
+- `prescription_value_local`
+- `currency_code`
+- `row_count_aggregated`
+
+Validation:
+
+- unique conflict target: `source_file_id`, `country_id`, `calendar_month_id`, `brand_group`, `own_or_competitor`, `currency_code`,
+- supports aggregate brand and market-trend summaries without loading SKU-level RCPA detail into Supabase.
+
+### Local RCPA Detail Extracts
+
+Detailed RCPA aggregate evidence is generated under `data/processed/` as compressed CSV files.
+
+Fields:
+
+- country, month, Pcode, doctor metadata
+- brand group, SKU, SKU detail
+- own-vs-competitor label
+- prescription quantity and local value
+- currency and source row aggregate count
+
+Validation:
+
+- local extracts are gitignored and are not part of the deployed database,
+- they preserve the previous SKU-level aggregate grain for audit/debugging/reruns,
+- no raw prescription-level RCPA table is stored in Supabase for MVP.
 
 ## Reconciliation Entity
 

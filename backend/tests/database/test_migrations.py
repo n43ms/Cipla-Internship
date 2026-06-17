@@ -42,3 +42,29 @@ def test_phase_1_3_schema_completion_migration_contains_required_columns() -> No
         "sku_detail",
     ]:
         assert column_name in migration_sql
+
+
+def test_free_tier_rcpa_storage_migration_contains_summary_tables() -> None:
+    migration_sql = Path("database/migrations/versions/0008_supabase_free_tier_rcpa_storage.py").read_text(
+        encoding="utf-8"
+    )
+    for table_name in [
+        "rcpa_doctor_month_summary",
+        "rcpa_doctor_brand_summary",
+        "rcpa_country_brand_month_summary",
+    ]:
+        assert table_name in migration_sql
+    assert "TRUNCATE TABLE rcpa_prescriptions" in migration_sql
+
+
+def test_obsolete_rcpa_prescriptions_table_is_dropped_by_head_migration() -> None:
+    migration_sql = Path("database/migrations/versions/0009_drop_obsolete_rcpa_prescriptions.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'op.drop_table("rcpa_prescriptions")' in migration_sql
+    for table_name in [
+        "rcpa_doctor_month_summary",
+        "rcpa_doctor_brand_summary",
+        "rcpa_country_brand_month_summary",
+    ]:
+        assert table_name not in migration_sql

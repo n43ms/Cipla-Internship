@@ -92,13 +92,16 @@ The latest real-file dry run completed with:
 ```text
 files=8
 rows_seen=1179273
-rows_loaded=779396
+rows_loaded=423693
 rows_skipped=3
 warnings=3
 errors=0
 ```
 
-The three warnings are skipped Nepal planner rows missing country, month, or event name. They are treated as non-fatal skipped rows, not hidden.
+`rows_loaded` counts compact online records. Detailed RCPA SKU-level aggregate evidence is
+reported separately in the RCPA free-tier storage section and written to `data/processed/`.
+The three warnings are skipped Nepal planner rows missing country, month, or event name. They
+are treated as non-fatal skipped rows, not hidden.
 
 ## Source-Specific Dry Runs
 
@@ -138,26 +141,44 @@ This writes:
 - execution snapshots
 - consolidation requests
 - request doctors
-- RCPA prescription aggregates
+- compact RCPA summaries
+- local compressed RCPA detail extracts under `data/processed/`
 
 ## Reruns
 
 Reruns are expected.
 
-File hashes prevent duplicate source file identity rows. RCPA aggregate upserts use this conflict grain:
+File hashes prevent duplicate source file identity rows. RCPA summaries are replaced per source file
+and use these online conflict grains:
 
 ```text
+rcpa_doctor_month_summary:
 source_file_id
 country_id
 calendar_month_id
 pcode_normalized
+currency_code
+
+rcpa_doctor_brand_summary:
+source_file_id
+country_id
+pcode_normalized
 brand_group
-sku
+own_or_competitor
+currency_code
+
+rcpa_country_brand_month_summary:
+source_file_id
+country_id
+calendar_month_id
+brand_group
 own_or_competitor
 currency_code
 ```
 
-This means re-ingesting the same RCPA workbook updates the same aggregate rows instead of duplicating them.
+This means re-ingesting the same RCPA workbook updates the same summary rows instead of duplicating
+them. Detailed SKU-level aggregate evidence is preserved locally in `data/processed/*.csv.gz`, not
+in Supabase.
 
 ## Failure Recovery
 
@@ -182,8 +203,8 @@ If database ingestion fails:
 ## Confidentiality Rules
 
 - Do not commit files in `data/raw/`.
+- Do not commit generated detail extracts from `data/processed/`.
 - Do not commit generated reports from `data/reports/`.
 - Do not paste workbook excerpts into prompts unless explicitly needed.
 - Do not expose database passwords or Supabase service keys.
 - The frontend must not connect directly to Supabase.
-

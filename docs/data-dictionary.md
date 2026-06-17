@@ -6,7 +6,7 @@ Real workbooks live locally in `data/raw/` and are not committed.
 
 | Workbook Family | Files | Canonical Sheet Logic | Main Output |
 |---|---|---|---|
-| RCPA | Nepal/Myanmar historical, Nepal/Myanmar current, Sri Lanka current | Data sheet with RCPA aliases and prescription-level fields | `rcpa_prescriptions` aggregates and doctor seed data |
+| RCPA | Nepal/Myanmar historical, Nepal/Myanmar current, Sri Lanka current | Data sheet with RCPA aliases and prescription-level fields | `rcpa_doctor_month_summary`, `rcpa_doctor_brand_summary`, `rcpa_country_brand_month_summary`, local detail extracts, and doctor seed data |
 | Yearly Planner | Nepal FY27, Sri Lanka FY27 | Nepal prefers `Yearly Planner FY27 v2`; Sri Lanka uses `YP FY27` | `plan_events` |
 | Consolidation | `Consolidation report Nov'25 - 01 Jun'26 - AJ.xlsx` | `Working` | `execution_requests`, `request_doctors` |
 | Monthly Execution Snapshot | April and May Execution YP Planner files | April `YP`; May country tabs plus `YP`, with no Sri Lanka May tab | `execution_snapshots` |
@@ -149,9 +149,12 @@ Rules:
 - use `source_position` so duplicate or missing Pcodes do not break uniqueness.
 - imperfect splits are kept with parse status instead of silently discarded.
 
-### RCPA To `rcpa_prescriptions`
+### RCPA To Compact Summary Tables
 
-RCPA is aggregated before persistence.
+RCPA is parsed completely, validated, and aggregated before persistence. Supabase stores compact
+app-ready summaries so the project stays under the free-tier database limit. The detailed
+SKU-level aggregate evidence is written locally to compressed CSV extracts under `data/processed/`
+and is not committed.
 
 Important aliases:
 
@@ -164,7 +167,7 @@ Important aliases:
 - `RCPA Quantity`, `Qty`, `Quantity` -> prescription quantity
 - `RCPA Value`, `Value`, `Amount` -> prescription value
 
-Aggregate grain:
+Detailed local extract grain:
 
 ```text
 source_file_id
@@ -177,6 +180,26 @@ own_or_competitor
 currency_code
 ```
 
+Supabase online grains:
+
+```text
+rcpa_doctor_month_summary:
+source_file_id + country + month + pcode_normalized + currency_code
+
+rcpa_doctor_brand_summary:
+source_file_id + country + pcode_normalized + brand_group + own_or_competitor + currency_code
+
+rcpa_country_brand_month_summary:
+source_file_id + country + month + brand_group + own_or_competitor + currency_code
+```
+
+Summary usage:
+
+- `rcpa_doctor_month_summary` drives Doctor ROI trend, Cipla vs competitor split, no-RCPA flags, and ROI quadrants.
+- `rcpa_doctor_brand_summary` drives doctor detail brand mix without storing monthly SKU detail online.
+- `rcpa_country_brand_month_summary` drives country/month/brand market trend summaries.
+- `doctors` is seeded from RCPA doctor-month summaries using country-scoped Pcode uniqueness.
+
 Pcode rules:
 
 - text IDs with leading zeros are preserved.
@@ -187,4 +210,3 @@ Month rules:
 
 - supports text months such as `Apr-24`, `25-Apr`, `Oct-25`, `Apr'26`, `May-26`.
 - supports Excel serial numbers such as `45772`.
-

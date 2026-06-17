@@ -152,7 +152,7 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **FR-002**: System MUST track ingestion attempts with status, source file count, row counts, skipped rows, warning count, error count, and a summary suitable for display.
 - **FR-003**: System MUST track each source file by filename, file type, source type, country scope, period scope, and file identity.
 - **FR-004**: System MUST validate source rows and record file-level or row-level validation issues without silently dropping business-relevant records.
-- **FR-005**: System MUST ingest the three RCPA files using column aliases for observed schema differences and aggregate rows by doctor, month, brand, SKU, and own-vs-competitor before persistence.
+- **FR-005**: System MUST ingest the three RCPA files using column aliases for observed schema differences, preserve detailed SKU-level aggregate evidence locally under `data/processed/`, and persist compact app-ready RCPA summaries to Supabase.
 - **FR-006**: System MUST ingest Nepal and Sri Lanka yearly planners while selecting the canonical planning sheet for each country and preserving country-specific planning fields.
 - **FR-007**: System MUST ingest consolidation `Working` records as actual execution request facts including request ID, country, dates, venue, intervention details, budgets, spend, doctor counts, doctor fields, approval statuses, cancellation reason, location, and approval chain.
 - **FR-008**: System MUST split semi-structured expected and actual doctor fields from consolidation into normalized doctor participation records with raw values, normalized Pcodes, parse status, and source position.
@@ -200,7 +200,7 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **AC-006**: AI query logs must avoid storing secrets, raw oversized prompts, or unnecessary sensitive source data.
 - **AC-007**: Manual event-match editing is intentionally out of MVP, so unmatched and weak matches must be visible enough for operational review without requiring a write-back UI.
 - **AC-008**: Sri Lanka May execution evidence must be derived from consolidation requests by filtering Sri Lanka requests to May 2026, grouping by normalized intervention/event fields, and marking the resulting execution snapshot rows as `derived_from_consolidation` so they are never confused with monthly planner tab rows.
-- **AC-009**: `rcpa_prescriptions` must have an explicit idempotency constraint at the aggregate grain: source file, country, month, normalized Pcode, brand group, SKU, own-vs-competitor, and currency. Re-ingesting the same file must update the existing aggregate row, not duplicate it.
+- **AC-009**: RCPA online summary tables must have explicit idempotency constraints. `rcpa_doctor_month_summary` is unique by source file, country, month, normalized Pcode, and currency; `rcpa_doctor_brand_summary` is unique by source file, country, normalized Pcode, brand group, own-vs-competitor, and currency; `rcpa_country_brand_month_summary` is unique by source file, country, month, brand group, own-vs-competitor, and currency. Re-ingesting the same file must replace or update existing summary rows, not duplicate them.
 - **AC-010**: Transcript-verified financial mapping is authoritative for MVP: confirmed/contracted amount = `APPROVE/CONFIRMED TOTAL INTERVENTION`; estimated/FMV-like reference = `ESTIMATED INTERVENTION`; direct HCP/BTU spend = `ACTUAL EXPENSE AGAINST BTU`; overhead/BTC spend = `TOTAL ACTUAL BTC EXPENSE`; total ROI spend = `TOTAL ACTUAL EXPENSES FOR INTERVENTION`.
 - **AC-011**: Workflow governance must be modeled from actual consolidation lifecycle columns rather than inferred from event matching alone: `PENDING FOR APPROVAL Request`, `PENDING FOR CONFIRMATION Request`, `PENDING FOR APPROVAL POST`, `PENDING FOR CONFIRMATION POST`, `EXPENSE SUBMITTED DATE`, `EXPENSE CONFIRMED DATE`, and Level 1-6 approver fields.
 - **AC-012**: Intervention mix must be data-driven from `INTERVENTION TYPE` and `INTERVENTION SUB TYPE`; current source data shows eight observed intervention types, so fixed seven-type assumptions are invalid.
@@ -218,7 +218,7 @@ As a manager or project owner, I need to ask concise natural-language questions 
 - **Execution Request**: A smart-contract request from the consolidation report with actual execution and spend details.
 - **Request Doctor**: An expected or actual doctor participation record extracted from an execution request.
 - **Doctor**: A doctor profile primarily seeded from RCPA and linked by normalized Pcode plus country validation.
-- **RCPA Prescription**: Aggregated prescription behavior by doctor, month, brand, SKU, and own-vs-competitor.
+- **RCPA Summaries**: Compact online prescription behavior by doctor/month, doctor/brand, and country/brand/month, with detailed SKU-level aggregate evidence retained only in local generated extracts.
 - **Event Match**: Explicit reconciliation record linking planner, execution snapshot, and consolidation evidence.
 - **KPI View**: Prepared execution, budget, doctor ROI, data quality, or unmatched-event output used by the dashboard.
 - **AI Query Log**: Record of a user question, structured context summary, answer, model metadata, latency, and error state.
@@ -232,7 +232,7 @@ As a manager or project owner, I need to ask concise natural-language questions 
 
 - **SC-001**: All eight supplied source files are profiled and classified without manual workbook inspection.
 - **SC-002**: At least 99% of structurally valid rows from planner, execution, and consolidation sources are loaded or reported with explicit validation reasons.
-- **SC-003**: RCPA ingestion aggregates prescription records without storing every prescription-level row as raw database JSON.
+- **SC-003**: RCPA ingestion aggregates prescription records without storing every prescription-level row or SKU-level detail row in Supabase; compact summaries stay online and detailed evidence stays in local generated extracts.
 - **SC-004**: Every dashboard KPI displays the latest ingestion status and indicates when match, Pcode, currency, or RCPA coverage limits interpretation.
 - **SC-005**: Users can identify missed or action-due events for a selected country/month in under two minutes.
 - **SC-006**: Users can identify planned budget, actual spend, unspent gap, and unmatched spend for a selected country/month in under two minutes.

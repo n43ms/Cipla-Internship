@@ -9,11 +9,11 @@ from ingestion.database import session_scope
 from ingestion.file_registry import SourceFile, discover_source_files
 from ingestion.loaders import load_consolidation, load_execution_snapshot, load_planner, load_rcpa
 from ingestion.models import LoadResult, WorkbookProfile
+from ingestion.processed_exports import export_rcpa_detail_records
 from ingestion.profiler import profile_source_file
 from ingestion.repositories.audit_repository import AuditRepository
 from ingestion.repositories.canonical_repository import CanonicalRepository
 from ingestion.repositories.rcpa_repository import RcpaRepository
-
 
 LOADERS = {
     "planner": load_planner,
@@ -108,8 +108,9 @@ def _persist(
     load_results: list[LoadResult],
     summary: IngestionSummary,
 ) -> None:
+    settings = get_settings()
     source_by_hash = {source_file.file_hash: source_file for source_file in source_files}
-    result_by_type_and_path = {(result.source_type, str(profile.path)): result for profile, result in zip(profiles, load_results)}
+    result_by_type_and_path = {(result.source_type, str(profile.path)): result for profile, result in zip(profiles, load_results, strict=False)}
     with session_scope() as session:
         audit = AuditRepository(session)
         canonical = CanonicalRepository(session)
@@ -164,8 +165,25 @@ def _persist(
                 )
                 canonical.insert_request_doctors(request_ids, result.summaries.get("request_doctors", []))
             elif result.source_type == "rcpa":
-                rcpa.upsert_rcpa_aggregates(
+                detail_export_path = export_rcpa_detail_records(
+                    profile=profile,
+                    records=result.summaries.get("rcpa_detail_records", []),
+                    processed_dir=settings.processed_data_dir,
+                )
+                if detail_export_path is not None:
+                    result.summaries["rcpa_detail_export_path"] = str(detail_export_path)
+                rcpa.replace_rcpa_doctor_month_summaries(
                     ingestion_run_id=run_id, source_file_id=source_file_id, records=result.records
+                )
+                rcpa.replace_rcpa_doctor_brand_summaries(
+                    ingestion_run_id=run_id,
+                    source_file_id=source_file_id,
+                    records=result.summaries.get("rcpa_doctor_brand_summary", []),
+                )
+                rcpa.replace_rcpa_country_brand_month_summaries(
+                    ingestion_run_id=run_id,
+                    source_file_id=source_file_id,
+                    records=result.summaries.get("rcpa_country_brand_month_summary", []),
                 )
                 rcpa.upsert_doctors_from_rcpa(result.records)
         status = "completed"
