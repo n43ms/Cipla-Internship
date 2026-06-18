@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict XLCUl3YZ3ye38WDi0cTOVbWcWE6jjW6yOSV9U1Rk2Mdcb2cE6zrQYzF10MTFMkb
+\restrict j6YhbtzbhwEsA3Fq91wZJwcBx0e1eDKpihlcVjvRrYSGBKEQV3G5iCpWXNPP8fS
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.1
@@ -3484,103 +3484,362 @@ CREATE VIEW public.phase4_analysis_scope AS
 
 
 --
--- Name: mv_execution_event_matrix; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+-- Name: mv_budget_utilization; Type: MATERIALIZED VIEW; Schema: public; Owner: -
 --
 
-CREATE MATERIALIZED VIEW public.mv_execution_event_matrix AS
- WITH decorated AS (
-         SELECT em_1.id,
-            em_1.ingestion_run_id,
-            em_1.country_id,
-            em_1.calendar_month_id,
-            em_1.plan_event_id,
-            em_1.execution_snapshot_id,
-            em_1.execution_request_id,
-            em_1.match_method,
-            em_1.match_confidence,
-            em_1.match_status,
-            em_1.matched_on,
-            em_1.notes,
-            em_1.created_at,
-            em_1.updated_at,
-            em_1.unmatched_reason_code,
-            em_1.unmatched_reason_detail,
-            count(*) FILTER (WHERE ((em_1.match_status = ANY (ARRAY['matched'::text, 'weak_match'::text])) AND (em_1.plan_event_id IS NOT NULL))) OVER (PARTITION BY em_1.plan_event_id) AS plan_match_count,
-            count(*) FILTER (WHERE ((em_1.match_status = ANY (ARRAY['matched'::text, 'weak_match'::text])) AND (em_1.execution_snapshot_id IS NOT NULL))) OVER (PARTITION BY em_1.execution_snapshot_id) AS snapshot_match_count
-           FROM public.event_matches em_1
+CREATE MATERIALIZED VIEW public.mv_budget_utilization AS
+ WITH matched_pairs AS (
+         SELECT DISTINCT em.country_id,
+            em.calendar_month_id,
+            em.plan_event_id,
+            em.execution_request_id,
+            em.match_status
+           FROM public.event_matches em
+          WHERE ((em.match_status = ANY (ARRAY['matched'::text, 'weak_match'::text])) AND ((em.plan_event_id IS NOT NULL) OR (em.execution_request_id IS NOT NULL)))
+        ), plan_only AS (
+         SELECT pe_1.country_id,
+            pe_1.calendar_month_id,
+            pe_1.id AS plan_event_id,
+            NULL::uuid AS execution_request_id,
+            'unmatched_plan'::text AS match_status
+           FROM public.plan_events pe_1
+          WHERE (NOT (EXISTS ( SELECT 1
+                   FROM matched_pairs mp
+                  WHERE (mp.plan_event_id = pe_1.id))))
+        ), request_only AS (
+         SELECT er_1.country_id,
+            er_1.calendar_month_id,
+            NULL::uuid AS plan_event_id,
+            er_1.id AS execution_request_id,
+            'unmatched_request'::text AS match_status
+           FROM public.execution_requests er_1
+          WHERE (NOT (EXISTS ( SELECT 1
+                   FROM matched_pairs mp
+                  WHERE (mp.execution_request_id = er_1.id))))
+        ), budget_rows AS (
+         SELECT matched_pairs.country_id,
+            matched_pairs.calendar_month_id,
+            matched_pairs.plan_event_id,
+            matched_pairs.execution_request_id,
+            matched_pairs.match_status
+           FROM matched_pairs
+        UNION ALL
+         SELECT plan_only.country_id,
+            plan_only.calendar_month_id,
+            plan_only.plan_event_id,
+            plan_only.execution_request_id,
+            plan_only.match_status
+           FROM plan_only
+        UNION ALL
+         SELECT request_only.country_id,
+            request_only.calendar_month_id,
+            request_only.plan_event_id,
+            request_only.execution_request_id,
+            request_only.match_status
+           FROM request_only
         )
- SELECT em.id AS match_id,
-    em.country_id,
+ SELECT br.country_id,
     c.code AS country_code,
     c.name AS country_name,
-    em.calendar_month_id,
+    br.calendar_month_id,
     cm.month_start_date,
     cm.month_label,
-        CASE
-            WHEN (em.match_status = 'unmatched_plan'::text) THEN 'planner'::text
-            WHEN (em.match_status = 'unmatched_snapshot'::text) THEN 'execution_snapshot'::text
-            WHEN (em.match_status = 'unmatched_request'::text) THEN 'consolidation'::text
-            WHEN ((em.plan_event_id IS NOT NULL) AND (em.execution_snapshot_id IS NOT NULL) AND (em.execution_request_id IS NOT NULL)) THEN 'planner_execution_consolidation'::text
-            WHEN ((em.plan_event_id IS NOT NULL) AND (em.execution_snapshot_id IS NOT NULL)) THEN 'planner_execution'::text
-            WHEN ((em.plan_event_id IS NOT NULL) AND (em.execution_request_id IS NOT NULL)) THEN 'planner_consolidation'::text
-            WHEN ((em.execution_snapshot_id IS NOT NULL) AND (em.execution_request_id IS NOT NULL)) THEN 'execution_consolidation'::text
-            ELSE 'reconciliation'::text
-        END AS source_type,
-    COALESCE(pe.event_name, es.event_name, er.intervention_name) AS event_name,
-    COALESCE(pe.event_type, es.event_type, er.intervention_type) AS event_type,
-    pe.event_name AS planned_event_name,
-    es.event_name AS snapshot_event_name,
-    er.intervention_name AS request_event_name,
-    em.match_status,
-    em.match_method,
-    em.match_confidence AS confidence,
-        CASE
-            WHEN (em.match_status = 'unmatched_plan'::text) THEN NULL::text
-            ELSE COALESCE(es.event_name, er.intervention_name, pe.event_name)
-        END AS candidate_match,
-    pe.planned_total_hcps AS planned_hcps,
-    es.engaged_hcps,
-    es.normalized_status AS execution_status,
-    es.snapshot_source,
-    er.req_id,
-    er.request_uid,
-    er.intervention_type,
+    br.plan_event_id,
+    br.execution_request_id,
+    br.match_status,
+    COALESCE(pe.event_name, er.intervention_name) AS event_name,
+    COALESCE(pe.event_type, er.intervention_type) AS event_type,
+    pe.therapy,
     er.intervention_sub_type,
-    er.request_approval_status,
-    er.request_confirmation_status,
-    er.post_approval_status,
-    er.post_confirmation_status,
-    er.current_owner_stage,
+    pe.total_planned_cost_usd AS planned_budget_usd,
+    er.estimated_intervention_local,
+    er.estimated_intervention_usd,
+    er.confirmed_contracted_amount_local,
+    er.confirmed_contracted_amount_usd,
+    er.confirmed_vs_estimated_variance_local,
         CASE
-            WHEN (em.match_status = ANY (ARRAY['weak_match'::text, 'unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text])) THEN COALESCE(em.unmatched_reason_code, p4.scope_status)
-            ELSE NULL::text
-        END AS unmatched_reason_code,
+            WHEN ((er.fx_rate_to_usd IS NOT NULL) AND (er.confirmed_vs_estimated_variance_local IS NOT NULL)) THEN round((er.confirmed_vs_estimated_variance_local * er.fx_rate_to_usd), 4)
+            ELSE NULL::numeric
+        END AS confirmed_vs_estimated_variance_usd,
+    er.actual_btu_expense_local AS direct_hcp_btu_spend_local,
+    er.actual_btu_expense_usd AS direct_hcp_btu_spend_usd,
+    er.actual_btc_expense_local AS overhead_btc_spend_local,
+    er.actual_btc_expense_usd AS overhead_btc_spend_usd,
+    er.actual_total_expense_local,
+    er.actual_total_expense_usd,
+    er.association_amount_local,
+    er.currency_code,
+    er.fx_rate_to_usd,
+    er.fx_rate_source,
+    er.fx_rate_date,
+    COALESCE(er.fx_rate_status,
         CASE
-            WHEN (em.match_status = ANY (ARRAY['weak_match'::text, 'unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text])) THEN COALESCE(em.unmatched_reason_detail, p4.scope_reason)
-            ELSE NULL::text
-        END AS unmatched_reason_detail,
+            WHEN (er.id IS NULL) THEN 'not_applicable'::text
+            ELSE 'missing'::text
+        END) AS fx_rate_status,
+    ((er.id IS NOT NULL) AND ((er.fx_rate_status IS NULL) OR (er.fx_rate_status = 'missing'::text))) AS missing_fx,
+    (er.fx_rate_status = 'provisional'::text) AS provisional_fx,
+        CASE
+            WHEN (er.actual_total_expense_local IS NULL) THEN 'missing_total_actual'::text
+            WHEN ((er.actual_btu_expense_local IS NULL) AND (er.actual_btc_expense_local IS NULL)) THEN 'missing_btu_btc_split'::text
+            WHEN (abs(((COALESCE(er.actual_btu_expense_local, (0)::numeric) + COALESCE(er.actual_btc_expense_local, (0)::numeric)) - er.actual_total_expense_local)) <= (1)::numeric) THEN 'reconciled'::text
+            ELSE 'mismatch'::text
+        END AS btu_btc_reconciliation_status,
+        CASE
+            WHEN (er.actual_total_expense_local IS NULL) THEN NULL::numeric
+            ELSE round(((COALESCE(er.actual_btu_expense_local, (0)::numeric) + COALESCE(er.actual_btc_expense_local, (0)::numeric)) - er.actual_total_expense_local), 4)
+        END AS btu_btc_delta_local,
+        CASE
+            WHEN (er.actual_total_expense_usd IS NULL) THEN NULL::numeric
+            ELSE round(((COALESCE(er.actual_btu_expense_usd, (0)::numeric) + COALESCE(er.actual_btc_expense_usd, (0)::numeric)) - er.actual_total_expense_usd), 4)
+        END AS btu_btc_delta_usd,
+        CASE
+            WHEN ((pe.id IS NOT NULL) AND (er.id IS NULL)) THEN pe.total_planned_cost_usd
+            WHEN ((pe.total_planned_cost_usd IS NOT NULL) AND (er.actual_total_expense_usd IS NOT NULL)) THEN GREATEST((pe.total_planned_cost_usd - er.actual_total_expense_usd), (0)::numeric)
+            ELSE NULL::numeric
+        END AS unspent_gap_usd,
+        CASE
+            WHEN ((pe.total_planned_cost_usd IS NOT NULL) AND (er.actual_total_expense_usd IS NOT NULL)) THEN GREATEST((er.actual_total_expense_usd - pe.total_planned_cost_usd), (0)::numeric)
+            ELSE NULL::numeric
+        END AS overrun_amount_usd,
+    ((pe.id IS NOT NULL) AND (er.id IS NULL)) AS plan_without_spend,
+    ((pe.id IS NULL) AND (er.id IS NOT NULL)) AS spend_without_plan,
     COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
     COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
-    COALESCE(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.'::text) AS scope_reason,
+    COALESCE(p4.scope_reason, 'This country/month is outside the current analytical scope.'::text) AS scope_reason,
+    now() AS refreshed_at
+   FROM (((((budget_rows br
+     JOIN public.countries c ON ((c.id = br.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = br.calendar_month_id)))
+     LEFT JOIN public.plan_events pe ON ((pe.id = br.plan_event_id)))
+     LEFT JOIN public.execution_requests er ON ((er.id = br.execution_request_id)))
+     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = br.country_id) AND (p4.calendar_month_id = br.calendar_month_id))))
+  WITH NO DATA;
+
+
+--
+-- Name: rcpa_doctor_month_summary; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rcpa_doctor_month_summary (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    source_file_id uuid NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    country_id uuid NOT NULL,
+    calendar_month_id uuid NOT NULL,
+    pcode_raw text,
+    pcode_normalized text NOT NULL,
+    doctor_name text,
+    speciality text,
+    doctor_class text,
+    patch_name text,
+    active_status text,
+    own_prescription_qty numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    own_prescription_value_local numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    competitor_prescription_qty numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    competitor_prescription_value_local numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    total_prescription_qty numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    total_prescription_value_local numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    currency_code text NOT NULL,
+    row_count_aggregated integer NOT NULL
+);
+
+
+--
+-- Name: request_doctors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.request_doctors (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    execution_request_id uuid NOT NULL,
+    attendance_type text NOT NULL,
+    doctor_name_raw text,
+    doctor_class_raw text,
+    pcode_raw text,
+    pcode_normalized text,
+    parse_status text NOT NULL,
+    source_position integer NOT NULL,
+    CONSTRAINT ck_request_doctors_attendance_type CHECK ((attendance_type = ANY (ARRAY['expected'::text, 'actual'::text]))),
+    CONSTRAINT ck_request_doctors_parse_status CHECK ((parse_status = ANY (ARRAY['parsed'::text, 'missing_pcode'::text, 'ambiguous'::text, 'invalid'::text])))
+);
+
+
+--
+-- Name: mv_doctor_roi; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
+ WITH actual_attendance AS (
+         SELECT rd.id AS request_doctor_id,
+            rd.execution_request_id,
+            er.country_id,
+            er.calendar_month_id,
+            er.actual_intervention_date,
+            er.intervention_date,
+            rd.pcode_normalized,
+            rd.doctor_name_raw,
+            rd.doctor_class_raw,
+            er.actual_btu_expense_local,
+            er.actual_btc_expense_local,
+            er.actual_total_expense_local,
+            er.actual_btu_expense_usd,
+            er.actual_btc_expense_usd,
+            er.actual_total_expense_usd,
+            er.currency_code,
+            er.fx_rate_status
+           FROM (public.request_doctors rd
+             JOIN public.execution_requests er ON ((er.id = rd.execution_request_id)))
+          WHERE ((rd.attendance_type = 'actual'::text) AND (rd.pcode_normalized IS NOT NULL) AND (rd.parse_status = 'parsed'::text))
+        ), request_actual_counts AS (
+         SELECT actual_attendance.execution_request_id,
+            (count(DISTINCT actual_attendance.pcode_normalized))::numeric AS doctor_count
+           FROM actual_attendance
+          GROUP BY actual_attendance.execution_request_id
+        ), engagement AS (
+         SELECT aa.country_id,
+            aa.pcode_normalized,
+            max(aa.doctor_name_raw) FILTER (WHERE (aa.doctor_name_raw IS NOT NULL)) AS attended_doctor_name,
+            max(aa.doctor_class_raw) FILTER (WHERE (aa.doctor_class_raw IS NOT NULL)) AS attended_doctor_class,
+            (count(DISTINCT aa.execution_request_id))::integer AS engagement_count,
+            max(COALESCE(aa.actual_intervention_date, aa.intervention_date)) AS last_engagement_date,
+            sum((aa.actual_btu_expense_local / NULLIF(rac.doctor_count, (0)::numeric))) AS direct_hcp_btu_spend_local,
+            sum((aa.actual_btc_expense_local / NULLIF(rac.doctor_count, (0)::numeric))) AS overhead_btc_spend_local,
+            sum((aa.actual_total_expense_local / NULLIF(rac.doctor_count, (0)::numeric))) AS total_roi_spend_local,
+            sum((aa.actual_btu_expense_usd / NULLIF(rac.doctor_count, (0)::numeric))) AS direct_hcp_btu_spend_usd,
+            sum((aa.actual_btc_expense_usd / NULLIF(rac.doctor_count, (0)::numeric))) AS overhead_btc_spend_usd,
+            sum((aa.actual_total_expense_usd / NULLIF(rac.doctor_count, (0)::numeric))) AS total_roi_spend_usd,
+            bool_or((aa.fx_rate_status = 'missing'::text)) AS has_missing_fx,
+            bool_or((aa.fx_rate_status = 'provisional'::text)) AS has_provisional_fx
+           FROM (actual_attendance aa
+             JOIN request_actual_counts rac ON ((rac.execution_request_id = aa.execution_request_id)))
+          GROUP BY aa.country_id, aa.pcode_normalized
+        ), rx AS (
+         SELECT rcpa_doctor_month_summary.country_id,
+            rcpa_doctor_month_summary.pcode_normalized,
+            max(rcpa_doctor_month_summary.doctor_name) FILTER (WHERE (rcpa_doctor_month_summary.doctor_name IS NOT NULL)) AS rcpa_doctor_name,
+            max(rcpa_doctor_month_summary.speciality) FILTER (WHERE (rcpa_doctor_month_summary.speciality IS NOT NULL)) AS speciality,
+            max(rcpa_doctor_month_summary.doctor_class) FILTER (WHERE (rcpa_doctor_month_summary.doctor_class IS NOT NULL)) AS doctor_class,
+            max(rcpa_doctor_month_summary.active_status) FILTER (WHERE (rcpa_doctor_month_summary.active_status IS NOT NULL)) AS active_status,
+            sum(rcpa_doctor_month_summary.own_prescription_qty) AS cipla_prescription_qty,
+            sum(rcpa_doctor_month_summary.own_prescription_value_local) AS cipla_prescription_value_local,
+            sum(rcpa_doctor_month_summary.competitor_prescription_qty) AS competitor_prescription_qty,
+            sum(rcpa_doctor_month_summary.competitor_prescription_value_local) AS competitor_prescription_value_local,
+            sum(rcpa_doctor_month_summary.total_prescription_qty) AS total_prescription_qty,
+            sum(rcpa_doctor_month_summary.total_prescription_value_local) AS total_prescription_value_local,
+            (count(*))::integer AS rcpa_month_count
+           FROM public.rcpa_doctor_month_summary
+          WHERE (rcpa_doctor_month_summary.pcode_normalized IS NOT NULL)
+          GROUP BY rcpa_doctor_month_summary.country_id, rcpa_doctor_month_summary.pcode_normalized
+        ), doctor_universe AS (
+         SELECT doctors.country_id,
+            doctors.pcode_normalized
+           FROM public.doctors
+          WHERE (doctors.pcode_normalized IS NOT NULL)
+        UNION
+         SELECT engagement.country_id,
+            engagement.pcode_normalized
+           FROM engagement
+        UNION
+         SELECT rx.country_id,
+            rx.pcode_normalized
+           FROM rx
+        ), metrics AS (
+         SELECT du.country_id,
+            c.code AS country_code,
+            c.name AS country_name,
+            du.pcode_normalized,
+            COALESCE(d.latest_doctor_name, rx.rcpa_doctor_name, e.attended_doctor_name) AS doctor_name,
+            COALESCE(d.speciality, rx.speciality) AS speciality,
+            COALESCE(d.doctor_class, rx.doctor_class, e.attended_doctor_class) AS doctor_class,
+            COALESCE(d.active_status, rx.active_status) AS active_status,
+            COALESCE(e.engagement_count, 0) AS engagement_count,
+            e.last_engagement_date,
+            COALESCE(e.direct_hcp_btu_spend_local, (0)::numeric) AS direct_hcp_btu_spend_local,
+            COALESCE(e.overhead_btc_spend_local, (0)::numeric) AS overhead_btc_spend_local,
+            COALESCE(e.total_roi_spend_local, (0)::numeric) AS total_roi_spend_local,
+            COALESCE(e.direct_hcp_btu_spend_usd, (0)::numeric) AS direct_hcp_btu_spend_usd,
+            COALESCE(e.overhead_btc_spend_usd, (0)::numeric) AS overhead_btc_spend_usd,
+            COALESCE(e.total_roi_spend_usd, (0)::numeric) AS total_roi_spend_usd,
+            COALESCE(rx.cipla_prescription_qty, (0)::numeric) AS cipla_prescription_qty,
+            COALESCE(rx.cipla_prescription_value_local, (0)::numeric) AS cipla_prescription_value_local,
+            COALESCE(rx.competitor_prescription_qty, (0)::numeric) AS competitor_prescription_qty,
+            COALESCE(rx.competitor_prescription_value_local, (0)::numeric) AS competitor_prescription_value_local,
+            COALESCE(rx.total_prescription_qty, (0)::numeric) AS total_prescription_qty,
+            COALESCE(rx.total_prescription_value_local, (0)::numeric) AS total_prescription_value_local,
+            rx.rcpa_month_count,
+            (rx.pcode_normalized IS NOT NULL) AS has_rcpa,
+            COALESCE(e.has_missing_fx, false) AS has_missing_fx,
+            COALESCE(e.has_provisional_fx, false) AS has_provisional_fx
+           FROM ((((doctor_universe du
+             JOIN public.countries c ON ((c.id = du.country_id)))
+             LEFT JOIN public.doctors d ON (((d.country_id = du.country_id) AND (d.pcode_normalized = du.pcode_normalized))))
+             LEFT JOIN engagement e ON (((e.country_id = du.country_id) AND (e.pcode_normalized = du.pcode_normalized))))
+             LEFT JOIN rx ON (((rx.country_id = du.country_id) AND (rx.pcode_normalized = du.pcode_normalized))))
+        ), thresholds AS (
+         SELECT metrics.country_id,
+            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((NULLIF(metrics.total_roi_spend_usd, (0)::numeric))::double precision)) AS median_spend_usd,
+            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((NULLIF(metrics.cipla_prescription_qty, (0)::numeric))::double precision)) AS median_cipla_qty,
+            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((NULLIF(metrics.engagement_count, 0))::double precision)) AS median_engagement_count
+           FROM metrics
+          GROUP BY metrics.country_id
+        )
+ SELECT m.country_id,
+    m.country_code,
+    m.country_name,
+    m.pcode_normalized,
+    m.doctor_name,
+    m.speciality,
+    m.doctor_class,
+    m.active_status,
+    m.engagement_count,
+    m.last_engagement_date,
+    m.direct_hcp_btu_spend_local,
+    m.overhead_btc_spend_local,
+    m.total_roi_spend_local,
+    m.direct_hcp_btu_spend_usd,
+    m.overhead_btc_spend_usd,
+    m.total_roi_spend_usd,
+    m.cipla_prescription_qty,
+    m.cipla_prescription_value_local,
+    m.competitor_prescription_qty,
+    m.competitor_prescription_value_local,
+    m.total_prescription_qty,
+    m.total_prescription_value_local,
+    m.rcpa_month_count,
+    m.has_rcpa,
+    m.has_missing_fx,
+    m.has_provisional_fx,
         CASE
-            WHEN (em.match_status = ANY (ARRAY['unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text])) THEN 'unmatched'::text
-            WHEN ((em.plan_event_id IS NOT NULL) AND (em.plan_match_count > 1)) THEN 'one_plan_many_requests'::text
-            WHEN ((em.execution_snapshot_id IS NOT NULL) AND (em.snapshot_match_count > 1)) THEN 'one_snapshot_many_requests'::text
-            ELSE 'single_match'::text
-        END AS match_grain,
-    jsonb_build_object('planEventId', em.plan_event_id, 'executionSnapshotId', em.execution_snapshot_id, 'executionRequestId', em.execution_request_id, 'matchedOn', em.matched_on, 'notes', em.notes, 'planSourceRow', pe.source_row_number, 'snapshotSourceRow', es.source_row_number, 'requestSourceRow', er.source_row_number, 'snapshotDerivation', es.source_derivation_json) AS source_references,
+            WHEN (m.total_prescription_qty > (0)::numeric) THEN round((m.cipla_prescription_qty / NULLIF(m.total_prescription_qty, (0)::numeric)), 4)
+            ELSE NULL::numeric
+        END AS cipla_share_qty,
         CASE
-            WHEN (es.snapshot_source = 'derived_from_consolidation'::text) THEN 'Derived from consolidation because the monthly execution country tab was missing.'::text
-            ELSE NULL::text
-        END AS source_derivation_note,
-    em.created_at
-   FROM ((((((decorated em
-     JOIN public.countries c ON ((c.id = em.country_id)))
-     JOIN public.calendar_months cm ON ((cm.id = em.calendar_month_id)))
-     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = em.country_id) AND (p4.calendar_month_id = em.calendar_month_id))))
-     LEFT JOIN public.plan_events pe ON ((pe.id = em.plan_event_id)))
-     LEFT JOIN public.execution_snapshots es ON ((es.id = em.execution_snapshot_id)))
-     LEFT JOIN public.execution_requests er ON ((er.id = em.execution_request_id)))
+            WHEN (m.cipla_prescription_qty > (0)::numeric) THEN round((m.total_roi_spend_usd / NULLIF(m.cipla_prescription_qty, (0)::numeric)), 4)
+            ELSE NULL::numeric
+        END AS spend_per_cipla_prescription_usd,
+    COALESCE(t.median_spend_usd, (0)::double precision) AS country_median_spend_usd,
+    COALESCE(t.median_cipla_qty, (0)::double precision) AS country_median_cipla_qty,
+    COALESCE(t.median_engagement_count, (0)::double precision) AS country_median_engagement_count,
+    COALESCE(m.total_roi_spend_usd, (0)::numeric) AS quadrant_x,
+    COALESCE(m.cipla_prescription_qty, (0)::numeric) AS quadrant_y,
+        CASE
+            WHEN (NOT m.has_rcpa) THEN 'no_rcpa'::text
+            WHEN ((m.engagement_count = 0) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision)) AND (m.cipla_prescription_qty > (0)::numeric)) THEN 'high_value_unengaged'::text
+            WHEN ((m.engagement_count > 0) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'high_value_engaged'::text
+            WHEN (((m.total_roi_spend_usd)::double precision > COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision < COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'low_rx_high_spend'::text
+            ELSE 'insufficient_data'::text
+        END AS roi_segment,
+        CASE
+            WHEN (NOT m.has_rcpa) THEN 'insufficient data'::text
+            WHEN (((m.total_roi_spend_usd)::double precision <= COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'low effort / high reward'::text
+            WHEN (((m.total_roi_spend_usd)::double precision > COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'high effort / high reward'::text
+            WHEN (((m.total_roi_spend_usd)::double precision <= COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision < COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'low effort / low reward'::text
+            ELSE 'high effort / low reward'::text
+        END AS quadrant_label,
+    (m.has_rcpa AND ((m.total_roi_spend_usd)::double precision <= COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision)) AND (m.cipla_prescription_qty > (0)::numeric)) AS dark_horse_flag,
+    now() AS refreshed_at
+   FROM (metrics m
+     LEFT JOIN thresholds t ON ((t.country_id = m.country_id)))
   WITH NO DATA;
 
 
@@ -3705,6 +3964,357 @@ CREATE MATERIALIZED VIEW public.mv_execution_kpis AS
 
 
 --
+-- Name: mv_unmatched_events; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_unmatched_events AS
+ SELECT em.id AS match_id,
+    em.country_id,
+    c.code AS country_code,
+    c.name AS country_name,
+    em.calendar_month_id,
+    cm.month_start_date,
+    cm.month_label,
+        CASE
+            WHEN (em.match_status = 'unmatched_plan'::text) THEN 'planner'::text
+            WHEN (em.match_status = 'unmatched_snapshot'::text) THEN 'execution_snapshot'::text
+            WHEN (em.match_status = 'unmatched_request'::text) THEN 'consolidation'::text
+            ELSE 'weak_match'::text
+        END AS source_type,
+    COALESCE(pe.event_name, es.event_name, er.intervention_name) AS event_name,
+    COALESCE(pe.event_type, es.event_type, er.intervention_type) AS event_type,
+    em.match_status AS reason,
+    COALESCE(em.unmatched_reason_code, p4.scope_status) AS unmatched_reason_code,
+    COALESCE(em.unmatched_reason_detail, p4.scope_reason) AS unmatched_reason_detail,
+    COALESCE(es.event_name, er.intervention_name, pe.event_name) AS candidate_match,
+    em.match_confidence AS confidence,
+    COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
+    COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
+    COALESCE(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.'::text) AS scope_reason,
+    jsonb_build_object('planEventId', em.plan_event_id, 'executionSnapshotId', em.execution_snapshot_id, 'executionRequestId', em.execution_request_id, 'matchedOn', em.matched_on, 'notes', em.notes) AS source_references,
+    em.created_at
+   FROM ((((((public.event_matches em
+     JOIN public.countries c ON ((c.id = em.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = em.calendar_month_id)))
+     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = em.country_id) AND (p4.calendar_month_id = em.calendar_month_id))))
+     LEFT JOIN public.plan_events pe ON ((pe.id = em.plan_event_id)))
+     LEFT JOIN public.execution_snapshots es ON ((es.id = em.execution_snapshot_id)))
+     LEFT JOIN public.execution_requests er ON ((er.id = em.execution_request_id)))
+  WHERE (em.match_status = ANY (ARRAY['weak_match'::text, 'unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text]))
+  WITH NO DATA;
+
+
+--
+-- Name: source_files; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.source_files (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    original_filename text NOT NULL,
+    file_hash text NOT NULL,
+    file_type text NOT NULL,
+    source_type text NOT NULL,
+    country_scope text,
+    period_start date,
+    period_end date,
+    detected_sheet_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: validation_errors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.validation_errors (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    source_file_id uuid,
+    sheet_name text,
+    row_number integer,
+    severity text NOT NULL,
+    entity_type text,
+    field_name text,
+    error_code text NOT NULL,
+    message text NOT NULL,
+    raw_value text,
+    CONSTRAINT ck_validation_errors_severity CHECK ((severity = ANY (ARRAY['info'::text, 'warning'::text, 'error'::text])))
+);
+
+
+--
+-- Name: mv_data_quality; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_data_quality AS
+ WITH latest_run AS (
+         SELECT ingestion_runs.id,
+            ingestion_runs.started_at,
+            ingestion_runs.completed_at,
+            ingestion_runs.status,
+            ingestion_runs.triggered_by,
+            ingestion_runs.source_file_count,
+            ingestion_runs.total_rows_seen,
+            ingestion_runs.total_rows_loaded,
+            ingestion_runs.total_rows_skipped,
+            ingestion_runs.warning_count,
+            ingestion_runs.error_count,
+            ingestion_runs.summary_json
+           FROM public.ingestion_runs
+          ORDER BY ingestion_runs.started_at DESC
+         LIMIT 1
+        ), latest_file_runs AS (
+         SELECT DISTINCT ON (irf.source_file_id) irf.source_file_id,
+            irf.status,
+            irf.rows_seen,
+            irf.rows_loaded,
+            irf.rows_skipped,
+            irf.warnings,
+            irf.errors
+           FROM (public.ingestion_run_files irf
+             JOIN public.ingestion_runs ir ON ((ir.id = irf.ingestion_run_id)))
+          ORDER BY irf.source_file_id, ir.started_at DESC
+        ), validation_latest AS (
+         SELECT ve.id,
+            ve.ingestion_run_id,
+            ve.source_file_id,
+            ve.sheet_name,
+            ve.row_number,
+            ve.severity,
+            ve.entity_type,
+            ve.field_name,
+            ve.error_code,
+            ve.message,
+            ve.raw_value
+           FROM (public.validation_errors ve
+             JOIN latest_file_runs lfr ON ((lfr.source_file_id = ve.source_file_id)))
+        ), request_pcode AS (
+         SELECT (count(*))::integer AS request_doctor_rows,
+            (count(*) FILTER (WHERE (request_doctors.pcode_normalized IS NOT NULL)))::integer AS request_doctor_rows_with_pcode
+           FROM public.request_doctors
+        ), workflow AS (
+         SELECT (count(*))::integer AS workflow_rows,
+            (count(*) FILTER (WHERE ((execution_requests.request_approval_status IS NOT NULL) AND (execution_requests.request_approval_status <> 'unknown'::text))))::integer AS request_approval_covered,
+            (count(*) FILTER (WHERE ((execution_requests.post_approval_status IS NOT NULL) AND (execution_requests.post_approval_status <> 'unknown'::text))))::integer AS post_approval_covered
+           FROM public.execution_requests
+        ), interventions AS (
+         SELECT (count(*))::integer AS request_rows,
+            (count(*) FILTER (WHERE ((execution_requests.intervention_type IS NOT NULL) AND (btrim(execution_requests.intervention_type) <> ''::text))))::integer AS intervention_type_covered
+           FROM public.execution_requests
+        ), fx AS (
+         SELECT (count(*) FILTER (WHERE (execution_requests.fx_rate_status = 'missing'::text)))::integer AS missing_fx_count,
+            (count(*) FILTER (WHERE (execution_requests.fx_rate_status = 'provisional'::text)))::integer AS provisional_fx_count
+           FROM public.execution_requests
+        ), budget_quality AS (
+         SELECT (count(*) FILTER (WHERE (mv_budget_utilization.btu_btc_reconciliation_status = 'mismatch'::text)))::integer AS btu_btc_reconciliation_issue_count,
+            (count(*) FILTER (WHERE ((mv_budget_utilization.confirmed_contracted_amount_local IS NULL) AND (mv_budget_utilization.execution_request_id IS NOT NULL))))::integer AS missing_confirmed_amount_count,
+            (count(*) FILTER (WHERE mv_budget_utilization.spend_without_plan))::integer AS spend_without_plan_count,
+            (count(*) FILTER (WHERE mv_budget_utilization.plan_without_spend))::integer AS plan_without_spend_count
+           FROM public.mv_budget_utilization
+        ), rcpa AS (
+         SELECT (count(DISTINCT ((rcpa_doctor_month_summary.country_id || ':'::text) || rcpa_doctor_month_summary.pcode_normalized)))::integer AS rcpa_doctor_count,
+            (COALESCE(sum(rcpa_doctor_month_summary.row_count_aggregated), (0)::bigint))::integer AS rcpa_rows_aggregated
+           FROM public.rcpa_doctor_month_summary
+        ), doctor_coverage AS (
+         SELECT (count(*))::integer AS doctor_roi_rows,
+            (count(*) FILTER (WHERE mv_doctor_roi.has_rcpa))::integer AS doctor_roi_rows_with_rcpa,
+            (count(*) FILTER (WHERE (mv_doctor_roi.roi_segment = 'no_rcpa'::text)))::integer AS doctor_no_rcpa_count
+           FROM public.mv_doctor_roi
+        ), execution_quality AS (
+         SELECT (COALESCE(sum(mv_execution_kpis.planned_events), (0)::numeric))::integer AS planned_events,
+            (COALESCE(sum(mv_execution_kpis.matched_events), (0)::numeric))::integer AS matched_events,
+            (COALESCE(sum(mv_execution_kpis.weak_or_unmatched_events), (0)::numeric))::integer AS weak_or_unmatched_events,
+            COALESCE(avg(mv_execution_kpis.match_coverage), (0)::numeric) AS avg_match_coverage
+           FROM public.mv_execution_kpis
+          WHERE mv_execution_kpis.is_primary_phase4_scope
+        ), unmatched AS (
+         SELECT (count(*))::integer AS unmatched_event_count
+           FROM public.mv_unmatched_events
+          WHERE mv_unmatched_events.is_primary_phase4_scope
+        ), derived AS (
+         SELECT (count(*))::integer AS derived_snapshot_count
+           FROM public.execution_snapshots
+          WHERE (execution_snapshots.snapshot_source = 'derived_from_consolidation'::text)
+        )
+ SELECT lr.id AS latest_ingestion_run_id,
+    lr.status AS latest_ingestion_status,
+    lr.started_at AS latest_ingestion_started_at,
+    lr.completed_at AS latest_ingestion_completed_at,
+    (COALESCE(( SELECT count(*) AS count
+           FROM public.source_files), (0)::bigint))::integer AS source_file_count,
+    (COALESCE(( SELECT count(*) AS count
+           FROM latest_file_runs
+          WHERE (latest_file_runs.status = ANY (ARRAY['loaded'::text, 'completed'::text, 'completed_with_warnings'::text]))), (0)::bigint))::integer AS loaded_file_count,
+    (COALESCE(( SELECT sum(latest_file_runs.rows_seen) AS sum
+           FROM latest_file_runs), (0)::bigint))::integer AS rows_seen,
+    (COALESCE(( SELECT sum(latest_file_runs.rows_loaded) AS sum
+           FROM latest_file_runs), (0)::bigint))::integer AS rows_loaded,
+    (COALESCE(( SELECT sum(latest_file_runs.rows_skipped) AS sum
+           FROM latest_file_runs), (0)::bigint))::integer AS rows_skipped,
+    (COALESCE(( SELECT count(*) AS count
+           FROM validation_latest
+          WHERE (validation_latest.severity = 'error'::text)), (0)::bigint))::integer AS validation_error_count,
+    (COALESCE(( SELECT count(*) AS count
+           FROM validation_latest
+          WHERE (validation_latest.severity = 'warning'::text)), (0)::bigint))::integer AS validation_warning_count,
+    eq.planned_events,
+    eq.matched_events,
+    eq.weak_or_unmatched_events,
+    eq.avg_match_coverage AS match_coverage,
+    rp.request_doctor_rows,
+    rp.request_doctor_rows_with_pcode,
+        CASE
+            WHEN (rp.request_doctor_rows > 0) THEN round(((rp.request_doctor_rows_with_pcode)::numeric / (NULLIF(rp.request_doctor_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS pcode_coverage,
+    rcpa.rcpa_doctor_count,
+    rcpa.rcpa_rows_aggregated,
+    dc.doctor_roi_rows,
+    dc.doctor_roi_rows_with_rcpa,
+    dc.doctor_no_rcpa_count,
+        CASE
+            WHEN (dc.doctor_roi_rows > 0) THEN round(((dc.doctor_roi_rows_with_rcpa)::numeric / (NULLIF(dc.doctor_roi_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS rcpa_coverage,
+    fx.missing_fx_count,
+    fx.provisional_fx_count,
+    bq.btu_btc_reconciliation_issue_count,
+    bq.missing_confirmed_amount_count,
+    bq.spend_without_plan_count,
+    bq.plan_without_spend_count,
+    workflow.workflow_rows,
+        CASE
+            WHEN (workflow.workflow_rows > 0) THEN round(((workflow.request_approval_covered)::numeric / (NULLIF(workflow.workflow_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS request_workflow_coverage,
+        CASE
+            WHEN (workflow.workflow_rows > 0) THEN round(((workflow.post_approval_covered)::numeric / (NULLIF(workflow.workflow_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS post_workflow_coverage,
+        CASE
+            WHEN (interventions.request_rows > 0) THEN round(((interventions.intervention_type_covered)::numeric / (NULLIF(interventions.request_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS intervention_type_coverage,
+    unmatched.unmatched_event_count,
+    derived.derived_snapshot_count,
+    ((lr.completed_at IS NULL) OR (lr.completed_at < (now() - '14 days'::interval)) OR (lr.status <> ALL (ARRAY['completed'::text, 'completed_with_warnings'::text]))) AS stale_ingestion,
+    now() AS refreshed_at
+   FROM ((((((((((latest_run lr
+     CROSS JOIN request_pcode rp)
+     CROSS JOIN workflow)
+     CROSS JOIN interventions)
+     CROSS JOIN fx)
+     CROSS JOIN budget_quality bq)
+     CROSS JOIN rcpa)
+     CROSS JOIN doctor_coverage dc)
+     CROSS JOIN execution_quality eq)
+     CROSS JOIN unmatched)
+     CROSS JOIN derived)
+  WITH NO DATA;
+
+
+--
+-- Name: mv_execution_event_matrix; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_execution_event_matrix AS
+ WITH decorated AS (
+         SELECT em_1.id,
+            em_1.ingestion_run_id,
+            em_1.country_id,
+            em_1.calendar_month_id,
+            em_1.plan_event_id,
+            em_1.execution_snapshot_id,
+            em_1.execution_request_id,
+            em_1.match_method,
+            em_1.match_confidence,
+            em_1.match_status,
+            em_1.matched_on,
+            em_1.notes,
+            em_1.created_at,
+            em_1.updated_at,
+            em_1.unmatched_reason_code,
+            em_1.unmatched_reason_detail,
+            count(*) FILTER (WHERE ((em_1.match_status = ANY (ARRAY['matched'::text, 'weak_match'::text])) AND (em_1.plan_event_id IS NOT NULL))) OVER (PARTITION BY em_1.plan_event_id) AS plan_match_count,
+            count(*) FILTER (WHERE ((em_1.match_status = ANY (ARRAY['matched'::text, 'weak_match'::text])) AND (em_1.execution_snapshot_id IS NOT NULL))) OVER (PARTITION BY em_1.execution_snapshot_id) AS snapshot_match_count
+           FROM public.event_matches em_1
+        )
+ SELECT em.id AS match_id,
+    em.country_id,
+    c.code AS country_code,
+    c.name AS country_name,
+    em.calendar_month_id,
+    cm.month_start_date,
+    cm.month_label,
+        CASE
+            WHEN (em.match_status = 'unmatched_plan'::text) THEN 'planner'::text
+            WHEN (em.match_status = 'unmatched_snapshot'::text) THEN 'execution_snapshot'::text
+            WHEN (em.match_status = 'unmatched_request'::text) THEN 'consolidation'::text
+            WHEN ((em.plan_event_id IS NOT NULL) AND (em.execution_snapshot_id IS NOT NULL) AND (em.execution_request_id IS NOT NULL)) THEN 'planner_execution_consolidation'::text
+            WHEN ((em.plan_event_id IS NOT NULL) AND (em.execution_snapshot_id IS NOT NULL)) THEN 'planner_execution'::text
+            WHEN ((em.plan_event_id IS NOT NULL) AND (em.execution_request_id IS NOT NULL)) THEN 'planner_consolidation'::text
+            WHEN ((em.execution_snapshot_id IS NOT NULL) AND (em.execution_request_id IS NOT NULL)) THEN 'execution_consolidation'::text
+            ELSE 'reconciliation'::text
+        END AS source_type,
+    COALESCE(pe.event_name, es.event_name, er.intervention_name) AS event_name,
+    COALESCE(pe.event_type, es.event_type, er.intervention_type) AS event_type,
+    pe.event_name AS planned_event_name,
+    es.event_name AS snapshot_event_name,
+    er.intervention_name AS request_event_name,
+    em.match_status,
+    em.match_method,
+    em.match_confidence AS confidence,
+        CASE
+            WHEN (em.match_status = 'unmatched_plan'::text) THEN NULL::text
+            ELSE COALESCE(es.event_name, er.intervention_name, pe.event_name)
+        END AS candidate_match,
+    pe.planned_total_hcps AS planned_hcps,
+    es.engaged_hcps,
+    es.normalized_status AS execution_status,
+    es.snapshot_source,
+    er.req_id,
+    er.request_uid,
+    er.intervention_type,
+    er.intervention_sub_type,
+    er.request_approval_status,
+    er.request_confirmation_status,
+    er.post_approval_status,
+    er.post_confirmation_status,
+    er.current_owner_stage,
+        CASE
+            WHEN (em.match_status = ANY (ARRAY['weak_match'::text, 'unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text])) THEN COALESCE(em.unmatched_reason_code, p4.scope_status)
+            ELSE NULL::text
+        END AS unmatched_reason_code,
+        CASE
+            WHEN (em.match_status = ANY (ARRAY['weak_match'::text, 'unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text])) THEN COALESCE(em.unmatched_reason_detail, p4.scope_reason)
+            ELSE NULL::text
+        END AS unmatched_reason_detail,
+    COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
+    COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
+    COALESCE(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.'::text) AS scope_reason,
+        CASE
+            WHEN (em.match_status = ANY (ARRAY['unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text])) THEN 'unmatched'::text
+            WHEN ((em.plan_event_id IS NOT NULL) AND (em.plan_match_count > 1)) THEN 'one_plan_many_requests'::text
+            WHEN ((em.execution_snapshot_id IS NOT NULL) AND (em.snapshot_match_count > 1)) THEN 'one_snapshot_many_requests'::text
+            ELSE 'single_match'::text
+        END AS match_grain,
+    jsonb_build_object('planEventId', em.plan_event_id, 'executionSnapshotId', em.execution_snapshot_id, 'executionRequestId', em.execution_request_id, 'matchedOn', em.matched_on, 'notes', em.notes, 'planSourceRow', pe.source_row_number, 'snapshotSourceRow', es.source_row_number, 'requestSourceRow', er.source_row_number, 'snapshotDerivation', es.source_derivation_json) AS source_references,
+        CASE
+            WHEN (es.snapshot_source = 'derived_from_consolidation'::text) THEN 'Derived from consolidation because the monthly execution country tab was missing.'::text
+            ELSE NULL::text
+        END AS source_derivation_note,
+    em.created_at
+   FROM ((((((decorated em
+     JOIN public.countries c ON ((c.id = em.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = em.calendar_month_id)))
+     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = em.country_id) AND (p4.calendar_month_id = em.calendar_month_id))))
+     LEFT JOIN public.plan_events pe ON ((pe.id = em.plan_event_id)))
+     LEFT JOIN public.execution_snapshots es ON ((es.id = em.execution_snapshot_id)))
+     LEFT JOIN public.execution_requests er ON ((er.id = em.execution_request_id)))
+  WITH NO DATA;
+
+
+--
 -- Name: mv_intervention_mix; Type: MATERIALIZED VIEW; Schema: public; Owner: -
 --
 
@@ -3748,24 +4358,6 @@ CREATE MATERIALIZED VIEW public.mv_intervention_mix AS
 
 
 --
--- Name: source_files; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.source_files (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
-    original_filename text NOT NULL,
-    file_hash text NOT NULL,
-    file_type text NOT NULL,
-    source_type text NOT NULL,
-    country_scope text,
-    period_start date,
-    period_end date,
-    detected_sheet_count integer DEFAULT 0 NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: mv_latest_file_ingestion_status; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -3795,26 +4387,6 @@ CREATE VIEW public.mv_latest_file_ingestion_status AS
 
 
 --
--- Name: validation_errors; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.validation_errors (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
-    ingestion_run_id uuid NOT NULL,
-    source_file_id uuid,
-    sheet_name text,
-    row_number integer,
-    severity text NOT NULL,
-    entity_type text,
-    field_name text,
-    error_code text NOT NULL,
-    message text NOT NULL,
-    raw_value text,
-    CONSTRAINT ck_validation_errors_severity CHECK ((severity = ANY (ARRAY['info'::text, 'warning'::text, 'error'::text])))
-);
-
-
---
 -- Name: mv_latest_validation_errors; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -3832,47 +4404,6 @@ CREATE VIEW public.mv_latest_validation_errors AS
     ve.raw_value
    FROM (public.validation_errors ve
      JOIN public.mv_latest_file_ingestion_status latest ON (((latest.source_file_id = ve.source_file_id) AND (latest.ingestion_run_id = ve.ingestion_run_id))));
-
-
---
--- Name: mv_unmatched_events; Type: MATERIALIZED VIEW; Schema: public; Owner: -
---
-
-CREATE MATERIALIZED VIEW public.mv_unmatched_events AS
- SELECT em.id AS match_id,
-    em.country_id,
-    c.code AS country_code,
-    c.name AS country_name,
-    em.calendar_month_id,
-    cm.month_start_date,
-    cm.month_label,
-        CASE
-            WHEN (em.match_status = 'unmatched_plan'::text) THEN 'planner'::text
-            WHEN (em.match_status = 'unmatched_snapshot'::text) THEN 'execution_snapshot'::text
-            WHEN (em.match_status = 'unmatched_request'::text) THEN 'consolidation'::text
-            ELSE 'weak_match'::text
-        END AS source_type,
-    COALESCE(pe.event_name, es.event_name, er.intervention_name) AS event_name,
-    COALESCE(pe.event_type, es.event_type, er.intervention_type) AS event_type,
-    em.match_status AS reason,
-    COALESCE(em.unmatched_reason_code, p4.scope_status) AS unmatched_reason_code,
-    COALESCE(em.unmatched_reason_detail, p4.scope_reason) AS unmatched_reason_detail,
-    COALESCE(es.event_name, er.intervention_name, pe.event_name) AS candidate_match,
-    em.match_confidence AS confidence,
-    COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
-    COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
-    COALESCE(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.'::text) AS scope_reason,
-    jsonb_build_object('planEventId', em.plan_event_id, 'executionSnapshotId', em.execution_snapshot_id, 'executionRequestId', em.execution_request_id, 'matchedOn', em.matched_on, 'notes', em.notes) AS source_references,
-    em.created_at
-   FROM ((((((public.event_matches em
-     JOIN public.countries c ON ((c.id = em.country_id)))
-     JOIN public.calendar_months cm ON ((cm.id = em.calendar_month_id)))
-     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = em.country_id) AND (p4.calendar_month_id = em.calendar_month_id))))
-     LEFT JOIN public.plan_events pe ON ((pe.id = em.plan_event_id)))
-     LEFT JOIN public.execution_snapshots es ON ((es.id = em.execution_snapshot_id)))
-     LEFT JOIN public.execution_requests er ON ((er.id = em.execution_request_id)))
-  WHERE (em.match_status = ANY (ARRAY['weak_match'::text, 'unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text]))
-  WITH NO DATA;
 
 
 --
@@ -3983,53 +4514,6 @@ CREATE TABLE public.rcpa_doctor_brand_summary (
     prescription_value_local numeric(18,2),
     currency_code text NOT NULL,
     row_count_aggregated integer NOT NULL
-);
-
-
---
--- Name: rcpa_doctor_month_summary; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.rcpa_doctor_month_summary (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
-    source_file_id uuid NOT NULL,
-    ingestion_run_id uuid NOT NULL,
-    country_id uuid NOT NULL,
-    calendar_month_id uuid NOT NULL,
-    pcode_raw text,
-    pcode_normalized text NOT NULL,
-    doctor_name text,
-    speciality text,
-    doctor_class text,
-    patch_name text,
-    active_status text,
-    own_prescription_qty numeric(18,2) DEFAULT '0'::numeric NOT NULL,
-    own_prescription_value_local numeric(18,2) DEFAULT '0'::numeric NOT NULL,
-    competitor_prescription_qty numeric(18,2) DEFAULT '0'::numeric NOT NULL,
-    competitor_prescription_value_local numeric(18,2) DEFAULT '0'::numeric NOT NULL,
-    total_prescription_qty numeric(18,2) DEFAULT '0'::numeric NOT NULL,
-    total_prescription_value_local numeric(18,2) DEFAULT '0'::numeric NOT NULL,
-    currency_code text NOT NULL,
-    row_count_aggregated integer NOT NULL
-);
-
-
---
--- Name: request_doctors; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.request_doctors (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
-    execution_request_id uuid NOT NULL,
-    attendance_type text NOT NULL,
-    doctor_name_raw text,
-    doctor_class_raw text,
-    pcode_raw text,
-    pcode_normalized text,
-    parse_status text NOT NULL,
-    source_position integer NOT NULL,
-    CONSTRAINT ck_request_doctors_attendance_type CHECK ((attendance_type = ANY (ARRAY['expected'::text, 'actual'::text]))),
-    CONSTRAINT ck_request_doctors_parse_status CHECK ((parse_status = ANY (ARRAY['parsed'::text, 'missing_pcode'::text, 'ambiguous'::text, 'invalid'::text])))
 );
 
 
@@ -5302,10 +5786,73 @@ CREATE INDEX ix_execution_requests_country_month ON public.execution_requests US
 
 
 --
+-- Name: ix_execution_requests_finance_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_execution_requests_finance_country_month ON public.execution_requests USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_execution_requests_fx_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_execution_requests_fx_status ON public.execution_requests USING btree (fx_rate_status);
+
+
+--
 -- Name: ix_execution_snapshots_country_month; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX ix_execution_snapshots_country_month ON public.execution_snapshots USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_mv_budget_utilization_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_budget_utilization_country_month ON public.mv_budget_utilization USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_mv_budget_utilization_match_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_budget_utilization_match_status ON public.mv_budget_utilization USING btree (match_status);
+
+
+--
+-- Name: ix_mv_budget_utilization_scope; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_budget_utilization_scope ON public.mv_budget_utilization USING btree (is_primary_phase4_scope);
+
+
+--
+-- Name: ix_mv_data_quality_latest_run; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_data_quality_latest_run ON public.mv_data_quality USING btree (latest_ingestion_run_id);
+
+
+--
+-- Name: ix_mv_doctor_roi_country_pcode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_doctor_roi_country_pcode ON public.mv_doctor_roi USING btree (country_id, pcode_normalized);
+
+
+--
+-- Name: ix_mv_doctor_roi_quadrant; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_doctor_roi_quadrant ON public.mv_doctor_roi USING btree (quadrant_label);
+
+
+--
+-- Name: ix_mv_doctor_roi_segment; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_doctor_roi_segment ON public.mv_doctor_roi USING btree (roi_segment);
 
 
 --
@@ -5393,6 +5940,13 @@ CREATE INDEX ix_rcpa_doctor_brand_summary_pcode ON public.rcpa_doctor_brand_summ
 
 
 --
+-- Name: ix_rcpa_doctor_month_country_pcode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_rcpa_doctor_month_country_pcode ON public.rcpa_doctor_month_summary USING btree (country_id, pcode_normalized);
+
+
+--
 -- Name: ix_rcpa_doctor_month_summary_country_month; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5414,10 +5968,24 @@ CREATE INDEX ix_request_doctors_pcode ON public.request_doctors USING btree (pco
 
 
 --
+-- Name: ix_request_doctors_pcode_attendance; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_request_doctors_pcode_attendance ON public.request_doctors USING btree (pcode_normalized, attendance_type);
+
+
+--
 -- Name: ix_source_files_source_type; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX ix_source_files_source_type ON public.source_files USING btree (source_type);
+
+
+--
+-- Name: ix_validation_errors_latest_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_validation_errors_latest_lookup ON public.validation_errors USING btree (source_file_id, severity);
 
 
 --
@@ -6264,5 +6832,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict XLCUl3YZ3ye38WDi0cTOVbWcWE6jjW6yOSV9U1Rk2Mdcb2cE6zrQYzF10MTFMkb
+\unrestrict j6YhbtzbhwEsA3Fq91wZJwcBx0e1eDKpihlcVjvRrYSGBKEQV3G5iCpWXNPP8fS
 

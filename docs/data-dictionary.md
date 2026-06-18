@@ -237,3 +237,80 @@ Month rules:
 
 - supports text months such as `Apr-24`, `25-Apr`, `Oct-25`, `Apr'26`, `May-26`.
 - supports Excel serial numbers such as `45772`.
+
+## Phase 5 Budget Utilization
+
+`mv_budget_utilization` is the dashboard-ready budget view. It does not treat estimated values as actual spend.
+
+Financial source semantics:
+
+- `total_planned_cost_usd` from `plan_events` -> planned budget.
+- `ESTIMATED INTERVENTION` -> `estimated_intervention_local`; reference/FMV-like value only.
+- `APPROVE/CONFIRMED TOTAL INTERVENTION` -> `confirmed_contracted_amount_local`; contracted governance amount.
+- `ACTUAL EXPENSE AGAINST BTU` -> direct HCP/BTU spend.
+- `TOTAL ACTUAL BTC EXPENSE` -> overhead/BTC spend.
+- `TOTAL ACTUAL EXPENSES FOR INTERVENTION` -> total actual spend and default ROI spend.
+- `Association Amount` remains separate and is not used as default HCP spend.
+
+FX rules:
+
+- Sri Lanka LKR uses official company FX: `1 USD = 310 LKR`.
+- Non-LKR currencies keep local values when no company FX exists and are flagged as `missing`.
+- `provisional` FX is allowed only when a documented non-official rate exists.
+
+Budget quality flags:
+
+- `plan_without_spend`: planned event has no matched consolidation spend.
+- `spend_without_plan`: consolidation spend has no matched planner row.
+- `btu_btc_reconciliation_status`: `reconciled`, `mismatch`, `missing_total_actual`, or `missing_btu_btc_split`.
+
+## Phase 6 Doctor ROI
+
+`mv_doctor_roi` is the doctor opportunity view.
+
+Join grain:
+
+- doctor identity is country-scoped by `(country_id, pcode_normalized)`;
+- actual attendance is read only from `request_doctors.attendance_type = 'actual'`;
+- request spend is allocated evenly across parsed actual-attendance Pcodes for that request;
+- RCPA prescription behavior comes from compact doctor-month summaries.
+
+ROI fields:
+
+- engagement count and last engagement date;
+- direct HCP/BTU spend, overhead/BTC spend, and total ROI spend;
+- Cipla prescription quantity/value and competitor prescription quantity/value;
+- Cipla share by quantity;
+- spend per Cipla prescription;
+- deterministic `roi_segment`, `quadrant_label`, and `dark_horse_flag`.
+
+Segment rules:
+
+- `high_value_engaged`: engaged doctor with above-threshold Cipla prescription quantity.
+- `high_value_unengaged`: no engagement but above-threshold Cipla prescription quantity.
+- `low_rx_high_spend`: above-threshold spend with below-threshold Cipla prescription quantity.
+- `no_rcpa`: engagement/doctor row without RCPA coverage.
+- `insufficient_data`: available data does not justify a stronger segment.
+
+Quadrants use country-level medians for spend and Cipla prescription quantity.
+
+## Phase 7 Data Quality
+
+`mv_data_quality` is the shared trust layer for dashboard pages and AI context.
+
+It exposes:
+
+- latest ingestion run status and file counts;
+- rows seen, loaded, and skipped;
+- latest validation errors/warnings;
+- event match coverage;
+- request-doctor Pcode coverage;
+- doctor ROI RCPA coverage;
+- missing/provisional FX counts;
+- BTU/BTC reconciliation issues;
+- missing confirmed amount counts;
+- spend-without-plan and plan-without-spend counts;
+- request/post workflow coverage;
+- intervention type coverage;
+- unmatched event count;
+- Sri Lanka May consolidation-derived snapshot count.

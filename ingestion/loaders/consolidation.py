@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import date
-from decimal import Decimal
 
 from ingestion.loaders.common import canonical_sheet_data, iter_mapped_rows
 from ingestion.loaders.request_doctors import split_request_doctors
-from ingestion.models import LoadResult, WorkbookProfile, to_date, to_decimal, to_int, to_usd
+from ingestion.models import LoadResult, WorkbookProfile, to_date, to_decimal, to_int
 from ingestion.normalizers import (
-    currency_for_country,
+    fx_for_country,
     month_start,
     normalize_country_name,
     normalize_event_name,
@@ -16,10 +14,6 @@ from ingestion.normalizers import (
 )
 from ingestion.schema_maps import CONSOLIDATION_SCHEMA
 from ingestion.validators import IssueCollector
-
-LKR_RATE_TO_USD = Decimal("1") / Decimal("310")
-LKR_RATE_DATE = date(2026, 6, 16)
-
 
 def load_consolidation(profile: WorkbookProfile) -> LoadResult:
     issues = IssueCollector()
@@ -52,11 +46,7 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
             actual_btc = to_decimal(row.get("actual_btc_expense"))
             if actual_total is None and (actual_btu is not None or actual_btc is not None):
                 actual_total = (actual_btu or Decimal("0")) + (actual_btc or Decimal("0"))
-            currency_code = currency_for_country(country) or "UNKNOWN"
-            fx_rate_to_usd = LKR_RATE_TO_USD if currency_code == "LKR" else None
-            fx_rate_status = "official" if currency_code == "LKR" else "missing"
-            fx_rate_source = "company" if currency_code == "LKR" else "pending_company_rate"
-            fx_rate_date = LKR_RATE_DATE if currency_code == "LKR" else None
+            fx = fx_for_country(country)
             request_approval_status = normalize_workflow_status(row.get("request_approval_status"))
             request_confirmation_status = normalize_workflow_status(row.get("request_confirmation_status"))
             post_approval_status = normalize_workflow_status(row.get("post_approval_status"))
@@ -86,22 +76,22 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
                 "association_amount_local": to_decimal(row.get("association_amount")),
                 "association_contract_id": row.get("association_contract_id"),
                 "association_deliverables": row.get("association_deliverables"),
-                "currency_code": currency_code,
-                "fx_rate_to_usd": fx_rate_to_usd,
-                "fx_rate_source": fx_rate_source,
-                "fx_rate_date": fx_rate_date,
-                "fx_rate_status": fx_rate_status,
-                "estimated_intervention_usd": to_usd(estimated, fx_rate_to_usd),
-                "confirmed_contracted_amount_usd": to_usd(confirmed, fx_rate_to_usd),
-                "actual_total_expense_usd": to_usd(actual_total, fx_rate_to_usd),
-                "actual_btu_expense_usd": to_usd(actual_btu, fx_rate_to_usd),
-                "actual_btc_expense_usd": to_usd(actual_btc, fx_rate_to_usd),
+                "currency_code": fx.currency_code,
+                "fx_rate_to_usd": fx.rate_to_usd,
+                "fx_rate_source": fx.rate_source,
+                "fx_rate_date": fx.rate_date,
+                "fx_rate_status": fx.rate_status,
+                "estimated_intervention_usd": fx.to_usd(estimated),
+                "confirmed_contracted_amount_usd": fx.to_usd(confirmed),
+                "actual_total_expense_usd": fx.to_usd(actual_total),
+                "actual_btu_expense_usd": fx.to_usd(actual_btu),
+                "actual_btc_expense_usd": fx.to_usd(actual_btc),
                 "direct_hcp_spend_local": actual_btu,
                 "overhead_spend_local": actual_btc,
                 "total_roi_spend_local": actual_total,
-                "direct_hcp_spend_usd": to_usd(actual_btu, fx_rate_to_usd),
-                "overhead_spend_usd": to_usd(actual_btc, fx_rate_to_usd),
-                "total_roi_spend_usd": to_usd(actual_total, fx_rate_to_usd),
+                "direct_hcp_spend_usd": fx.to_usd(actual_btu),
+                "overhead_spend_usd": fx.to_usd(actual_btc),
+                "total_roi_spend_usd": fx.to_usd(actual_total),
                 "expected_customer_count": to_int(row.get("expected_customer_count")),
                 "attended_customer_count": to_int(row.get("attended_customer_count")),
                 "expected_category_raw": row.get("expected_category_raw"),

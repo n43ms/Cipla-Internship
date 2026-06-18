@@ -180,28 +180,28 @@
 
 ### Tests for User Story 3
 
-- [ ] T113 [P] [US3] Add tests for consolidation financial mapping from estimated, confirmed/contracted, BTU, BTC, total actual, association amount, and variance source columns in `ingestion/tests/loaders/test_consolidation_financial_mapping.py`
-- [ ] T114 [P] [US3] Add tests for static FX seeds, official LKR company rate `1 USD = 310 LKR`, provisional FX status for non-official rates, missing-FX flags, and local-vs-USD behavior in `backend/tests/database/test_exchange_rates.py`
-- [ ] T115 [P] [US3] Add database tests for `mv_budget_utilization` including planned budget, estimated reference, confirmed amount, variance, BTU/BTC split, total actual spend, unspent gap, overrun, plan without spend, and spend without plan in `backend/tests/database/test_budget_view.py`
-- [ ] T116 [P] [US3] Add tests for BTU plus BTC reconciliation warnings when populated values do not match total actual spend in `backend/tests/database/test_budget_reconciliation_quality.py`
-- [ ] T117 [P] [US3] Add API contract tests for `/api/budget/summary` including confirmedContractedAmount, actualTotalSpend, fxRateStatus, official LKR conversion, and provisional-FX limitations for non-official rates in `backend/tests/api/test_budget_api.py`
-- [ ] T118 [P] [US3] Add frontend tests for budget cards, confirmed-vs-estimated variance, BTU/BTC split, official LKR FX display, provisional-FX warning for non-official rates, unmatched spend table, and empty states in `frontend/tests/budget-utilization.test.tsx`
+- [X] T113 [P] [US3] Add tests for consolidation financial mapping from estimated, confirmed/contracted, BTU, BTC, total actual, association amount, and variance source columns in `ingestion/tests/test_money_normalizer.py`
+- [X] T114 [P] [US3] Add tests for static FX seeds, official LKR company rate `1 USD = 310 LKR`, provisional FX status for non-official rates, missing-FX flags, and local-vs-USD behavior in `ingestion/tests/test_money_normalizer.py`
+- [X] T115 [P] [US3] Add database tests for `mv_budget_utilization` including planned budget, estimated reference, confirmed amount, variance, BTU/BTC split, total actual spend, unspent gap, overrun, plan without spend, and spend without plan in `backend/tests/database/test_budget_doctor_data_quality_views.py`
+- [X] T116 [P] [US3] Add tests for BTU plus BTC reconciliation warnings when populated values do not match total actual spend in `backend/tests/database/test_budget_doctor_data_quality_views.py`
+- [X] T117 [P] [US3] Add API contract tests for `/api/budget/summary` including confirmedContractedAmount, actualTotalSpend, fxRateStatus, official LKR conversion, and provisional-FX limitations for non-official rates in `backend/tests/api/test_phase5_7_api.py`
+- [X] T118 [P] [US3] Add frontend tests for budget cards, confirmed-vs-estimated variance, BTU/BTC split, official LKR FX display, provisional-FX warning for non-official rates, unmatched spend table, and empty states in `frontend/tests/phase5-7-pages.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T119 [US3] Update consolidation loader financial mapping for `ESTIMATED INTERVENTION`, `APPROVE/CONFIRMED TOTAL INTERVENTION`, `ACTUAL EXPENSE AGAINST BTU`, `TOTAL ACTUAL BTC EXPENSE`, `TOTAL ACTUAL EXPENSES FOR INTERVENTION`, and `Association Amount` in `ingestion/loaders/consolidation.py`
-- [ ] T120 [US3] Update execution request repository upserts for estimated, confirmed, variance, BTU, BTC, total actual, association, FX, and USD fields in `ingestion/repositories/execution_request_repository.py`
-- [ ] T121 [US3] Implement FX lookup and monetary normalization helper with local amount preservation and nullable USD fields in `ingestion/normalizers/money.py`
-- [ ] T122 [US3] Implement budget utilization SQL view using plan events, event matches, execution requests, local values, USD values, provisional-FX flags, and missing-FX flags in `database/views/mv_budget_utilization.sql`
-- [ ] T123 [US3] Create migration to install budget materialized view, monetary indexes, and financial mapping constraints in `database/migrations/versions/0013_budget_finance_view.py`
-- [ ] T124 [P] [US3] Implement backend budget schemas for summary cards, event budget gaps, confirmed-vs-estimated variance, BTU/BTC split, currency labels, and FX metadata in `backend/app/schemas/budget.py`
-- [ ] T125 [US3] Implement budget repository querying `mv_budget_utilization`, unmatched spend detail rows, and FX metadata in `backend/app/repositories/budget_repository.py`
-- [ ] T126 [US3] Implement budget service with local/normalized currency separation, provisional-FX limitations, reconciliation warnings, and pagination in `backend/app/services/budget_service.py`
-- [ ] T127 [US3] Implement budget route `/api/budget/summary` in `backend/app/routers/budget.py`
-- [ ] T128 [P] [US3] Implement frontend budget API client in `frontend/src/api/budget.ts`
-- [ ] T129 [P] [US3] Implement currency label, FX warning, budget KPI card, BTU/BTC split, and variance components in `frontend/src/components/budget/BudgetComponents.tsx`
-- [ ] T130 [US3] Implement Budget Utilization page with summary cards, planned-vs-confirmed-vs-actual chart, BTU/BTC split, event gap table, unmatched spend view, and FX warnings in `frontend/src/pages/BudgetUtilization.tsx`
-- [ ] T131 [US3] Update data dictionary with exact consolidation financial source-column mapping and association amount rules in `docs/data-dictionary.md`
+- [X] T119 [US3] Update consolidation loader financial mapping for `ESTIMATED INTERVENTION`, `APPROVE/CONFIRMED TOTAL INTERVENTION`, `ACTUAL EXPENSE AGAINST BTU`, `TOTAL ACTUAL BTC EXPENSE`, `TOTAL ACTUAL EXPENSES FOR INTERVENTION`, and `Association Amount` in `ingestion/loaders/consolidation.py`
+- [X] T120 [US3] Update execution request repository upserts for estimated, confirmed, variance, BTU, BTC, total actual, association, FX, and USD fields in `ingestion/repositories/execution_request_repository.py`
+- [X] T121 [US3] Implement FX lookup and monetary normalization helper with local amount preservation and nullable USD fields in `ingestion/normalizers/money.py`
+- [X] T122 [US3] Implement budget utilization SQL view using plan events, event matches, execution requests, local values, USD values, provisional-FX flags, and missing-FX flags in `database/views/mv_budget_utilization.sql`
+- [X] T123 [US3] Create migration to install budget materialized view, monetary indexes, and financial mapping constraints in `database/migrations/versions/0016_budget_finance_view.py`
+- [X] T124 [P] [US3] Implement backend budget schemas for summary cards, event budget gaps, confirmed-vs-estimated variance, BTU/BTC split, currency labels, and FX metadata in `backend/app/schemas/budget.py`
+- [X] T125 [US3] Implement budget repository querying `mv_budget_utilization`, unmatched spend detail rows, and FX metadata in `backend/app/repositories/budget_repository.py`
+- [X] T126 [US3] Implement budget service with local/normalized currency separation, provisional-FX limitations, reconciliation warnings, and pagination in `backend/app/services/budget_service.py`
+- [X] T127 [US3] Implement budget route `/api/budget/summary` in `backend/app/routers/budget.py`
+- [X] T128 [P] [US3] Implement frontend budget API client in `frontend/src/api/budget.ts`
+- [X] T129 [P] [US3] Implement currency label, FX warning, budget KPI card, BTU/BTC split, and variance components in `frontend/src/components/budget/BudgetComponents.tsx`
+- [X] T130 [US3] Implement Budget Utilization page with summary cards, planned-vs-confirmed-vs-actual chart, BTU/BTC split, event gap table, unmatched spend view, and FX warnings in `frontend/src/pages/BudgetUtilization.tsx`
+- [X] T131 [US3] Update data dictionary with exact consolidation financial source-column mapping and association amount rules in `docs/data-dictionary.md`
 
 **Checkpoint**: US3 is complete when budget usage is explainable without mixing currencies, using estimated values as spend, or hiding BTU/BTC reconciliation problems.
 
@@ -215,28 +215,28 @@
 
 ### Tests for User Story 4
 
-- [ ] T132 [P] [US4] Add database tests for country-scoped doctor uniqueness and cross-country Pcode collision reporting in `backend/tests/database/test_doctor_constraints.py`
-- [ ] T133 [P] [US4] Add tests for request doctor parsing into expected and actual participation records with missing, duplicate, and malformed Pcodes in `ingestion/tests/loaders/test_request_doctors.py`
-- [ ] T134 [P] [US4] Add database tests for `mv_doctor_roi` including engagement count, last engagement, direct spend, overhead spend, total ROI spend, no-RCPA, divide-by-zero, and segment assignment in `backend/tests/database/test_doctor_roi_view.py`
-- [ ] T135 [P] [US4] Add tests for ROI quadrant labels, deterministic median thresholds, low-effort/high-reward dark-horse flags, and insufficient-data handling in `backend/tests/database/test_roi_quadrant.py`
-- [ ] T136 [P] [US4] Add API contract tests for `/api/doctors/roi` and `/api/doctors/{countryCode}/{pcode}` in `backend/tests/api/test_doctor_api.py`
-- [ ] T137 [P] [US4] Add frontend tests for Doctor ROI table, quadrant matrix, scatter chart, no-RCPA state, segment filters, dark-horse list, and doctor detail drawer in `frontend/tests/doctor-roi.test.tsx`
+- [X] T132 [P] [US4] Add database tests for country-scoped doctor uniqueness and cross-country Pcode collision reporting in `ingestion/tests/test_doctor_quality.py`
+- [X] T133 [P] [US4] Add tests for request doctor parsing into expected and actual participation records with missing, duplicate, and malformed Pcodes in `ingestion/tests/loaders/test_request_doctors.py`
+- [X] T134 [P] [US4] Add database tests for `mv_doctor_roi` including engagement count, last engagement, direct spend, overhead spend, total ROI spend, no-RCPA, divide-by-zero, and segment assignment in `backend/tests/database/test_budget_doctor_data_quality_views.py`
+- [X] T135 [P] [US4] Add tests for ROI quadrant labels, deterministic median thresholds, low-effort/high-reward dark-horse flags, and insufficient-data handling in `backend/tests/database/test_budget_doctor_data_quality_views.py`
+- [X] T136 [P] [US4] Add API contract tests for `/api/doctors/roi` and `/api/doctors/{countryCode}/{pcode}` in `backend/tests/api/test_phase5_7_api.py`
+- [X] T137 [P] [US4] Add frontend tests for Doctor ROI table, quadrant matrix, scatter chart, no-RCPA state, segment filters, dark-horse list, and doctor detail drawer in `frontend/tests/phase5-7-pages.test.tsx`
 
 ### Implementation for User Story 4
 
-- [ ] T138 [US4] Implement doctor master upsert from RCPA aggregates using country-scoped Pcode uniqueness in `ingestion/repositories/doctor_repository.py`
-- [ ] T139 [US4] Implement cross-country Pcode collision detection, same-country conflict warnings, and doctor coverage summaries in `ingestion/validators/doctor_quality.py`
-- [ ] T140 [US4] Update request doctor loader to link expected and actual attendance to execution requests and preserve unparseable raw fields in `ingestion/loaders/request_doctors.py`
-- [ ] T141 [US4] Implement doctor ROI SQL view with engagement count, last engagement, direct HCP/BTU spend, overhead/BTC spend, total ROI spend, Cipla prescriptions, competitor prescriptions, Cipla share, spend per Cipla prescription, ROI segment, quadrant x/y, quadrant label, and dark-horse flag in `database/views/mv_doctor_roi.sql`
-- [ ] T142 [US4] Create migration to install doctor ROI materialized view, doctor indexes, and quadrant indexes in `database/migrations/versions/0014_doctor_roi_quadrant_view.py`
-- [ ] T143 [P] [US4] Implement backend doctor schemas for ROI rows, ROI quadrant fields, dark-horse flag, doctor profile, engagement history, prescription trend, brand mix, and coverage flags in `backend/app/schemas/doctors.py`
-- [ ] T144 [US4] Implement doctor repository querying ROI view, doctor detail, engagement history, prescription trend, quadrant groups, and top opportunity rows in `backend/app/repositories/doctor_repository.py`
-- [ ] T145 [US4] Implement doctor service with segment filters, quadrant filters, no-RCPA handling, pagination, detail assembly, and limitation propagation in `backend/app/services/doctor_service.py`
-- [ ] T146 [US4] Implement doctor routes `/api/doctors/roi` and `/api/doctors/{countryCode}/{pcode}` in `backend/app/routers/doctors.py`
-- [ ] T147 [P] [US4] Implement frontend doctor API client in `frontend/src/api/doctors.ts`
-- [ ] T148 [P] [US4] Implement Doctor ROI chart, quadrant matrix, dark-horse card, segment badges, and coverage flag components in `frontend/src/components/doctors/DoctorRoiComponents.tsx`
-- [ ] T149 [US4] Implement Doctor ROI page with scatter plot, quadrant matrix, segment tables, top opportunities, high-spend low-Rx list, filters, and detail drawer in `frontend/src/pages/DoctorRoi.tsx`
-- [ ] T150 [US4] Update data dictionary with doctor ROI segment definitions, quadrant logic, and Pcode uniqueness rules in `docs/data-dictionary.md`
+- [X] T138 [US4] Implement doctor master upsert from RCPA aggregates using country-scoped Pcode uniqueness in `ingestion/repositories/doctor_repository.py`
+- [X] T139 [US4] Implement cross-country Pcode collision detection, same-country conflict warnings, and doctor coverage summaries in `ingestion/validators/doctor_quality.py`
+- [X] T140 [US4] Update request doctor loader to link expected and actual attendance to execution requests and preserve unparseable raw fields in `ingestion/loaders/request_doctors.py`
+- [X] T141 [US4] Implement doctor ROI SQL view with engagement count, last engagement, direct HCP/BTU spend, overhead/BTC spend, total ROI spend, Cipla prescriptions, competitor prescriptions, Cipla share, spend per Cipla prescription, ROI segment, quadrant x/y, quadrant label, and dark-horse flag in `database/views/mv_doctor_roi.sql`
+- [X] T142 [US4] Create migration to install doctor ROI materialized view, doctor indexes, and quadrant indexes in `database/migrations/versions/0017_doctor_roi_quadrant_view.py`
+- [X] T143 [P] [US4] Implement backend doctor schemas for ROI rows, ROI quadrant fields, dark-horse flag, doctor profile, engagement history, prescription trend, brand mix, and coverage flags in `backend/app/schemas/doctors.py`
+- [X] T144 [US4] Implement doctor repository querying ROI view, doctor detail, engagement history, prescription trend, quadrant groups, and top opportunity rows in `backend/app/repositories/doctor_repository.py`
+- [X] T145 [US4] Implement doctor service with segment filters, quadrant filters, no-RCPA handling, pagination, detail assembly, and limitation propagation in `backend/app/services/doctor_service.py`
+- [X] T146 [US4] Implement doctor routes `/api/doctors/roi` and `/api/doctors/{countryCode}/{pcode}` in `backend/app/routers/doctors.py`
+- [X] T147 [P] [US4] Implement frontend doctor API client in `frontend/src/api/doctors.ts`
+- [X] T148 [P] [US4] Implement Doctor ROI chart, quadrant matrix, dark-horse card, segment badges, and coverage flag components in `frontend/src/components/doctors/DoctorRoiComponents.tsx`
+- [X] T149 [US4] Implement Doctor ROI page with scatter plot, quadrant matrix, segment tables, top opportunities, high-spend low-Rx list, filters, and detail drawer in `frontend/src/pages/DoctorRoi.tsx`
+- [X] T150 [US4] Update data dictionary with doctor ROI segment definitions, quadrant logic, and Pcode uniqueness rules in `docs/data-dictionary.md`
 
 **Checkpoint**: US4 is complete when doctor opportunity analysis is traceable to attendance, spend, RCPA coverage, and deterministic quadrant rules.
 
@@ -250,24 +250,24 @@
 
 ### Tests for User Story 5
 
-- [ ] T151 [P] [US5] Add database tests for `mv_data_quality` including rows seen/skipped, validation counts, match coverage, Pcode coverage, RCPA coverage, missing FX, provisional FX, serial-month counts, BTU/BTC reconciliation issues, workflow coverage, and intervention-type coverage in `backend/tests/database/test_data_quality_view.py`
-- [ ] T152 [P] [US5] Add API contract tests for `/api/data-quality`, `/api/filters`, and `/api/ingestion/latest` in `backend/tests/api/test_data_quality_api.py`
-- [ ] T153 [P] [US5] Add frontend tests for data freshness banner, weak-match warning, missing-FX warning, provisional-FX warning, no-RCPA warning, stale-ingestion state, and partial-data state in `frontend/tests/data-quality-states.test.tsx`
-- [ ] T154 [P] [US5] Add frontend tests for Data Quality page validation error drilldowns, unmatched records table, workflow coverage, and intervention coverage sections in `frontend/tests/data-quality-page.test.tsx`
+- [X] T151 [P] [US5] Add database tests for `mv_data_quality` including rows seen/skipped, validation counts, match coverage, Pcode coverage, RCPA coverage, missing FX, provisional FX, serial-month counts, BTU/BTC reconciliation issues, workflow coverage, and intervention-type coverage in `backend/tests/database/test_budget_doctor_data_quality_views.py`
+- [X] T152 [P] [US5] Add API contract tests for `/api/data-quality`, `/api/filters`, and `/api/ingestion/latest` in `backend/tests/api/test_phase5_7_api.py`
+- [X] T153 [P] [US5] Add frontend tests for data freshness banner, weak-match warning, missing-FX warning, provisional-FX warning, no-RCPA warning, stale-ingestion state, and partial-data state in `frontend/tests/phase5-7-pages.test.tsx`
+- [X] T154 [P] [US5] Add frontend tests for Data Quality page validation error drilldowns, unmatched records table, workflow coverage, and intervention coverage sections in `frontend/tests/phase5-7-pages.test.tsx`
 
 ### Implementation for User Story 5
 
-- [ ] T155 [US5] Implement data quality SQL view with ingestion freshness, file counts, row counts, validation errors, match coverage, Pcode coverage, RCPA coverage, missing FX, provisional FX, stale run state, serial-month parse counts, BTU/BTC reconciliation issues, missing confirmed amounts, workflow status coverage, intervention type coverage, unmatched counts, and Sri Lanka May derivation notes in `database/views/mv_data_quality.sql`
-- [ ] T156 [US5] Create migration to install data quality materialized view and indexes in `database/migrations/versions/0015_data_quality_view.py`
-- [ ] T157 [P] [US5] Implement backend data quality schemas, filter option schemas, shared response metadata schemas, and limitation schemas in `backend/app/schemas/data_quality.py`, `backend/app/schemas/filters.py`, and `backend/app/schemas/meta.py`
-- [ ] T158 [US5] Implement data quality repository querying latest ingestion, validation errors, unmatched records, source derivation notes, and coverage metrics in `backend/app/repositories/data_quality_repository.py`
-- [ ] T159 [US5] Implement data quality service for shared `ResponseMeta`, limitations, quality flags, filter options, stale-run detection, and warning severity in `backend/app/services/data_quality_service.py`
-- [ ] T160 [US5] Implement routes `/api/data-quality`, `/api/filters`, and `/api/ingestion/latest` in `backend/app/routers/data_quality.py`
-- [ ] T161 [P] [US5] Implement frontend shared response metadata handling and query hooks in `frontend/src/hooks/useDashboardMeta.ts` and `frontend/src/api/filters.ts`
-- [ ] T162 [P] [US5] Implement Data Freshness Banner, Quality Warning, Empty State, Error State, Partial Data State, Limitation List, and Stale Ingestion components in `frontend/src/components/common/DataStateComponents.tsx`
-- [ ] T163 [US5] Implement Data Quality page with ingestion status, file row counts, validation errors, match coverage, Pcode coverage, RCPA coverage, unmatched records, missing FX, provisional FX, serial-month counts, workflow coverage, intervention coverage, and derivation notes in `frontend/src/pages/DataQuality.tsx`
-- [ ] T164 [US5] Integrate shared quality banners into Executive Overview, Execution Matrix, Budget Utilization, and Doctor ROI pages in `frontend/src/App.tsx`
-- [ ] T165 [US5] Update quickstart validation expectations for all data-quality flags in `specs/002-execution-intelligence-platform/quickstart.md`
+- [X] T155 [US5] Implement data quality SQL view with ingestion freshness, file counts, row counts, validation errors, match coverage, Pcode coverage, RCPA coverage, missing FX, provisional FX, stale run state, serial-month parse counts, BTU/BTC reconciliation issues, missing confirmed amounts, workflow status coverage, intervention type coverage, unmatched counts, and Sri Lanka May derivation notes in `database/views/mv_data_quality.sql`
+- [X] T156 [US5] Create migration to install data quality materialized view and indexes in `database/migrations/versions/0018_data_quality_view.py`
+- [X] T157 [P] [US5] Implement backend data quality schemas, filter option schemas, shared response metadata schemas, and limitation schemas in `backend/app/schemas/data_quality.py`, `backend/app/schemas/filters.py`, and `backend/app/schemas/meta.py`
+- [X] T158 [US5] Implement data quality repository querying latest ingestion, validation errors, unmatched records, source derivation notes, and coverage metrics in `backend/app/repositories/data_quality_repository.py`
+- [X] T159 [US5] Implement data quality service for shared `ResponseMeta`, limitations, quality flags, filter options, stale-run detection, and warning severity in `backend/app/services/data_quality_service.py`
+- [X] T160 [US5] Implement routes `/api/data-quality`, `/api/filters`, and `/api/ingestion/latest` in `backend/app/routers/data_quality.py`
+- [X] T161 [P] [US5] Implement frontend shared response metadata handling and query hooks in `frontend/src/hooks/useDashboardMeta.ts` and `frontend/src/api/filters.ts`
+- [X] T162 [P] [US5] Implement Data Freshness Banner, Quality Warning, Empty State, Error State, Partial Data State, Limitation List, and Stale Ingestion components in `frontend/src/components/common/DataStateComponents.tsx`
+- [X] T163 [US5] Implement Data Quality page with ingestion status, file row counts, validation errors, match coverage, Pcode coverage, RCPA coverage, unmatched records, missing FX, provisional FX, serial-month counts, workflow coverage, intervention coverage, and derivation notes in `frontend/src/pages/DataQuality.tsx`
+- [X] T164 [US5] Integrate shared quality banners into Executive Overview, Execution Matrix, Budget Utilization, and Doctor ROI pages in `frontend/src/App.tsx`
+- [X] T165 [US5] Update quickstart validation expectations for all data-quality flags in `specs/002-execution-intelligence-platform/quickstart.md`
 
 **Checkpoint**: US5 is complete when uncertainty is visible at summary level, drilldown level, and AI context level.
 

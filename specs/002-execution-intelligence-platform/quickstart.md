@@ -134,13 +134,19 @@ curl http://localhost:8000/api/health
 curl http://localhost:8000/api/filters
 curl http://localhost:8000/api/ingestion/latest
 curl "http://localhost:8000/api/execution/summary?country=Nepal&month=2026-05"
+curl http://localhost:8000/api/budget/summary
+curl "http://localhost:8000/api/doctors/roi?pageSize=10"
+curl http://localhost:8000/api/data-quality
 ```
 
 Expected outcome:
 
 - health returns `ok`,
 - filters include countries and months,
-- KPI responses include ingestion metadata and limitations.
+- KPI responses include ingestion metadata and limitations,
+- budget responses separate planned, confirmed, BTU, BTC, actual, unspent, overrun, and FX quality,
+- doctor ROI responses include country-scoped Pcode rows, ROI segments, quadrant labels, dark-horse flags, and no-RCPA coverage,
+- data-quality responses expose freshness, validation, match coverage, Pcode coverage, RCPA coverage, FX quality, workflow coverage, intervention coverage, and unmatched counts.
 
 ## 7. Run Frontend
 
@@ -151,10 +157,13 @@ npm run dev --prefix frontend
 Expected outcome:
 
 - executive overview renders,
-- global filters load from API,
+- navigation exposes Execution, Budget, Doctor ROI, and Data Quality pages,
+- global freshness and warning banners load from API,
 - stale/weak/missing-data warnings are visible when applicable,
 - execution matrix drills into event-level records,
-- budget and doctor ROI pages handle missing FX or no-RCPA states.
+- budget page handles missing FX, provisional FX, unmatched spend, and BTU/BTC reconciliation states,
+- doctor ROI page handles no-RCPA states, deterministic segments, dark-horse rows, and doctor drilldowns,
+- data-quality page drills into validation and coverage signals.
 
 ## 8. Test Suite
 
