@@ -11,8 +11,11 @@ from ingestion.loaders import load_consolidation, load_execution_snapshot, load_
 from ingestion.models import LoadResult, WorkbookProfile
 from ingestion.processed_exports import export_rcpa_detail_records
 from ingestion.profiler import profile_source_file
+from ingestion.reconciliation.event_matcher import EventMatcher
+from ingestion.reconciliation.sri_lanka_may_derivation import derive_sri_lanka_may_snapshots
 from ingestion.repositories.audit_repository import AuditRepository
 from ingestion.repositories.canonical_repository import CanonicalRepository
+from ingestion.repositories.event_match_repository import EventMatchRepository
 from ingestion.repositories.rcpa_repository import RcpaRepository
 
 LOADERS = {
@@ -164,6 +167,13 @@ def _persist(
                     ingestion_run_id=run_id, source_file_id=source_file_id, records=result.records
                 )
                 canonical.insert_request_doctors(request_ids, result.summaries.get("request_doctors", []))
+                derived_snapshots = derive_sri_lanka_may_snapshots(result.records)
+                if derived_snapshots:
+                    canonical.insert_execution_snapshots(
+                        ingestion_run_id=run_id,
+                        source_file_id=source_file_id,
+                        records=derived_snapshots,
+                    )
             elif result.source_type == "rcpa":
                 detail_export_path = export_rcpa_detail_records(
                     profile=profile,
@@ -186,6 +196,7 @@ def _persist(
                     records=result.summaries.get("rcpa_country_brand_month_summary", []),
                 )
                 rcpa.upsert_doctors_from_rcpa(result.records)
+        EventMatcher(EventMatchRepository(session)).reconcile(run_id)
         status = "completed"
         if summary.error_count:
             status = "failed"

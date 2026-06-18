@@ -11,6 +11,10 @@ BEGIN
     REFRESH MATERIALIZED VIEW mv_unmatched_events;
   END IF;
 
+  IF to_regclass('mv_execution_event_matrix') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_execution_event_matrix;
+  END IF;
+
   IF to_regclass('mv_workflow_governance') IS NOT NULL THEN
     REFRESH MATERIALIZED VIEW mv_workflow_governance;
   END IF;

@@ -36,6 +36,7 @@ class CanonicalRepository:
         return self._months[key]
 
     def insert_plan_events(self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]) -> None:
+        self._clear_derived_matches()
         self.session.execute(text("delete from plan_events where source_file_id = :source_file_id"), {"source_file_id": source_file_id})
         self._execute_many(
             """
@@ -66,6 +67,7 @@ class CanonicalRepository:
     def insert_execution_snapshots(
         self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
     ) -> None:
+        self._clear_derived_matches()
         self.session.execute(
             text("delete from execution_snapshots where source_file_id = :source_file_id"),
             {"source_file_id": source_file_id},
@@ -97,6 +99,7 @@ class CanonicalRepository:
     ) -> dict[str, str]:
         if not records:
             return {}
+        self._clear_derived_matches()
         statement = text(
             """
             insert into execution_requests (
@@ -263,6 +266,9 @@ class CanonicalRepository:
         params["calendar_month_id"] = self.month_id(record["month_start_date"])
         params["approval_chain_json"] = json.dumps(record.get("approval_chain_json") or {})
         return params
+
+    def _clear_derived_matches(self) -> None:
+        self.session.execute(text("delete from event_matches"))
 
 
 def _chunks(rows: list[dict[str, Any]], size: int = BATCH_SIZE) -> list[list[dict[str, Any]]]:

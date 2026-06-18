@@ -27,9 +27,10 @@ def test_official_lkr_company_rate_seed_is_present() -> None:
 
 
 def test_phase_1_3_schema_completion_migration_contains_required_columns() -> None:
-    migration_sql = Path("database/migrations/versions/0007_phase_1_3_schema_completion.py").read_text(
-        encoding="utf-8"
+    migration_path = Path(
+        "database/migrations/versions/0007_phase_1_3_schema_completion.py"
     )
+    migration_sql = migration_path.read_text(encoding="utf-8")
     for column_name in [
         "planned_honorarium_hcps",
         "yp_total_doctors",
@@ -45,9 +46,10 @@ def test_phase_1_3_schema_completion_migration_contains_required_columns() -> No
 
 
 def test_free_tier_rcpa_storage_migration_contains_summary_tables() -> None:
-    migration_sql = Path("database/migrations/versions/0008_supabase_free_tier_rcpa_storage.py").read_text(
-        encoding="utf-8"
+    migration_path = Path(
+        "database/migrations/versions/0008_supabase_free_tier_rcpa_storage.py"
     )
+    migration_sql = migration_path.read_text(encoding="utf-8")
     for table_name in [
         "rcpa_doctor_month_summary",
         "rcpa_doctor_brand_summary",
@@ -58,9 +60,10 @@ def test_free_tier_rcpa_storage_migration_contains_summary_tables() -> None:
 
 
 def test_obsolete_rcpa_prescriptions_table_is_dropped_by_head_migration() -> None:
-    migration_sql = Path("database/migrations/versions/0009_drop_obsolete_rcpa_prescriptions.py").read_text(
-        encoding="utf-8"
+    migration_path = Path(
+        "database/migrations/versions/0009_drop_obsolete_rcpa_prescriptions.py"
     )
+    migration_sql = migration_path.read_text(encoding="utf-8")
     assert 'op.drop_table("rcpa_prescriptions")' in migration_sql
     for table_name in [
         "rcpa_doctor_month_summary",
@@ -68,3 +71,12 @@ def test_obsolete_rcpa_prescriptions_table_is_dropped_by_head_migration() -> Non
         "rcpa_country_brand_month_summary",
     ]:
         assert table_name not in migration_sql
+
+
+def test_execution_governance_migration_file_exists(migration_files: list[str]) -> None:
+    assert "0010_execution_governance_views.py" in migration_files
+
+
+def test_phase4_repair_migrations_are_tracked(migration_files: list[str]) -> None:
+    assert "0011_phase4_execution_matrix_fixes.py" in migration_files
+    assert "0012_phase4_real_data_repairs.py" in migration_files

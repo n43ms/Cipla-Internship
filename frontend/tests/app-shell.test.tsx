@@ -5,9 +5,9 @@ import App from "../src/App";
 import { renderWithProviders } from "./test-utils";
 
 describe("App shell", () => {
-  it("renders the platform name", () => {
+  it("renders the execution governance shell", () => {
     renderWithProviders(<App />);
 
-    expect(screen.getByText("Execution Intelligence Platform")).toBeInTheDocument();
+    expect(screen.getByText("Loading execution governance")).toBeInTheDocument();
   });
 });

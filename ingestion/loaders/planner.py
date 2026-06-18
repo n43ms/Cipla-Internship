@@ -28,6 +28,11 @@ def load_planner(profile: WorkbookProfile) -> LoadResult:
                     raw_value=row,
                 )
                 continue
+            planned_honorarium_hcps = to_int(row.get("planned_honorarium_hcps"))
+            planned_delegate_hcps = to_int(row.get("planned_delegate_hcps"))
+            planned_total_hcps = to_int(row.get("planned_total_hcps"))
+            if planned_total_hcps is None and (planned_honorarium_hcps is not None or planned_delegate_hcps is not None):
+                planned_total_hcps = (planned_honorarium_hcps or 0) + (planned_delegate_hcps or 0)
             records.append(
                 {
                     "country": country,
@@ -40,9 +45,9 @@ def load_planner(profile: WorkbookProfile) -> LoadResult:
                     "central_or_local": row.get("central_or_local"),
                     "brand_name_1": row.get("brand_name_1"),
                     "brand_name_2": row.get("brand_name_2"),
-                    "planned_honorarium_hcps": to_int(row.get("planned_honorarium_hcps")),
-                    "planned_delegate_hcps": to_int(row.get("planned_delegate_hcps")),
-                    "planned_total_hcps": to_int(row.get("planned_total_hcps")),
+                    "planned_honorarium_hcps": planned_honorarium_hcps,
+                    "planned_delegate_hcps": planned_delegate_hcps,
+                    "planned_total_hcps": planned_total_hcps,
                     "planned_patients": to_int(row.get("planned_patients")),
                     "planned_pharmacies": to_int(row.get("planned_pharmacies")),
                     "honorarium_cost_per_hcp_usd": to_decimal(row.get("honorarium_cost_per_hcp_usd")),

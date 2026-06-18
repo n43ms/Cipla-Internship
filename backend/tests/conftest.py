@@ -27,6 +27,9 @@ def migration_files() -> list[str]:
         "0007_phase_1_3_schema_completion.py",
         "0008_supabase_free_tier_rcpa_storage.py",
         "0009_drop_obsolete_rcpa_prescriptions.py",
+        "0010_execution_governance_views.py",
+        "0011_phase4_execution_matrix_fixes.py",
+        "0012_phase4_real_data_repairs.py",
     ]
 
 

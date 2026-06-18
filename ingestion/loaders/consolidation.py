@@ -50,11 +50,17 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
             actual_total = to_decimal(row.get("actual_total_expense"))
             actual_btu = to_decimal(row.get("actual_btu_expense"))
             actual_btc = to_decimal(row.get("actual_btc_expense"))
+            if actual_total is None and (actual_btu is not None or actual_btc is not None):
+                actual_total = (actual_btu or Decimal("0")) + (actual_btc or Decimal("0"))
             currency_code = currency_for_country(country) or "UNKNOWN"
             fx_rate_to_usd = LKR_RATE_TO_USD if currency_code == "LKR" else None
             fx_rate_status = "official" if currency_code == "LKR" else "missing"
             fx_rate_source = "company" if currency_code == "LKR" else "pending_company_rate"
             fx_rate_date = LKR_RATE_DATE if currency_code == "LKR" else None
+            request_approval_status = normalize_workflow_status(row.get("request_approval_status"))
+            request_confirmation_status = normalize_workflow_status(row.get("request_confirmation_status"))
+            post_approval_status = normalize_workflow_status(row.get("post_approval_status"))
+            post_confirmation_status = normalize_workflow_status(row.get("post_confirmation_status"))
             record = {
                 "request_key": request_uid,
                 "req_id": req_id,
@@ -100,19 +106,33 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
                 "attended_customer_count": to_int(row.get("attended_customer_count")),
                 "expected_category_raw": row.get("expected_category_raw"),
                 "attended_category_raw": row.get("attended_category_raw"),
-                "request_approval_status": normalize_workflow_status(row.get("request_approval_status")),
-                "request_confirmation_status": normalize_workflow_status(row.get("request_confirmation_status")),
-                "post_approval_status": normalize_workflow_status(row.get("post_approval_status")),
-                "post_confirmation_status": normalize_workflow_status(row.get("post_confirmation_status")),
+                "request_approval_status": request_approval_status,
+                "request_confirmation_status": request_confirmation_status,
+                "post_approval_status": post_approval_status,
+                "post_confirmation_status": post_confirmation_status,
                 "expense_submitted_date": to_date(row.get("expense_submitted_date")),
                 "expense_confirmed_date": to_date(row.get("expense_confirmed_date")),
-                "current_owner_stage": row.get("current_owner_stage"),
+                "current_owner_stage": _current_owner_stage(
+                    row.get("current_owner_stage"),
+                    row.get("request_approval_status"),
+                    row.get("request_confirmation_status"),
+                    row.get("post_approval_status"),
+                    row.get("post_confirmation_status"),
+                    request_approval_status,
+                    request_confirmation_status,
+                    post_approval_status,
+                    post_confirmation_status,
+                ),
                 "approval_status": normalize_workflow_status(row.get("approval_status")),
                 "confirmation_status": normalize_workflow_status(row.get("confirmation_status")),
                 "cancellation_reason": row.get("cancellation_reason"),
                 "city": row.get("city"),
                 "state": row.get("state"),
-                "approval_chain_json": {},
+                "approval_chain_json": {
+                    f"level_{level}": row.get(f"level_{level}_approval")
+                    for level in range(1, 7)
+                    if row.get(f"level_{level}_approval") is not None
+                },
                 "source_row_number": row_number,
             }
             records.append(record)
@@ -153,3 +173,60 @@ def _clean_text(value: object) -> str | None:
 def _fallback_request_uid(file_hash: str, sheet_name: str, row_number: int, row: dict[str, object]) -> str:
     payload = f"{file_hash}|{sheet_name}|{row_number}|{row.get('country')}|{row.get('month')}|{row.get('intervention_name')}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
+
+
+def _current_owner_stage(
+    raw_owner_stage: object,
+    raw_request_approval_status: object,
+    raw_request_confirmation_status: object,
+    raw_post_approval_status: object,
+    raw_post_confirmation_status: object,
+    request_approval_status: str | None,
+    request_confirmation_status: str | None,
+    post_approval_status: str | None,
+    post_confirmation_status: str | None,
+) -> str:
+    raw_text = _clean_text(raw_owner_stage)
+    if raw_text:
+        return raw_text
+    named_owner = (
+        _pending_with(raw_request_approval_status, "request approval")
+        or _pending_with(raw_request_confirmation_status, "request confirmation")
+        or _pending_with(raw_post_approval_status, "post report approval")
+        or _pending_with(raw_post_confirmation_status, "post report confirmation")
+    )
+    if named_owner:
+        return named_owner
+    if request_approval_status in {"pending_owner", "pending_confirmation", "pending"}:
+        return "request approval pending"
+    if request_confirmation_status in {"pending_owner", "pending_confirmation", "pending"}:
+        return "request confirmation pending"
+    if post_approval_status in {"pending_owner", "pending_confirmation", "pending", "sent_for_correction"}:
+        return "post report approval pending"
+    if post_confirmation_status in {"pending_owner", "pending_confirmation", "pending", "sent_for_correction"}:
+        return "post report confirmation pending"
+    if post_approval_status == "draft" or post_confirmation_status == "draft":
+        return "post report not submitted"
+    if request_approval_status in {"deleted", "rejected"}:
+        return f"request {request_approval_status}"
+    if post_approval_status == "approved" or post_confirmation_status in {"approved", "confirmed"}:
+        return "post report approved"
+    if request_approval_status in {"approved", "confirmed"} or request_confirmation_status in {"approved", "confirmed"}:
+        return "request approved; report pending"
+    return "unknown"
+
+
+def _pending_with(value: object, stage: str) -> str | None:
+    raw_text = _clean_text(value)
+    if not raw_text:
+        return None
+    normalized = " ".join(raw_text.split())
+    lowered = normalized.casefold()
+    marker = "pending with "
+    if marker not in lowered:
+        return None
+    owner_start = lowered.index(marker) + len(marker)
+    owner = normalized[owner_start:].strip(" .:-")
+    if not owner:
+        return f"{stage} pending"
+    return f"{stage} pending with {owner}"

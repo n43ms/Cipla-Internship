@@ -129,44 +129,44 @@
 
 ### Tests for User Story 2
 
-- [ ] T078 [P] [US2] Add unit tests for event name normalization, suffix removal, punctuation handling, harmless label removal, and conservative fuzzy thresholds in `ingestion/tests/reconciliation/test_event_name_matching.py`
-- [ ] T079 [P] [US2] Add integration tests for event match creation across plan events, execution snapshots, and consolidation requests in `ingestion/tests/reconciliation/test_event_matcher.py`
-- [ ] T080 [P] [US2] Add tests for Sri Lanka May consolidation-derived snapshot rows and source derivation notes in `ingestion/tests/reconciliation/test_sri_lanka_may_derivation.py`
-- [ ] T081 [P] [US2] Add tests for workflow governance mapping from request approval, request confirmation, post approval, post confirmation, expense submitted, and expense confirmed columns in `ingestion/tests/loaders/test_consolidation_workflow_mapping.py`
-- [ ] T082 [P] [US2] Add database tests for `mv_execution_kpis`, `mv_unmatched_events`, `mv_workflow_governance`, and `mv_intervention_mix` in `backend/tests/database/test_execution_governance_views.py`
-- [ ] T083 [P] [US2] Add API contract tests for `/api/execution/summary`, `/api/execution/events`, `/api/workflow/summary`, `/api/workflow/requests`, and `/api/interventions/mix` in `backend/tests/api/test_execution_workflow_api.py`
-- [ ] T084 [P] [US2] Add frontend tests for execution matrix loading, empty, error, weak-match, derived-source, workflow pending, and intervention mix states in `frontend/tests/execution-governance.test.tsx`
+- [X] T078 [P] [US2] Add unit tests for event name normalization, suffix removal, punctuation handling, harmless label removal, and conservative fuzzy thresholds in `ingestion/tests/reconciliation/test_event_name_matching.py`
+- [X] T079 [P] [US2] Add integration tests for event match creation across plan events, execution snapshots, and consolidation requests in `ingestion/tests/reconciliation/test_event_matcher.py`
+- [X] T080 [P] [US2] Add tests for Sri Lanka May consolidation-derived snapshot rows and source derivation notes in `ingestion/tests/reconciliation/test_sri_lanka_may_derivation.py`
+- [X] T081 [P] [US2] Add tests for workflow governance mapping from request approval, request confirmation, post approval, post confirmation, expense submitted, and expense confirmed columns in `ingestion/tests/loaders/test_consolidation_workflow_mapping.py`
+- [X] T082 [P] [US2] Add database tests for `mv_execution_kpis`, `mv_unmatched_events`, `mv_workflow_governance`, and `mv_intervention_mix` in `backend/tests/database/test_execution_governance_views.py`
+- [X] T083 [P] [US2] Add API contract tests for `/api/execution/summary`, `/api/execution/events`, `/api/workflow/summary`, `/api/workflow/requests`, and `/api/interventions/mix` in `backend/tests/api/test_execution_workflow_api.py`
+- [X] T084 [P] [US2] Add frontend tests for execution matrix loading, empty, error, weak-match, derived-source, workflow pending, and intervention mix states in `frontend/tests/execution-governance.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T085 [P] [US2] Implement event matching repository for plan, snapshot, request, and match records in `ingestion/repositories/event_match_repository.py`
-- [ ] T086 [US2] Implement deterministic event matcher with exact, normalized, fuzzy, weak, unmatched-plan, unmatched-snapshot, unmatched-request, and ignored statuses in `ingestion/reconciliation/event_matcher.py`
-- [ ] T087 [US2] Implement Sri Lanka May consolidation derivation service with grouped request evidence and `snapshot_source = derived_from_consolidation` in `ingestion/reconciliation/sri_lanka_may_derivation.py`
-- [ ] T088 [US2] Update consolidation loader to persist request approval, request confirmation, post approval, post confirmation, expense submitted, expense confirmed, owner/stage, and Level 1-6 approval metadata in `ingestion/loaders/consolidation.py`
-- [ ] T089 [US2] Implement workflow status parser for draft, approved, rejected, deleted, sent-for-correction, pending owner, pending confirmation, and report states in `ingestion/normalizers/workflow_status.py`
-- [ ] T090 [US2] Implement `reconcile` and `refresh-views` CLI commands in `ingestion/main.py`
-- [ ] T091 [US2] Implement SQL for `mv_execution_kpis` including planned events, matched events, weak/unmatched events, executed events, action-due events, HCP rates, match coverage, and snapshot source counts in `database/views/mv_execution_kpis.sql`
-- [ ] T092 [US2] Implement SQL for `mv_unmatched_events` with source type, event name, event type, reason, candidate match, confidence, and source references in `database/views/mv_unmatched_events.sql`
-- [ ] T093 [US2] Implement SQL for `mv_workflow_governance` with request lifecycle counts, post/report lifecycle counts, current owner/stage, pending counts, and report status coverage in `database/views/mv_workflow_governance.sql`
-- [ ] T094 [US2] Implement SQL for `mv_intervention_mix` using source-driven intervention type/subtype values, request counts, executed counts, approved counts, report pending counts, and spend fields in `database/views/mv_intervention_mix.sql`
-- [ ] T095 [US2] Create migration to install execution, unmatched, workflow governance, and intervention mix materialized views and indexes in `database/migrations/versions/0007_execution_governance_views.py`
-- [ ] T096 [P] [US2] Implement backend execution schemas for summary, event rows, match status, source derivation notes, and pagination in `backend/app/schemas/execution.py`
-- [ ] T097 [P] [US2] Implement backend workflow schemas for status counts, owner stages, request rows, and reporting coverage in `backend/app/schemas/workflow.py`
-- [ ] T098 [P] [US2] Implement backend intervention schemas for type/subtype rows, spend fields, workflow counts, and FX status in `backend/app/schemas/interventions.py`
-- [ ] T099 [US2] Implement execution repository querying execution materialized views and event detail rows in `backend/app/repositories/execution_repository.py`
-- [ ] T100 [US2] Implement workflow repository querying workflow summary and request-level rows in `backend/app/repositories/workflow_repository.py`
-- [ ] T101 [US2] Implement intervention repository querying intervention type/subtype mix rows in `backend/app/repositories/intervention_repository.py`
-- [ ] T102 [US2] Implement execution service with filter validation, pagination, data-quality flags, and limitation assembly in `backend/app/services/execution_service.py`
-- [ ] T103 [US2] Implement workflow service with lifecycle status normalization, owner-stage summaries, and pending-report limitations in `backend/app/services/workflow_service.py`
-- [ ] T104 [US2] Implement intervention service with source-driven categories and no hard-coded seven-type assumptions in `backend/app/services/intervention_service.py`
-- [ ] T105 [US2] Implement execution routes for `/api/execution/summary` and `/api/execution/events` in `backend/app/routers/execution.py`
-- [ ] T106 [US2] Implement workflow routes for `/api/workflow/summary` and `/api/workflow/requests` in `backend/app/routers/workflow.py`
-- [ ] T107 [US2] Implement intervention route `/api/interventions/mix` in `backend/app/routers/interventions.py`
-- [ ] T108 [P] [US2] Implement frontend execution, workflow, and intervention API clients in `frontend/src/api/execution.ts`, `frontend/src/api/workflow.ts`, and `frontend/src/api/interventions.ts`
-- [ ] T109 [P] [US2] Implement execution status badges, match confidence badges, source derivation badges, and workflow stage badges in `frontend/src/components/execution/ExecutionBadges.tsx`
-- [ ] T110 [P] [US2] Implement workflow governance cards, stage table, report status table, and pending-owner components in `frontend/src/components/workflow/WorkflowComponents.tsx`
-- [ ] T111 [P] [US2] Implement intervention mix chart and table components in `frontend/src/components/interventions/InterventionMixComponents.tsx`
-- [ ] T112 [US2] Implement Execution Matrix page with filters, KPI cards, planned-vs-engaged chart, event table, workflow governance panel, intervention mix panel, and drilldown drawer in `frontend/src/pages/ExecutionMatrix.tsx`
+- [X] T085 [P] [US2] Implement event matching repository for plan, snapshot, request, and match records in `ingestion/repositories/event_match_repository.py`
+- [X] T086 [US2] Implement deterministic event matcher with exact, normalized, fuzzy, weak, unmatched-plan, unmatched-snapshot, unmatched-request, and ignored statuses in `ingestion/reconciliation/event_matcher.py`
+- [X] T087 [US2] Implement Sri Lanka May consolidation derivation service with grouped request evidence and `snapshot_source = derived_from_consolidation` in `ingestion/reconciliation/sri_lanka_may_derivation.py`
+- [X] T088 [US2] Update consolidation loader to persist request approval, request confirmation, post approval, post confirmation, expense submitted, expense confirmed, owner/stage, and Level 1-6 approval metadata in `ingestion/loaders/consolidation.py`
+- [X] T089 [US2] Implement workflow status parser for draft, approved, rejected, deleted, sent-for-correction, pending owner, pending confirmation, and report states in `ingestion/normalizers/workflow_status.py`
+- [X] T090 [US2] Implement `reconcile` and `refresh-views` CLI commands in `ingestion/main.py`
+- [X] T091 [US2] Implement SQL for `mv_execution_kpis` including planned events, matched events, weak/unmatched events, executed events, action-due events, HCP rates, match coverage, and snapshot source counts in `database/views/mv_execution_kpis.sql`
+- [X] T092 [US2] Implement SQL for `mv_unmatched_events` with source type, event name, event type, reason, candidate match, confidence, and source references in `database/views/mv_unmatched_events.sql`
+- [X] T093 [US2] Implement SQL for `mv_workflow_governance` with request lifecycle counts, post/report lifecycle counts, current owner/stage, pending counts, and report status coverage in `database/views/mv_workflow_governance.sql`
+- [X] T094 [US2] Implement SQL for `mv_intervention_mix` using source-driven intervention type/subtype values, request counts, executed counts, approved counts, report pending counts, and spend fields in `database/views/mv_intervention_mix.sql`
+- [X] T095 [US2] Create migrations to install execution, unmatched, execution event matrix, workflow governance, intervention mix, and Phase 4 real-data repair materialized views/indexes in `database/migrations/versions/0010_execution_governance_views.py`, `database/migrations/versions/0011_phase4_execution_matrix_fixes.py` (`revision = 0011_phase4_matrix_fixes` to fit the Alembic version column), and `database/migrations/versions/0012_phase4_real_data_repairs.py`
+- [X] T096 [P] [US2] Implement backend execution schemas for summary, event rows, match status, source derivation notes, and pagination in `backend/app/schemas/execution.py`
+- [X] T097 [P] [US2] Implement backend workflow schemas for status counts, owner stages, request rows, and reporting coverage in `backend/app/schemas/workflow.py`
+- [X] T098 [P] [US2] Implement backend intervention schemas for type/subtype rows, spend fields, workflow counts, and FX status in `backend/app/schemas/interventions.py`
+- [X] T099 [US2] Implement execution repository querying execution materialized views and event detail rows in `backend/app/repositories/execution_repository.py`
+- [X] T100 [US2] Implement workflow repository querying workflow summary and request-level rows in `backend/app/repositories/workflow_repository.py`
+- [X] T101 [US2] Implement intervention repository querying intervention type/subtype mix rows in `backend/app/repositories/intervention_repository.py`
+- [X] T102 [US2] Implement execution service with filter validation, pagination, data-quality flags, and limitation assembly in `backend/app/services/execution_service.py`
+- [X] T103 [US2] Implement workflow service with lifecycle status normalization, owner-stage summaries, and pending-report limitations in `backend/app/services/workflow_service.py`
+- [X] T104 [US2] Implement intervention service with source-driven categories and no hard-coded seven-type assumptions in `backend/app/services/intervention_service.py`
+- [X] T105 [US2] Implement execution routes for `/api/execution/summary` and `/api/execution/events` in `backend/app/routers/execution.py`
+- [X] T106 [US2] Implement workflow routes for `/api/workflow/summary` and `/api/workflow/requests` in `backend/app/routers/workflow.py`
+- [X] T107 [US2] Implement intervention route `/api/interventions/mix` in `backend/app/routers/interventions.py`
+- [X] T108 [P] [US2] Implement frontend execution, workflow, and intervention API clients in `frontend/src/api/execution.ts`, `frontend/src/api/workflow.ts`, and `frontend/src/api/interventions.ts`
+- [X] T109 [P] [US2] Implement execution status badges, match confidence badges, source derivation badges, and workflow stage badges in `frontend/src/components/execution/ExecutionBadges.tsx`
+- [X] T110 [P] [US2] Implement workflow governance cards, stage table, report status table, and pending-owner components in `frontend/src/components/workflow/WorkflowComponents.tsx`
+- [X] T111 [P] [US2] Implement intervention mix chart and table components in `frontend/src/components/interventions/InterventionMixComponents.tsx`
+- [X] T112 [US2] Implement Execution Matrix page with filters, KPI cards, planned-vs-engaged chart, event table, workflow governance panel, intervention mix panel, and drilldown drawer in `frontend/src/pages/ExecutionMatrix.tsx`
 
 **Checkpoint**: US2 is complete when plan-vs-actual execution, workflow bottlenecks, and intervention mix can be audited from source rows through dashboard UI.
 
@@ -193,7 +193,7 @@
 - [ ] T120 [US3] Update execution request repository upserts for estimated, confirmed, variance, BTU, BTC, total actual, association, FX, and USD fields in `ingestion/repositories/execution_request_repository.py`
 - [ ] T121 [US3] Implement FX lookup and monetary normalization helper with local amount preservation and nullable USD fields in `ingestion/normalizers/money.py`
 - [ ] T122 [US3] Implement budget utilization SQL view using plan events, event matches, execution requests, local values, USD values, provisional-FX flags, and missing-FX flags in `database/views/mv_budget_utilization.sql`
-- [ ] T123 [US3] Create migration to install budget materialized view, monetary indexes, and financial mapping constraints in `database/migrations/versions/0008_budget_finance_view.py`
+- [ ] T123 [US3] Create migration to install budget materialized view, monetary indexes, and financial mapping constraints in `database/migrations/versions/0013_budget_finance_view.py`
 - [ ] T124 [P] [US3] Implement backend budget schemas for summary cards, event budget gaps, confirmed-vs-estimated variance, BTU/BTC split, currency labels, and FX metadata in `backend/app/schemas/budget.py`
 - [ ] T125 [US3] Implement budget repository querying `mv_budget_utilization`, unmatched spend detail rows, and FX metadata in `backend/app/repositories/budget_repository.py`
 - [ ] T126 [US3] Implement budget service with local/normalized currency separation, provisional-FX limitations, reconciliation warnings, and pagination in `backend/app/services/budget_service.py`
@@ -228,7 +228,7 @@
 - [ ] T139 [US4] Implement cross-country Pcode collision detection, same-country conflict warnings, and doctor coverage summaries in `ingestion/validators/doctor_quality.py`
 - [ ] T140 [US4] Update request doctor loader to link expected and actual attendance to execution requests and preserve unparseable raw fields in `ingestion/loaders/request_doctors.py`
 - [ ] T141 [US4] Implement doctor ROI SQL view with engagement count, last engagement, direct HCP/BTU spend, overhead/BTC spend, total ROI spend, Cipla prescriptions, competitor prescriptions, Cipla share, spend per Cipla prescription, ROI segment, quadrant x/y, quadrant label, and dark-horse flag in `database/views/mv_doctor_roi.sql`
-- [ ] T142 [US4] Create migration to install doctor ROI materialized view, doctor indexes, and quadrant indexes in `database/migrations/versions/0009_doctor_roi_quadrant_view.py`
+- [ ] T142 [US4] Create migration to install doctor ROI materialized view, doctor indexes, and quadrant indexes in `database/migrations/versions/0014_doctor_roi_quadrant_view.py`
 - [ ] T143 [P] [US4] Implement backend doctor schemas for ROI rows, ROI quadrant fields, dark-horse flag, doctor profile, engagement history, prescription trend, brand mix, and coverage flags in `backend/app/schemas/doctors.py`
 - [ ] T144 [US4] Implement doctor repository querying ROI view, doctor detail, engagement history, prescription trend, quadrant groups, and top opportunity rows in `backend/app/repositories/doctor_repository.py`
 - [ ] T145 [US4] Implement doctor service with segment filters, quadrant filters, no-RCPA handling, pagination, detail assembly, and limitation propagation in `backend/app/services/doctor_service.py`
@@ -258,7 +258,7 @@
 ### Implementation for User Story 5
 
 - [ ] T155 [US5] Implement data quality SQL view with ingestion freshness, file counts, row counts, validation errors, match coverage, Pcode coverage, RCPA coverage, missing FX, provisional FX, stale run state, serial-month parse counts, BTU/BTC reconciliation issues, missing confirmed amounts, workflow status coverage, intervention type coverage, unmatched counts, and Sri Lanka May derivation notes in `database/views/mv_data_quality.sql`
-- [ ] T156 [US5] Create migration to install data quality materialized view and indexes in `database/migrations/versions/0010_data_quality_view.py`
+- [ ] T156 [US5] Create migration to install data quality materialized view and indexes in `database/migrations/versions/0015_data_quality_view.py`
 - [ ] T157 [P] [US5] Implement backend data quality schemas, filter option schemas, shared response metadata schemas, and limitation schemas in `backend/app/schemas/data_quality.py`, `backend/app/schemas/filters.py`, and `backend/app/schemas/meta.py`
 - [ ] T158 [US5] Implement data quality repository querying latest ingestion, validation errors, unmatched records, source derivation notes, and coverage metrics in `backend/app/repositories/data_quality_repository.py`
 - [ ] T159 [US5] Implement data quality service for shared `ResponseMeta`, limitations, quality flags, filter options, stale-run detection, and warning severity in `backend/app/services/data_quality_service.py`
@@ -315,7 +315,7 @@
 - [ ] T185 [P] Implement reusable table, pagination, sort, drawer, card, chart container, and tooltip components in `frontend/src/components/common/`
 - [ ] T186 Add backend CORS, request logging, structured error logging, response timing, and safe exception handling in `backend/app/main.py`
 - [ ] T187 Add backend repository pagination helpers, filter validation helpers, and common query parameter parsing in `backend/app/utils/query.py`
-- [ ] T188 Add performance indexes and materialized-view refresh timing checks in `database/migrations/versions/0011_performance_indexes.py`
+- [ ] T188 Add performance indexes and materialized-view refresh timing checks in `database/migrations/versions/0016_performance_indexes.py`
 - [ ] T189 Add contract consistency check comparing backend schemas to OpenAPI response shapes in `backend/tests/contracts/test_openapi_schema_contract.py`
 - [ ] T190 Add end-to-end quickstart validation script for migration, fixture generation, profiling, ingest, reconcile, refresh, backend tests, frontend tests, and git hygiene in `scripts/validate_quickstart.ps1`
 - [ ] T191 [P] Update data dictionary with final tables, fields, source mappings, views, APIs, status semantics, financial mappings, and ROI quadrant rules in `docs/data-dictionary.md`
