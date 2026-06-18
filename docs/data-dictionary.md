@@ -56,6 +56,33 @@ File-level and row-level quality findings.
 
 ## Canonical Load Rules
 
+## Phase 4 Production Analytical Scope
+
+Phase 4 plan-vs-actual execution KPIs default to the only country/month combinations where
+planner, execution snapshot, and consolidation evidence can be reconciled fairly:
+
+```text
+Countries: Nepal, Sri Lanka
+Months: 2026-04, 2026-05
+```
+
+Out-of-scope source data is not deleted. It remains in canonical/audit tables and can be inspected
+with `includeOutOfScope=true`, but it is excluded from default dashboard KPI numerators and
+denominators. This prevents Malaysia, Myanmar, Oman, UAE, historical consolidation, and future
+planner rows from polluting Phase 4 performance metrics.
+
+Scope fields exposed by Phase 4 views:
+
+- `is_primary_phase4_scope`: true only for Nepal/Sri Lanka Apr-May 2026 with planner, snapshot, and consolidation evidence.
+- `scope_status`: machine-readable scope classification.
+- `scope_reason`: user-facing explanation for why a country/month is in or outside scope.
+- `unmatched_reason_code`: reason an individual reconciliation row is unmatched or weak.
+- `unmatched_reason_detail`: user-facing detail for review.
+- `match_grain`: explains whether a row is a single match or a one-planned-event/one-snapshot-to-many-request case.
+
+`mv_intervention_mix.executed_count` means true executed snapshot evidence. It does not count
+generic matched requests or action-due snapshots.
+
 ### Planner To `plan_events`
 
 Required source concepts:

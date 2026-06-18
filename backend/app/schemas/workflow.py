@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import date
 
+from pydantic import Field
+
 from backend.app.schemas.meta import ApiModel, ResponseMeta
 
 
@@ -18,6 +20,9 @@ class WorkflowSummary(ApiModel):
     reports_approved: int = 0
     expense_submitted_coverage: float = 0
     expense_confirmed_coverage: float = 0
+    primary_scope: bool = True
+    scope_statuses: list[str] = Field(default_factory=list)
+    scope_reasons: list[str] = Field(default_factory=list)
 
 
 class WorkflowRequestRow(ApiModel):
@@ -33,6 +38,9 @@ class WorkflowRequestRow(ApiModel):
     current_owner_stage: str | None = None
     expense_submitted_date: date | None = None
     expense_confirmed_date: date | None = None
+    is_primary_phase4_scope: bool = False
+    scope_status: str | None = None
+    scope_reason: str | None = None
 
 
 class WorkflowRequestsResponse(ApiModel):

@@ -29,12 +29,21 @@ describe("Execution governance page", () => {
           weakOrUnmatchedEvents: 1,
           executedEvents: 1,
           actionDueEvents: 1,
+          plannedEventsWithExecutedEvidence: 1,
+          plannedEventsWithActionDueEvidence: 1,
+          executedSnapshotCount: 1,
+          actionDueSnapshotCount: 1,
           plannedHcps: 10,
           engagedHcps: 5,
+          matchedEngagedHcps: 5,
+          rawEngagedHcps: 5,
           hcpExecutionRate: 0.5,
           eventExecutionRate: 0.5,
           matchCoverage: 0.5,
           snapshotSourceCounts: { derived_from_consolidation: 1 },
+          primaryScope: true,
+          scopeStatuses: ["primary_phase4_scope"],
+          scopeReasons: ["Primary Phase 4 scope: planner, execution snapshot, and consolidation evidence are all available."],
         });
       }
       if (url.includes("/api/execution/events")) {
@@ -57,6 +66,12 @@ describe("Execution governance page", () => {
             executionStatus: "executed",
             snapshotSource: "derived_from_consolidation",
             sourceDerivationNote: "Derived from consolidation because the monthly execution country tab was missing.",
+            unmatchedReasonCode: "name_mismatch",
+            unmatchedReasonDetail: "The event name matched only weakly and must be reviewed before treating it as final execution evidence.",
+            isPrimaryPhase4Scope: true,
+            scopeStatus: "primary_phase4_scope",
+            scopeReason: "Primary Phase 4 scope.",
+            matchGrain: "single_match",
             sourceReferences: { planEventId: "plan-1" },
           }],
         });
@@ -75,6 +90,9 @@ describe("Execution governance page", () => {
           reportsApproved: 0,
           expenseSubmittedCoverage: 1,
           expenseConfirmedCoverage: 0,
+          primaryScope: true,
+          scopeStatuses: ["primary_phase4_scope"],
+          scopeReasons: ["Primary Phase 4 scope."],
         });
       }
       if (url.includes("/api/workflow/requests")) {
@@ -96,12 +114,34 @@ describe("Execution governance page", () => {
             currentOwnerStage: "post report approval pending",
             expenseSubmittedDate: "2026-05-20",
             expenseConfirmedDate: null,
+            isPrimaryPhase4Scope: true,
+            scopeStatus: "primary_phase4_scope",
+            scopeReason: "Primary Phase 4 scope.",
           }],
         });
       }
       return ok({
         meta: { generatedAt: "now", latestIngestionStatus: "completed", dataQualityFlags: [], limitations: [] },
-        rows: [{ interventionType: "CME", interventionSubType: "Local", requestCount: 1, executedCount: 1, approvedCount: 1, reportPendingCount: 1, confirmedContractedAmount: 100, directHcpBtuSpend: 50, overheadBtcSpend: 20, totalActualSpend: 70, fxRateStatus: "official" }],
+        rows: [{
+          interventionType: "CME",
+          interventionSubType: "Local",
+          requestCount: 1,
+          executedCount: 1,
+          executedRequestCount: 1,
+          matchedRequestCount: 1,
+          executedSnapshotCount: 1,
+          actionDueCount: 0,
+          actionDueRequestCount: 0,
+          actionDueSnapshotCount: 0,
+          matchedWithoutExecutionCount: 0,
+          approvedCount: 1,
+          reportPendingCount: 1,
+          confirmedContractedAmount: 100,
+          directHcpBtuSpend: 50,
+          overheadBtcSpend: 20,
+          totalActualSpend: 70,
+          fxRateStatus: "official",
+        }],
       });
     });
 
@@ -110,12 +150,16 @@ describe("Execution governance page", () => {
     expect(screen.getByText("Loading execution governance")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument());
     await waitFor(() => expect(screen.getByText("Scope: 2026-05")).toBeInTheDocument());
+    expect(screen.getByText("Planner coverage")).toBeInTheDocument();
+    expect(screen.getByText("Snapshot coverage")).toBeInTheDocument();
+    expect(screen.getByText("Out-of-scope policy")).toBeInTheDocument();
     expect(screen.getByText(/The page opens on 2026-05/)).toBeInTheDocument();
     expect(screen.getByText("1 derived from consolidation")).toBeInTheDocument();
     expect(screen.getByText("Use this dashboard as auditable governance, not final truth, until open records are reviewed.")).toBeInTheDocument();
     expect(screen.getByText("Planned vs engaged HCPs")).toBeInTheDocument();
     expect(screen.getByText("Event execution matrix")).toBeInTheDocument();
     expect(screen.getByText("Diabetes CME")).toBeInTheDocument();
+    expect(screen.getByText("name mismatch")).toBeInTheDocument();
     expect(screen.getByText("10 planned / 5 engaged")).toBeInTheDocument();
     expect(screen.getByText("Pending reports")).toBeInTheDocument();
     expect(screen.getByText("Expense submitted coverage")).toBeInTheDocument();
@@ -124,6 +168,8 @@ describe("Execution governance page", () => {
     expect(screen.getByText("Post confirmation")).toBeInTheDocument();
     expect(screen.getByText("Intervention mix")).toBeInTheDocument();
     expect(screen.getByText("Intervention type mix")).toBeInTheDocument();
+    expect(screen.getAllByText("Executed snapshots").length).toBeGreaterThan(0);
+    expect(screen.getByText("Executed request links")).toBeInTheDocument();
     expect(screen.getByText("Workflow request drilldown")).toBeInTheDocument();
     expect(screen.getByText("Anil Arial")).toBeInTheDocument();
     expect(screen.getByText("Submitted: 2026-05-20")).toBeInTheDocument();
@@ -159,12 +205,21 @@ describe("Execution governance page", () => {
           weakOrUnmatchedEvents: 0,
           executedEvents: 0,
           actionDueEvents: 0,
+          plannedEventsWithExecutedEvidence: 0,
+          plannedEventsWithActionDueEvidence: 0,
+          executedSnapshotCount: 0,
+          actionDueSnapshotCount: 0,
           plannedHcps: 0,
           engagedHcps: 0,
+          matchedEngagedHcps: 0,
+          rawEngagedHcps: 0,
           hcpExecutionRate: 0,
           eventExecutionRate: 0,
           matchCoverage: 0,
           snapshotSourceCounts: {},
+          primaryScope: true,
+          scopeStatuses: [],
+          scopeReasons: [],
         });
       }
       if (url.includes("/api/execution/events")) {
@@ -190,6 +245,9 @@ describe("Execution governance page", () => {
           reportsApproved: 0,
           expenseSubmittedCoverage: 0,
           expenseConfirmedCoverage: 0,
+          primaryScope: true,
+          scopeStatuses: [],
+          scopeReasons: [],
         });
       }
       if (url.includes("/api/workflow/requests")) {
@@ -206,7 +264,7 @@ describe("Execution governance page", () => {
 
     renderWithProviders(<App />);
 
-    await waitFor(() => expect(screen.getByText("No execution rows match the current filters.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/No execution rows match the current filters/)).toBeInTheDocument());
     const countryInput = screen.getByLabelText("Country");
     fireEvent.change(countryInput, { target: { value: "LK" } });
     await waitFor(() => expect(screen.getByDisplayValue("Sri Lanka")).toBeInTheDocument());

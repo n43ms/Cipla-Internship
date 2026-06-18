@@ -39,8 +39,12 @@ select
     case when er.post_approval_status = 'approved' or er.post_confirmation_status = 'confirmed' then 1 else 0 end as reports_approved,
     case when er.expense_submitted_date is not null then 1 else 0 end as expense_submitted_flag,
     case when er.expense_confirmed_date is not null then 1 else 0 end as expense_confirmed_flag,
+    coalesce(p4.in_primary_scope, false) as is_primary_phase4_scope,
+    coalesce(p4.scope_status, 'out_of_scope_unknown') as scope_status,
+    coalesce(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.') as scope_reason,
     er.source_row_number,
     now() as refreshed_at
 from execution_requests er
 join countries c on c.id = er.country_id
-join calendar_months cm on cm.id = er.calendar_month_id;
+join calendar_months cm on cm.id = er.calendar_month_id
+left join phase4_analysis_scope p4 on p4.country_id = er.country_id and p4.calendar_month_id = er.calendar_month_id;

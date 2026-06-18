@@ -245,9 +245,62 @@ class AuditRepository:
             },
         )
 
+    def update_source_file_period_from_canonical(self, source_file_id: str) -> None:
+        self.session.execute(
+            text(
+                """
+                with file_periods as (
+                    select min(month_start_date) as period_start, max(month_start_date) as period_end
+                    from (
+                        select cm.month_start_date
+                        from plan_events pe
+                        join calendar_months cm on cm.id = pe.calendar_month_id
+                        where pe.source_file_id = :source_file_id
+                        union all
+                        select cm.month_start_date
+                        from execution_snapshots es
+                        join calendar_months cm on cm.id = es.calendar_month_id
+                        where es.source_file_id = :source_file_id
+                        union all
+                        select cm.month_start_date
+                        from execution_requests er
+                        join calendar_months cm on cm.id = er.calendar_month_id
+                        where er.source_file_id = :source_file_id
+                        union all
+                        select cm.month_start_date
+                        from rcpa_doctor_month_summary rdm
+                        join calendar_months cm on cm.id = rdm.calendar_month_id
+                        where rdm.source_file_id = :source_file_id
+                        union all
+                        select cm.month_start_date
+                        from rcpa_country_brand_month_summary rcb
+                        join calendar_months cm on cm.id = rcb.calendar_month_id
+                        where rcb.source_file_id = :source_file_id
+                        union all
+                        select cm.month_start_date
+                        from rcpa_doctor_brand_summary rdb
+                        join calendar_months cm on cm.id = rdb.first_calendar_month_id
+                        where rdb.source_file_id = :source_file_id
+                        union all
+                        select cm.month_start_date
+                        from rcpa_doctor_brand_summary rdb
+                        join calendar_months cm on cm.id = rdb.last_calendar_month_id
+                        where rdb.source_file_id = :source_file_id
+                    ) months
+                )
+                update source_files sf
+                set period_start = fp.period_start,
+                    period_end = fp.period_end
+                from file_periods fp
+                where sf.id = :source_file_id
+                  and fp.period_start is not null
+                """
+            ),
+            {"source_file_id": source_file_id},
+        )
+
 
 def _json(value: Any) -> str:
     import json
 
     return json.dumps(value, default=str)
-

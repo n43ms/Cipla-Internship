@@ -27,10 +27,16 @@ class WorkflowService:
         country: str | None = None,
         month: str | None = None,
         intervention_type: str | None = None,
+        include_out_of_scope: bool = False,
     ) -> WorkflowSummary:
         validate_country_month_filters(self.session, country=country, month=month)
-        filters = _filters(country=country, month=month, interventionType=intervention_type)
-        rows = self.repository.rows(country, month, intervention_type)
+        filters = _filters(
+            country=country,
+            month=month,
+            interventionType=intervention_type,
+            includeOutOfScope=include_out_of_scope,
+        )
+        rows = self.repository.rows(country, month, intervention_type, include_out_of_scope)
         total = len(rows) or 1
         pending_reports = sum(int(row.get("pending_report_count") or 0) for row in rows)
         pending_requests = sum(int(row.get("pending_request_count") or 0) for row in rows)
@@ -38,6 +44,12 @@ class WorkflowService:
             "Post-event proof completion is inferred from report approval/confirmation "
             "and expense dates; proof files are not available in the supplied workbook."
         ] if rows else ["No workflow rows match the selected filters."]
+        if not include_out_of_scope:
+            limitations.append(
+                "Workflow governance defaults to Phase 4 production scope: Nepal and Sri Lanka, Apr-May 2026."
+            )
+        scope_statuses = list(dict.fromkeys(str(row.get("scope_status")) for row in rows if row.get("scope_status")))
+        scope_reasons = list(dict.fromkeys(str(row.get("scope_reason")) for row in rows if row.get("scope_reason")))
         return WorkflowSummary(
             meta=build_meta(
                 self.session,
@@ -67,6 +79,9 @@ class WorkflowService:
                 for row in rows
             )
             / total,
+            primary_scope=all(bool(row.get("is_primary_phase4_scope")) for row in rows) if rows else True,
+            scope_statuses=scope_statuses,
+            scope_reasons=scope_reasons,
         )
 
     def requests(
@@ -77,6 +92,7 @@ class WorkflowService:
         workflow_status: str | None,
         page: int,
         page_size: int,
+        include_out_of_scope: bool = False,
     ) -> WorkflowRequestsResponse:
         validate_country_month_filters(self.session, country=country, month=month)
         validate_workflow_status(workflow_status)
@@ -87,6 +103,7 @@ class WorkflowService:
             workflowStatus=workflow_status,
             page=page,
             pageSize=page_size,
+            includeOutOfScope=include_out_of_scope,
         )
         total, rows = self.repository.request_rows(
             country,
@@ -95,9 +112,18 @@ class WorkflowService:
             workflow_status,
             page,
             page_size,
+            include_out_of_scope,
         )
         return WorkflowRequestsResponse(
-            meta=build_meta(self.session, filters_applied=filters),
+            meta=build_meta(
+                self.session,
+                filters_applied=filters,
+                limitations=(
+                    []
+                    if include_out_of_scope
+                    else ["Workflow requests are scoped to Nepal/Sri Lanka Apr-May 2026 by default."]
+                ),
+            ),
             page=page,
             page_size=page_size,
             total=total,
@@ -117,6 +143,9 @@ class WorkflowService:
                     current_owner_stage=row.get("current_owner_stage"),
                     expense_submitted_date=row.get("expense_submitted_date"),
                     expense_confirmed_date=row.get("expense_confirmed_date"),
+                    is_primary_phase4_scope=bool(row.get("is_primary_phase4_scope")),
+                    scope_status=row.get("scope_status"),
+                    scope_reason=row.get("scope_reason"),
                 )
                 for row in rows
             ],

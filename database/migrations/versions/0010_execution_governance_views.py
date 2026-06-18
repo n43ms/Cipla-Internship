@@ -25,6 +25,9 @@ VIEW_FILES = [
 
 
 def upgrade() -> None:
+    op.execute("alter table event_matches add column if not exists unmatched_reason_code text")
+    op.execute("alter table event_matches add column if not exists unmatched_reason_detail text")
+    op.execute(_read_view_sql("phase4_analysis_scope.sql"))
     for view_file in VIEW_FILES:
         op.execute(_read_view_sql(view_file))
     op.create_index("ix_mv_execution_kpis_country_month", "mv_execution_kpis", ["country_id", "calendar_month_id"])
@@ -42,6 +45,7 @@ def downgrade() -> None:
     op.drop_index("ix_mv_execution_kpis_country_month", table_name="mv_execution_kpis")
     for view_name in ["mv_intervention_mix", "mv_workflow_governance", "mv_unmatched_events", "mv_execution_kpis"]:
         op.execute(f"drop materialized view if exists {view_name}")
+    op.execute("drop view if exists phase4_analysis_scope")
 
 
 def _read_view_sql(file_name: str) -> str:

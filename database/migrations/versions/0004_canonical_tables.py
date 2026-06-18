@@ -67,6 +67,7 @@ def upgrade() -> None:
         sa.Column("normalized_status", sa.Text(), nullable=False),
         sa.Column("source_sheet_name", sa.Text(), nullable=False),
         sa.Column("source_row_number", sa.Integer(), nullable=False),
+        sa.Column("source_derivation_json", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
     )
     op.create_table(
         "execution_requests",

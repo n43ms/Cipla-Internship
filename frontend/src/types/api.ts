@@ -49,12 +49,21 @@ export type ExecutionSummaryResponse = {
   weakOrUnmatchedEvents: number;
   executedEvents: number;
   actionDueEvents: number;
+  plannedEventsWithExecutedEvidence: number;
+  plannedEventsWithActionDueEvidence: number;
+  executedSnapshotCount: number;
+  actionDueSnapshotCount: number;
   plannedHcps: number;
   engagedHcps: number;
+  matchedEngagedHcps: number;
+  rawEngagedHcps: number;
   hcpExecutionRate: number;
   eventExecutionRate: number;
   matchCoverage: number;
   snapshotSourceCounts: Record<string, number>;
+  primaryScope: boolean;
+  scopeStatuses: string[];
+  scopeReasons: string[];
 };
 
 export type ExecutionFilterOption = {
@@ -82,6 +91,12 @@ export type ExecutionEventRow = {
   executionStatus?: string | null;
   snapshotSource?: string | null;
   sourceDerivationNote?: string | null;
+  unmatchedReasonCode?: string | null;
+  unmatchedReasonDetail?: string | null;
+  isPrimaryPhase4Scope?: boolean;
+  scopeStatus?: string | null;
+  scopeReason?: string | null;
+  matchGrain?: string | null;
   sourceReferences: Record<string, unknown>;
 };
 
@@ -106,6 +121,9 @@ export type WorkflowSummaryResponse = {
   reportsApproved: number;
   expenseSubmittedCoverage: number;
   expenseConfirmedCoverage: number;
+  primaryScope: boolean;
+  scopeStatuses: string[];
+  scopeReasons: string[];
 };
 
 export type WorkflowRequestRow = {
@@ -121,6 +139,9 @@ export type WorkflowRequestRow = {
   currentOwnerStage: string | null;
   expenseSubmittedDate?: string | null;
   expenseConfirmedDate?: string | null;
+  isPrimaryPhase4Scope?: boolean;
+  scopeStatus?: string | null;
+  scopeReason?: string | null;
 };
 
 export type WorkflowRequestsResponse = {
@@ -136,6 +157,13 @@ export type InterventionMixRow = {
   interventionSubType: string | null;
   requestCount: number;
   executedCount: number;
+  executedRequestCount: number;
+  matchedRequestCount: number;
+  executedSnapshotCount: number;
+  actionDueCount: number;
+  actionDueRequestCount: number;
+  actionDueSnapshotCount: number;
+  matchedWithoutExecutionCount: number;
   approvedCount: number;
   reportPendingCount: number;
   confirmedContractedAmount: number | null;

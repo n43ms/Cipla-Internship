@@ -23,25 +23,34 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         ExecutionService,
         "summary",
-        lambda self, country=None, month=None: {
+        lambda self, country=None, month=None, include_out_of_scope=False: {
             "meta": _meta(),
             "plannedEvents": 2,
             "matchedEvents": 1,
             "weakOrUnmatchedEvents": 1,
             "executedEvents": 1,
             "actionDueEvents": 1,
+            "plannedEventsWithExecutedEvidence": 1,
+            "plannedEventsWithActionDueEvidence": 1,
+            "executedSnapshotCount": 2,
+            "actionDueSnapshotCount": 1,
             "plannedHcps": 10,
             "engagedHcps": 5,
+            "matchedEngagedHcps": 5,
+            "rawEngagedHcps": 8,
             "hcpExecutionRate": Decimal("0.5"),
             "eventExecutionRate": Decimal("0.5"),
             "matchCoverage": Decimal("0.5"),
             "snapshotSourceCounts": {"derived_from_consolidation": 1},
+            "primaryScope": True,
+            "scopeStatuses": ["primary_phase4_scope"],
+            "scopeReasons": ["Primary Phase 4 scope."],
         },
     )
     monkeypatch.setattr(
         ExecutionService,
         "events",
-        lambda self, country, month, page, page_size: {
+        lambda self, country, month, page, page_size, include_out_of_scope=False: {
             "meta": _meta(),
             "page": page,
             "pageSize": page_size,
@@ -56,6 +65,12 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
                     "matchStatus": "weak_match",
                     "confidence": Decimal("0.75"),
                     "candidateMatch": "Diabetes CME May",
+                    "unmatchedReasonCode": "name_mismatch",
+                    "unmatchedReasonDetail": "The event name matched only weakly.",
+                    "isPrimaryPhase4Scope": True,
+                    "scopeStatus": "primary_phase4_scope",
+                    "scopeReason": "Primary Phase 4 scope.",
+                    "matchGrain": "single_match",
                     "sourceReferences": {},
                 }
             ],
@@ -73,7 +88,7 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         WorkflowService,
         "summary",
-        lambda self, country=None, month=None, intervention_type=None: {
+        lambda self, country=None, month=None, intervention_type=None, include_out_of_scope=False: {
             "meta": _meta(),
             "requestApprovalCounts": {"approved": 1},
             "requestConfirmationCounts": {"confirmed": 1},
@@ -86,12 +101,15 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
             "reportsApproved": 0,
             "expenseSubmittedCoverage": 1,
             "expenseConfirmedCoverage": 0,
+            "primaryScope": True,
+            "scopeStatuses": ["primary_phase4_scope"],
+            "scopeReasons": ["Primary Phase 4 scope."],
         },
     )
     monkeypatch.setattr(
         WorkflowService,
         "requests",
-        lambda self, country, month, intervention_type, workflow_status, page, page_size: {
+        lambda self, country, month, intervention_type, workflow_status, page, page_size, include_out_of_scope=False: {
             "meta": _meta(),
             "page": page,
             "pageSize": page_size,
@@ -102,7 +120,7 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         InterventionService,
         "mix",
-        lambda self, country=None, month=None: {
+        lambda self, country=None, month=None, include_out_of_scope=False: {
             "meta": _meta(),
             "rows": [
                 {
@@ -110,6 +128,13 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
                     "interventionSubType": "Local",
                     "requestCount": 1,
                     "executedCount": 1,
+                    "executedRequestCount": 1,
+                    "matchedRequestCount": 1,
+                    "executedSnapshotCount": 1,
+                    "actionDueCount": 0,
+                    "actionDueRequestCount": 0,
+                    "actionDueSnapshotCount": 0,
+                    "matchedWithoutExecutionCount": 0,
                     "approvedCount": 1,
                     "reportPendingCount": 0,
                     "confirmedContractedAmount": Decimal("1000"),
@@ -156,8 +181,15 @@ def test_phase4_openapi_uses_camel_case_query_contract() -> None:
     }
 
     assert "pageSize" in execution_params
+    assert "includeOutOfScope" in execution_params
     assert "page_size" not in execution_params
+    intervention_params = {
+        parameter["name"]
+        for parameter in schema["paths"]["/api/interventions/mix"]["get"]["parameters"]
+    }
+    assert "includeOutOfScope" in intervention_params
     assert {"interventionType", "workflowStatus", "pageSize"}.issubset(workflow_params)
+    assert "includeOutOfScope" in workflow_params
     assert "workflow_status" not in workflow_params
 
 

@@ -18,9 +18,10 @@ def workflow_summary(
     country: str | None = None,
     month: str | None = None,
     intervention_type: Annotated[str | None, Query(alias="interventionType")] = None,
+    include_out_of_scope: Annotated[bool, Query(alias="includeOutOfScope")] = False,
     session: Session = SESSION_DEPENDENCY,
 ) -> WorkflowSummary:
-    return WorkflowService(session).summary(country, month, intervention_type)
+    return WorkflowService(session).summary(country, month, intervention_type, include_out_of_scope)
 
 
 @router.get("/requests", response_model=WorkflowRequestsResponse, response_model_by_alias=True)
@@ -31,6 +32,15 @@ def workflow_requests(
     workflow_status: Annotated[str | None, Query(alias="workflowStatus")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 25,
+    include_out_of_scope: Annotated[bool, Query(alias="includeOutOfScope")] = False,
     session: Session = SESSION_DEPENDENCY,
 ) -> WorkflowRequestsResponse:
-    return WorkflowService(session).requests(country, month, intervention_type, workflow_status, page, page_size)
+    return WorkflowService(session).requests(
+        country,
+        month,
+        intervention_type,
+        workflow_status,
+        page,
+        page_size,
+        include_out_of_scope,
+    )

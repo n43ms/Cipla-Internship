@@ -65,10 +65,16 @@ class IngestionSummary:
                 {
                     "filename": profile.original_filename,
                     "source_type": profile.source_type,
+                    "file_hash": profile.file_hash,
+                    "file_type": profile.file_type,
+                    "country_scope": profile.country_scope,
                     "canonical_sheets": profile.canonical_sheets,
                     "rows_seen_profiled": profile.total_rows_seen,
+                    "rows_loaded": result.rows_loaded if result else 0,
+                    "rows_skipped": result.rows_skipped if result else 0,
+                    "issue_count": len(result.issues) if result else 0,
                 }
-                for profile in self.profiles
+                for profile, result in zip(self.profiles, self.load_results, strict=False)
             ],
         }
 
@@ -158,10 +164,12 @@ def _persist(
                 canonical.insert_plan_events(
                     ingestion_run_id=run_id, source_file_id=source_file_id, records=result.records
                 )
+                audit.update_source_file_period_from_canonical(source_file_id)
             elif result.source_type == "execution_snapshot":
                 canonical.insert_execution_snapshots(
                     ingestion_run_id=run_id, source_file_id=source_file_id, records=result.records
                 )
+                audit.update_source_file_period_from_canonical(source_file_id)
             elif result.source_type == "consolidation":
                 request_ids = canonical.insert_execution_requests(
                     ingestion_run_id=run_id, source_file_id=source_file_id, records=result.records
@@ -174,6 +182,7 @@ def _persist(
                         source_file_id=source_file_id,
                         records=derived_snapshots,
                     )
+                audit.update_source_file_period_from_canonical(source_file_id)
             elif result.source_type == "rcpa":
                 detail_export_path = export_rcpa_detail_records(
                     profile=profile,
@@ -196,6 +205,7 @@ def _persist(
                     records=result.summaries.get("rcpa_country_brand_month_summary", []),
                 )
                 rcpa.upsert_doctors_from_rcpa(result.records)
+                audit.update_source_file_period_from_canonical(source_file_id)
         EventMatcher(EventMatchRepository(session)).reconcile(run_id)
         status = "completed"
         if summary.error_count:

@@ -26,11 +26,36 @@ class EventMatchRepository:
         rows = self.session.execute(
             text(
                 """
-                select distinct country_id, calendar_month_id from plan_events
-                union
-                select distinct country_id, calendar_month_id from execution_snapshots
-                union
-                select distinct country_id, calendar_month_id from execution_requests
+                with scope as (
+                    select distinct country_id, calendar_month_id from plan_events
+                    union
+                    select distinct country_id, calendar_month_id from execution_snapshots
+                    union
+                    select distinct country_id, calendar_month_id from execution_requests
+                )
+                select
+                    s.country_id,
+                    s.calendar_month_id,
+                    c.name as country_name,
+                    cm.month_label,
+                    exists (
+                        select 1 from plan_events pe
+                        where pe.country_id = s.country_id
+                          and pe.calendar_month_id = s.calendar_month_id
+                    ) as planner_available,
+                    exists (
+                        select 1 from execution_snapshots es
+                        where es.country_id = s.country_id
+                          and es.calendar_month_id = s.calendar_month_id
+                    ) as snapshot_available,
+                    exists (
+                        select 1 from execution_requests er
+                        where er.country_id = s.country_id
+                          and er.calendar_month_id = s.calendar_month_id
+                    ) as consolidation_available
+                from scope s
+                join countries c on c.id = s.country_id
+                join calendar_months cm on cm.id = s.calendar_month_id
                 """
             )
         ).mappings()
@@ -84,6 +109,8 @@ class EventMatchRepository:
             "match_status": match_status,
             "matched_on": json.dumps(candidate.matched_on),
             "notes": candidate.notes,
+            "unmatched_reason_code": candidate.unmatched_reason_code,
+            "unmatched_reason_detail": candidate.unmatched_reason_detail,
         }
 
     def insert_matches(self, rows: list[dict[str, Any]]) -> None:
@@ -95,12 +122,12 @@ class EventMatchRepository:
                 insert into event_matches (
                     ingestion_run_id, country_id, calendar_month_id, plan_event_id,
                     execution_snapshot_id, execution_request_id, match_method, match_confidence,
-                    match_status, matched_on, notes
+                    match_status, matched_on, notes, unmatched_reason_code, unmatched_reason_detail
                 )
                 values (
                     :ingestion_run_id, :country_id, :calendar_month_id, :plan_event_id,
                     :execution_snapshot_id, :execution_request_id, :match_method, :match_confidence,
-                    :match_status, cast(:matched_on as json), :notes
+                    :match_status, cast(:matched_on as json), :notes, :unmatched_reason_code, :unmatched_reason_detail
                 )
                 """
             ),

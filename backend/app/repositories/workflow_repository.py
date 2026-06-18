@@ -12,7 +12,13 @@ class WorkflowRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def rows(self, country: str | None = None, month: str | None = None, intervention_type: str | None = None) -> list[dict[str, Any]]:
+    def rows(
+        self,
+        country: str | None = None,
+        month: str | None = None,
+        intervention_type: str | None = None,
+        include_out_of_scope: bool = False,
+    ) -> list[dict[str, Any]]:
         result = self.session.execute(
             text(
                 """
@@ -21,9 +27,15 @@ class WorkflowRepository:
                 where (cast(:country as text) is null or lower(country_code) = lower(cast(:country as text)) or lower(country_name) = lower(cast(:country as text)))
                   and (cast(:month as text) is null or to_char(month_start_date, 'YYYY-MM') = cast(:month as text))
                   and (cast(:intervention_type as text) is null or lower(intervention_type) = lower(cast(:intervention_type as text)))
+                  and (cast(:include_out_of_scope as boolean) or is_primary_phase4_scope)
                 """
             ),
-            {"country": country, "month": month, "intervention_type": intervention_type},
+            {
+                "country": country,
+                "month": month,
+                "intervention_type": intervention_type,
+                "include_out_of_scope": include_out_of_scope,
+            },
         ).mappings()
         return [dict(row) for row in result]
 
@@ -35,6 +47,7 @@ class WorkflowRepository:
         workflow_status: str | None,
         page: int,
         page_size: int,
+        include_out_of_scope: bool = False,
     ) -> tuple[int, list[dict[str, Any]]]:
         limit, offset = pagination(page, page_size)
         params = {
@@ -44,11 +57,13 @@ class WorkflowRepository:
             "workflow_status": workflow_status,
             "limit": limit,
             "offset": offset,
+            "include_out_of_scope": include_out_of_scope,
         }
         where = """
             (cast(:country as text) is null or lower(country_code) = lower(cast(:country as text)) or lower(country_name) = lower(cast(:country as text)))
             and (cast(:month as text) is null or to_char(month_start_date, 'YYYY-MM') = cast(:month as text))
             and (cast(:intervention_type as text) is null or lower(intervention_type) = lower(cast(:intervention_type as text)))
+            and (cast(:include_out_of_scope as boolean) or is_primary_phase4_scope)
             and (
                 cast(:workflow_status as text) is null
                 or request_approval_status = cast(:workflow_status as text)

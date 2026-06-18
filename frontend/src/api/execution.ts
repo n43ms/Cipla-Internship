@@ -6,9 +6,10 @@ export type ExecutionFilters = {
   month?: string;
   page?: number;
   pageSize?: number;
+  includeOutOfScope?: boolean;
 };
 
-export function getExecutionSummary(filters: Pick<ExecutionFilters, "country" | "month"> = {}) {
+export function getExecutionSummary(filters: Pick<ExecutionFilters, "country" | "month" | "includeOutOfScope"> = {}) {
   return apiGet<ExecutionSummaryResponse>(`/api/execution/summary${queryString(filters)}`);
 }
 
@@ -20,7 +21,7 @@ export function getExecutionFilterOptions() {
   return apiGet<ExecutionFilterOptionsResponse>("/api/execution/filter-options");
 }
 
-function queryString(values: Record<string, string | number | undefined>) {
+function queryString(values: Record<string, string | number | boolean | undefined>) {
   const params = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
     if (value !== undefined && value !== "") {

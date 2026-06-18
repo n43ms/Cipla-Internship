@@ -103,6 +103,16 @@ reported separately in the RCPA free-tier storage section and written to `data/p
 The three warnings are skipped Nepal planner rows missing country, month, or event name. They
 are treated as non-fatal skipped rows, not hidden.
 
+The generated ingestion report includes Phase 4 scope coverage. The rule is fixed:
+
+```text
+Default Phase 4 KPIs = Nepal + Sri Lanka, Apr 2026 + May 2026 only.
+```
+
+Rows outside that scope are preserved in canonical tables for audit and future phases, but are
+excluded from default Phase 4 KPI numerators and denominators. Use `includeOutOfScope=true` in
+execution/intervention APIs only when auditing the full loaded workbook set.
+
 ## Source-Specific Dry Runs
 
 Run only one source family:
@@ -143,6 +153,15 @@ This writes:
 - request doctors
 - compact RCPA summaries
 - local compressed RCPA detail extracts under `data/processed/`
+
+After ingestion, refresh or recreate materialized views before checking the dashboard:
+
+```powershell
+python -m alembic upgrade head
+```
+
+The Phase 4 views classify scoped and out-of-scope records, expose unmatched reasons, and keep
+matched request evidence separate from true executed snapshot evidence.
 
 ## Reruns
 
@@ -193,6 +212,9 @@ If dry-run ingestion reports warnings:
 1. Read `data/reports/ingestion-report.md`.
 2. Confirm whether skipped rows are true non-data rows.
 3. Do not edit the workbook unless the business source file is truly wrong.
+
+Validation error reporting should use `mv_latest_validation_errors` for current status. The raw
+`validation_errors` table intentionally keeps historical warnings from previous ingestion runs.
 
 If database ingestion fails:
 

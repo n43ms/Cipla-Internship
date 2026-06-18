@@ -6,7 +6,10 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
   const data = rows.slice(0, 8).map((row) => ({
     name: row.interventionType,
     requests: row.requestCount,
-    executed: row.executedCount,
+    matched: row.matchedRequestCount,
+    executedRequests: row.executedRequestCount,
+    executedSnapshots: row.executedSnapshotCount,
+    actionDueSnapshots: row.actionDueSnapshotCount,
     pending: row.reportPendingCount,
   }));
 
@@ -14,7 +17,7 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
     <div className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="mb-4">
         <h3 className="font-medium">Intervention type mix</h3>
-        <p className="text-sm text-muted">Category totals for requests, executed evidence, and pending post-event reports.</p>
+        <p className="text-sm text-muted">Category totals separate requests, matched evidence, true executed snapshots, action-due snapshots, and pending reports.</p>
       </div>
       {data.length === 0 ? (
         <p className="text-sm text-muted">No intervention rows match the current filters.</p>
@@ -28,8 +31,11 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
               <Tooltip />
               <Legend />
               <Bar dataKey="requests" fill="#2563eb" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="executed" fill="#16a34a" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="pending" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="matched" name="matched evidence" fill="#7c3aed" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="executedRequests" name="executed request links" fill="#0f766e" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="executedSnapshots" name="executed snapshots" fill="#16a34a" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="actionDueSnapshots" name="action-due snapshots" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="pending" name="pending report" fill="#dc2626" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -49,13 +55,18 @@ export function InterventionMixTable({ rows }: { rows: InterventionMixRow[] }) {
         <p className="p-4 text-sm text-muted">No intervention rows match the current data.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="w-full min-w-[1040px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-muted">
               <tr>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Requests</th>
+                <th className="px-4 py-3">Matched</th>
                 <th className="px-4 py-3">Approved</th>
-                <th className="px-4 py-3">Executed</th>
+                <th className="px-4 py-3">Executed request links</th>
+                <th className="px-4 py-3">Executed snapshots</th>
+                <th className="px-4 py-3">Action-due request links</th>
+                <th className="px-4 py-3">Action-due snapshots</th>
+                <th className="px-4 py-3">Matched without execution</th>
                 <th className="px-4 py-3">Pending report</th>
                 <th className="px-4 py-3">Actual spend</th>
                 <th className="px-4 py-3">FX</th>
@@ -69,8 +80,13 @@ export function InterventionMixTable({ rows }: { rows: InterventionMixRow[] }) {
                     <div className="text-xs text-muted">{row.interventionSubType ?? "All subtypes"}</div>
                   </td>
                   <td className="px-4 py-3">{formatCount(row.requestCount)}</td>
+                  <td className="px-4 py-3">{formatCount(row.matchedRequestCount)}</td>
                   <td className="px-4 py-3">{formatCount(row.approvedCount)}</td>
-                  <td className="px-4 py-3">{formatCount(row.executedCount)}</td>
+                  <td className="px-4 py-3">{formatCount(row.executedRequestCount)}</td>
+                  <td className="px-4 py-3">{formatCount(row.executedSnapshotCount)}</td>
+                  <td className="px-4 py-3">{formatCount(row.actionDueRequestCount)}</td>
+                  <td className="px-4 py-3">{formatCount(row.actionDueSnapshotCount)}</td>
+                  <td className="px-4 py-3">{formatCount(row.matchedWithoutExecutionCount)}</td>
                   <td className="px-4 py-3">{formatCount(row.reportPendingCount)}</td>
                   <td className="px-4 py-3">{formatAmount(row.totalActualSpend)}</td>
                   <td className="px-4 py-3">{row.fxRateStatus}</td>

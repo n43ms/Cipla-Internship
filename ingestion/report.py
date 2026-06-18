@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+from datetime import date, datetime
 from pathlib import Path
 
+from ingestion.constants import PHASE4_EXECUTION_MONTHS, PHASE4_PRIMARY_COUNTRIES
 from ingestion.models import LoadResult, WorkbookProfile
 from ingestion.orchestrator import IngestionSummary
 
@@ -56,6 +58,8 @@ def ingestion_report_markdown(summary: IngestionSummary) -> str:
     source_rows = _source_row_summary(summary)
     fx_rows = _fx_summary(summary)
     rcpa_storage_rows = _rcpa_storage_summary(summary)
+    scope_rows = _phase4_scope_summary(summary)
+    duplicate_rows = _planner_duplicate_summary(summary)
     lines = [
         "# Ingestion Report",
         "",
@@ -66,9 +70,10 @@ def ingestion_report_markdown(summary: IngestionSummary) -> str:
         f"- Rows skipped: `{summary.rows_skipped}`",
         f"- Warnings: `{summary.warning_count}`",
         f"- Errors: `{summary.error_count}`",
-        "- Official Sri Lanka FX: `1 USD = 310 LKR`",
-        "",
-        "## Source Type Row Summary",
+            "- Official Sri Lanka FX: `1 USD = 310 LKR`",
+            f"- Phase 4 production scope: `{', '.join(PHASE4_PRIMARY_COUNTRIES)}` for `{', '.join(PHASE4_EXECUTION_MONTHS)}`",
+            "",
+            "## Source Type Row Summary",
         "",
         "| Source Type | Files | Rows Seen | Rows Loaded | Rows Skipped |",
         "|---|---:|---:|---:|---:|",
@@ -110,18 +115,50 @@ def ingestion_report_markdown(summary: IngestionSummary) -> str:
     lines.extend(
         [
             "",
+            "## Phase 4 Scope Coverage",
+            "",
+            "Out-of-scope source rows are preserved in canonical tables but excluded from default Phase 4 KPI math.",
+            "",
+            "| Source Type | Primary Scope Rows | Out-of-Scope Rows |",
+            "|---|---:|---:|",
+        ]
+    )
+    for source_type, stats in sorted(scope_rows.items()):
+        lines.append(f"| {source_type} | {stats['primary']} | {stats['out_of_scope']} |")
+    if duplicate_rows:
+        lines.extend(
+            [
+                "",
+                "## Planner Repeated Natural Grains",
+                "",
+                "These rows share source file, country, month, event type, and normalized event name. They are preserved at source-row grain and must be reviewed as repeated planned instances versus accidental duplicates before deduping.",
+                "",
+                "| File | Country | Month | Event Type | Event | Planned Instances | Source Rows |",
+                "|---|---|---|---|---|---:|---|",
+            ]
+        )
+        for row in duplicate_rows:
+            lines.append(
+                f"| {row['file']} | {row['country']} | {row['month']} | {row['event_type']} | "
+                f"{row['event_name']} | {row['count']} | {row['source_rows']} |"
+            )
+    lines.extend(
+        [
+            "",
             "## Files",
             "",
-            "| File | Source | Canonical Sheets | Rows Loaded | Issues |",
-            "|---|---|---|---:|---:|",
+            "| File | Source | Hash | Canonical Sheets | Rows Seen | Rows Loaded | Rows Skipped | Issues |",
+            "|---|---|---|---|---:|---:|---:|---:|",
         ]
     )
     for profile, result in zip(summary.profiles, summary.load_results, strict=False):
         issue_count = len(result.issues) if result else 0
+        rows_seen = result.rows_seen if result else 0
         rows_loaded = result.rows_loaded if result else 0
+        rows_skipped = result.rows_skipped if result else 0
         lines.append(
-            f"| {profile.original_filename} | {profile.source_type} | "
-            f"{', '.join(profile.canonical_sheets)} | {rows_loaded} | {issue_count} |"
+            f"| {profile.original_filename} | {profile.source_type} | `{profile.file_hash}` | "
+            f"{', '.join(profile.canonical_sheets)} | {rows_seen} | {rows_loaded} | {rows_skipped} | {issue_count} |"
         )
     lines.append("")
     for result in summary.load_results:
@@ -180,3 +217,79 @@ def _rcpa_storage_summary(summary: IngestionSummary) -> list[dict[str, object]]:
             }
         )
     return rows
+
+
+def _phase4_scope_summary(summary: IngestionSummary) -> dict[str, dict[str, int]]:
+    stats: dict[str, dict[str, int]] = {}
+    for result in summary.load_results:
+        source_stats = stats.setdefault(result.source_type, {"primary": 0, "out_of_scope": 0})
+        for record in result.records:
+            if _record_in_phase4_scope(record):
+                source_stats["primary"] += 1
+            else:
+                source_stats["out_of_scope"] += 1
+    return stats
+
+
+def _planner_duplicate_summary(summary: IngestionSummary) -> list[dict[str, object]]:
+    grouped: dict[tuple[str, str, str, str, str], dict[str, object]] = {}
+    for profile, result in zip(summary.profiles, summary.load_results, strict=False):
+        if result.source_type != "planner":
+            continue
+        for record in result.records:
+            key = (
+                profile.original_filename,
+                str(record.get("country") or ""),
+                _month_key(record.get("month_start_date")),
+                str(record.get("event_type") or ""),
+                str(record.get("event_name_normalized") or record.get("event_name") or ""),
+            )
+            row = grouped.setdefault(
+                key,
+                {
+                    "file": profile.original_filename,
+                    "country": key[1],
+                    "month": key[2],
+                    "event_type": key[3],
+                    "event_name": record.get("event_name") or key[4],
+                    "source_rows": [],
+                },
+            )
+            row["source_rows"].append(record.get("source_row_number"))
+    duplicates: list[dict[str, object]] = []
+    for row in grouped.values():
+        source_rows = [str(value) for value in row["source_rows"] if value is not None]
+        if len(source_rows) <= 1:
+            continue
+        duplicates.append(
+            {
+                **row,
+                "count": len(source_rows),
+                "source_rows": ", ".join(source_rows),
+            }
+        )
+    return sorted(
+        duplicates,
+        key=lambda row: (str(row["file"]), str(row["country"]), str(row["month"]), str(row["event_name"])),
+    )
+
+
+def _record_in_phase4_scope(record: dict[str, object]) -> bool:
+    country = str(record.get("country") or record.get("country_name") or "").strip()
+    month_value = (
+        record.get("month_start_date")
+        or record.get("month")
+        or record.get("month_label")
+        or record.get("calendar_month")
+    )
+    month = _month_key(month_value)
+    return country in PHASE4_PRIMARY_COUNTRIES and month in PHASE4_EXECUTION_MONTHS
+
+
+def _month_key(value: object) -> str:
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m")
+    if isinstance(value, date):
+        return value.strftime("%Y-%m")
+    text = str(value or "").strip()
+    return text[:7] if len(text) >= 7 else text

@@ -79,14 +79,16 @@ class CanonicalRepository:
                 event_name, event_name_normalized, planned_hcps, engaged_hcps, raised_request_count,
                 yp_total_doctors, raised_total_doctors, approved_total_doctors, request_total_doctors,
                 event_created_count,
-                snapshot_source, status_source_value, normalized_status, source_sheet_name, source_row_number
+                snapshot_source, status_source_value, normalized_status, source_sheet_name, source_row_number,
+                source_derivation_json
             )
             values (
                 :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :therapy, :event_type,
                 :event_name, :event_name_normalized, :planned_hcps, :engaged_hcps, :raised_request_count,
                 :yp_total_doctors, :raised_total_doctors, :approved_total_doctors, :request_total_doctors,
                 :event_created_count,
-                :snapshot_source, :status_source_value, :normalized_status, :source_sheet_name, :source_row_number
+                :snapshot_source, :status_source_value, :normalized_status, :source_sheet_name, :source_row_number,
+                cast(:source_derivation_json as json)
             )
             """,
             ingestion_run_id,
@@ -265,6 +267,7 @@ class CanonicalRepository:
         params["country_id"] = self.country_id(str(record["country"]))
         params["calendar_month_id"] = self.month_id(record["month_start_date"])
         params["approval_chain_json"] = json.dumps(record.get("approval_chain_json") or {})
+        params["source_derivation_json"] = json.dumps(record.get("source_derivation_json") or {})
         return params
 
     def _clear_derived_matches(self) -> None:

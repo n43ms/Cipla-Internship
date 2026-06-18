@@ -17,10 +17,11 @@ const WORKFLOW_PAGE_SIZE = 8;
 type Filters = {
   country: string;
   month: string;
+  includeOutOfScope: boolean;
 };
 
 export function ExecutionMatrix() {
-  const [filters, setFilters] = useState<Filters>({ country: "", month: "" });
+  const [filters, setFilters] = useState<Filters>({ country: "", month: "", includeOutOfScope: false });
   const [page, setPage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<ExecutionEventRow | null>(null);
   const [hasAppliedInitialScope, setHasAppliedInitialScope] = useState(false);
@@ -28,8 +29,17 @@ export function ExecutionMatrix() {
     () => ({
       country: filters.country || undefined,
       month: filters.month || undefined,
+      includeOutOfScope: filters.includeOutOfScope || undefined,
     }),
-    [filters],
+    [filters.country, filters.month, filters.includeOutOfScope],
+  );
+  const workflowFilters = useMemo(
+    () => ({
+      country: filters.country || undefined,
+      month: filters.month || undefined,
+      includeOutOfScope: filters.includeOutOfScope || undefined,
+    }),
+    [filters.country, filters.month, filters.includeOutOfScope],
   );
 
   const filterOptions = useQuery({
@@ -45,12 +55,12 @@ export function ExecutionMatrix() {
     queryFn: () => getExecutionEvents({ ...activeFilters, page, pageSize: PAGE_SIZE }),
   });
   const workflow = useQuery({
-    queryKey: ["workflow-summary", activeFilters],
-    queryFn: () => getWorkflowSummary(activeFilters),
+    queryKey: ["workflow-summary", workflowFilters],
+    queryFn: () => getWorkflowSummary(workflowFilters),
   });
   const workflowRequests = useQuery({
-    queryKey: ["workflow-requests", activeFilters],
-    queryFn: () => getWorkflowRequests({ ...activeFilters, page: 1, pageSize: WORKFLOW_PAGE_SIZE }),
+    queryKey: ["workflow-requests", workflowFilters],
+    queryFn: () => getWorkflowRequests({ ...workflowFilters, page: 1, pageSize: WORKFLOW_PAGE_SIZE }),
   });
   const interventions = useQuery({
     queryKey: ["intervention-mix", activeFilters],
@@ -97,7 +107,7 @@ export function ExecutionMatrix() {
   const pageCount = Math.max(Math.ceil(totalEvents / PAGE_SIZE), 1);
   const scopeLabel = [selectedLabel(filterOptions.data?.countries, filters.country), selectedLabel(filterOptions.data?.months, filters.month)]
     .filter(Boolean)
-    .join(" | ") || "All loaded markets and months";
+    .join(" | ") || "Nepal and Sri Lanka | Apr-May 2026";
 
   return (
     <main className="min-h-screen bg-surface text-ink">
@@ -109,7 +119,10 @@ export function ExecutionMatrix() {
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
               Reconciles yearly planner events, monthly execution snapshots, consolidation requests, lifecycle status, and intervention mix.
             </p>
-            <p className="mt-3 text-sm font-medium text-slate-700">Scope: {scopeLabel}</p>
+            <p className="mt-3 text-sm font-medium text-slate-700">
+              Scope: {scopeLabel}
+              {filters.includeOutOfScope ? " including audit-only out-of-scope rows" : ""}
+            </p>
           </div>
           {summaryData ? <SourceDerivationBadge sourceCounts={summaryData.snapshotSourceCounts} /> : null}
         </div>
@@ -126,6 +139,8 @@ export function ExecutionMatrix() {
           recommendedMonth={filterOptions.data?.recommendedMonth ?? null}
         />
 
+        <ScopeCoverageCards includeOutOfScope={filters.includeOutOfScope} scopeReasons={summaryData?.scopeReasons ?? []} />
+
         <QualityPanel
           flags={summaryData?.meta.dataQualityFlags ?? []}
           limitations={[
@@ -140,9 +155,9 @@ export function ExecutionMatrix() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
           <KpiCard icon={<FileWarning size={18} />} label="Planned events" value={formatCount(summaryData?.plannedEvents ?? 0)} />
-          <KpiCard icon={<CheckCircle2 size={18} />} label="Matched events" value={formatCount(summaryData?.matchedEvents ?? 0)} />
-          <KpiCard icon={<RefreshCw size={18} />} label="Executed snapshots" value={formatCount(summaryData?.executedEvents ?? 0)} />
-          <KpiCard icon={<Clock3 size={18} />} label="Action due" value={formatCount(summaryData?.actionDueEvents ?? 0)} />
+          <KpiCard icon={<CheckCircle2 size={18} />} label="Matched plan/request evidence" value={formatCount(summaryData?.matchedEvents ?? 0)} />
+          <KpiCard icon={<RefreshCw size={18} />} label="Executed planned events" value={formatCount(summaryData?.plannedEventsWithExecutedEvidence ?? summaryData?.executedEvents ?? 0)} />
+          <KpiCard icon={<Clock3 size={18} />} label="Action-due planned events" value={formatCount(summaryData?.plannedEventsWithActionDueEvidence ?? summaryData?.actionDueEvents ?? 0)} />
           <KpiCard icon={<AlertTriangle size={18} />} label="Match coverage" value={formatPercent(summaryData?.matchCoverage ?? 0)} />
           <KpiCard icon={<CheckCircle2 size={18} />} label="Event execution" value={formatPercent(summaryData?.eventExecutionRate ?? 0)} />
         </div>
@@ -150,8 +165,11 @@ export function ExecutionMatrix() {
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <PlannedVsEngagedChart
             planned={summaryData?.plannedHcps ?? 0}
-            engaged={summaryData?.engagedHcps ?? 0}
+            engaged={summaryData?.matchedEngagedHcps ?? summaryData?.engagedHcps ?? 0}
             rate={summaryData?.hcpExecutionRate ?? 0}
+            rawEngaged={summaryData?.rawEngagedHcps ?? 0}
+            executedSnapshots={summaryData?.executedSnapshotCount ?? 0}
+            actionDueSnapshots={summaryData?.actionDueSnapshotCount ?? 0}
           />
           <WorkflowPanel workflowData={workflowData} />
         </div>
@@ -228,16 +246,50 @@ function FilterPanel({
         <button
           className="self-end rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           type="button"
-          onClick={() => onChange({ country: "", month: "" })}
+          onClick={() => onChange({ country: "", month: "", includeOutOfScope: false })}
         >
           Clear
         </button>
       </div>
+      <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
+        <input
+          className="mt-1"
+          type="checkbox"
+          checked={filters.includeOutOfScope}
+          onChange={(event) => onChange({ includeOutOfScope: event.target.checked })}
+        />
+        <span>
+          Include audit-only out-of-scope rows
+          <span className="block text-xs text-muted">
+            Keeps Malaysia, Myanmar, Oman, UAE, historical consolidation, and future planner rows visible for audit without mixing them into default Phase 4 KPIs.
+          </span>
+        </span>
+      </label>
       {recommendedMonth ? (
         <p className="mt-3 text-xs text-muted">
-          The page opens on {recommendedMonth.label} because it is the latest month with planner and execution evidence. Clear filters to audit all loaded records.
+          The page opens on {recommendedMonth.label} because it is the latest month with planner, snapshot, and consolidation evidence.
         </p>
       ) : null}
+    </div>
+  );
+}
+
+function ScopeCoverageCards({ includeOutOfScope, scopeReasons }: { includeOutOfScope: boolean; scopeReasons: string[] }) {
+  return (
+    <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <KpiCard icon={<CheckCircle2 size={18} />} label="Planner coverage" value="Nepal, Sri Lanka" />
+      <KpiCard icon={<CheckCircle2 size={18} />} label="Snapshot coverage" value="Apr-May 2026" />
+      <KpiCard icon={<CheckCircle2 size={18} />} label="Consolidation coverage" value="Scoped by API" />
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div className="flex items-center gap-2 text-muted">
+          <AlertTriangle size={18} />
+          <p className="text-sm">Out-of-scope policy</p>
+        </div>
+        <p className="mt-3 text-sm font-medium">
+          {includeOutOfScope ? "Audit rows visible" : "Excluded from KPI math"}
+        </p>
+        {scopeReasons.length > 0 ? <p className="mt-2 text-xs text-muted">{scopeReasons[0]}</p> : null}
+      </div>
     </div>
   );
 }
@@ -284,14 +336,31 @@ function QualityPanel({
   );
 }
 
-function PlannedVsEngagedChart({ planned, engaged, rate }: { planned: number; engaged: number; rate: number }) {
+function PlannedVsEngagedChart({
+  planned,
+  engaged,
+  rate,
+  rawEngaged,
+  executedSnapshots,
+  actionDueSnapshots,
+}: {
+  planned: number;
+  engaged: number;
+  rate: number;
+  rawEngaged: number;
+  executedSnapshots: number;
+  actionDueSnapshots: number;
+}) {
   const data = [{ name: "HCPs", planned, engaged }];
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
           <h2 className="font-medium">Planned vs engaged HCPs</h2>
-          <p className="text-sm text-muted">Backend-calculated HCP execution rate: {formatPercent(rate)}</p>
+          <p className="text-sm text-muted">Matched execution HCP rate: {formatPercent(rate)}</p>
+          <p className="mt-1 text-xs text-muted">
+            Raw snapshot evidence: {formatCount(executedSnapshots)} executed snapshots, {formatCount(actionDueSnapshots)} action-due snapshots, {formatCount(rawEngaged)} total raw engaged HCPs.
+          </p>
         </div>
       </div>
       <div className="h-72">
@@ -367,12 +436,14 @@ function EventMatrixTable({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
         <div>
           <h2 className="font-medium">Event execution matrix</h2>
-          <p className="text-sm text-muted">Reconciled planner, execution snapshot, and consolidation evidence.</p>
+          <p className="text-sm text-muted">Reconciled planner, execution snapshot, and consolidation evidence with scoped unmatched reasons.</p>
         </div>
         <p className="text-sm text-muted">{formatCount(total)} rows</p>
       </div>
       {rows.length === 0 ? (
-        <p className="p-4 text-sm text-muted">No execution rows match the current filters.</p>
+        <p className="p-4 text-sm text-muted">
+          No execution rows match the current filters. If you selected an out-of-scope market or month, enable audit-only rows to inspect preserved source data.
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[960px] text-left text-sm">
@@ -381,6 +452,7 @@ function EventMatrixTable({
                 <th className="px-4 py-3">Event</th>
                 <th className="px-4 py-3">Source</th>
                 <th className="px-4 py-3">Match</th>
+                <th className="px-4 py-3">Reason / scope</th>
                 <th className="px-4 py-3">HCPs</th>
                 <th className="px-4 py-3">Execution</th>
                 <th className="px-4 py-3">Confidence</th>
@@ -400,6 +472,13 @@ function EventMatrixTable({
                   <td className="px-4 py-3">{row.sourceType.replaceAll("_", " ")}</td>
                   <td className="px-4 py-3">
                     <StatusBadge value={row.matchStatus} />
+                    {row.matchGrain ? <div className="mt-1 text-xs text-muted">{humanize(row.matchGrain)}</div> : null}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-700">
+                    <div>{reasonLabel(row)}</div>
+                    {reasonDetail(row) ? (
+                      <div className="mt-1 max-w-xs text-muted">{reasonDetail(row)}</div>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3">
                     {valueOrDash(row.plannedHcps)} planned / {valueOrDash(row.engagedHcps)} engaged
@@ -468,6 +547,7 @@ function WorkflowRequestTable({ rows, total }: { rows: WorkflowRequestRow[]; tot
                 <th className="px-4 py-3">Confirmation</th>
                 <th className="px-4 py-3">Report status</th>
                 <th className="px-4 py-3">Evidence dates</th>
+                <th className="px-4 py-3">Scope</th>
                 <th className="px-4 py-3">Current blocker</th>
               </tr>
             </thead>
@@ -495,6 +575,9 @@ function WorkflowRequestTable({ rows, total }: { rows: WorkflowRequestRow[]; tot
                   <td className="px-4 py-3 text-xs text-muted">
                     <div>Submitted: {row.expenseSubmittedDate ?? "-"}</div>
                     <div>Confirmed: {row.expenseConfirmedDate ?? "-"}</div>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted">
+                    {row.isPrimaryPhase4Scope ? "Primary Phase 4" : humanize(row.scopeStatus ?? "audit_only")}
                   </td>
                   <td className="px-4 py-3">{row.currentOwnerStage ?? "unknown"}</td>
                 </tr>
@@ -529,6 +612,10 @@ function EventDrawer({ row, onClose }: { row: ExecutionEventRow | null; onClose:
           <Detail label="Month" value={row.month} />
           <Detail label="Source type" value={row.sourceType} />
           <Detail label="Match status" value={row.matchStatus} />
+          <Detail label="Match grain" value={row.matchGrain ? humanize(row.matchGrain) : "Single or not applicable"} />
+          <Detail label="Unmatched reason" value={row.unmatchedReasonCode ? humanize(row.unmatchedReasonCode) : "Not unmatched"} />
+          <Detail label="Reason detail" value={row.unmatchedReasonDetail ?? row.scopeReason ?? "No additional detail"} />
+          <Detail label="Phase 4 scope" value={row.isPrimaryPhase4Scope ? "Primary Phase 4 scope" : humanize(row.scopeStatus ?? "out_of_scope")} />
           <Detail label="Candidate match" value={row.candidateMatch ?? "None"} />
           <Detail label="Execution status" value={row.executionStatus ?? "No snapshot"} />
           <Detail label="HCPs" value={`${valueOrDash(row.plannedHcps)} planned / ${valueOrDash(row.engagedHcps)} engaged`} />
@@ -591,4 +678,28 @@ function formatPercent(value: number) {
 
 function valueOrDash(value: number | null | undefined) {
   return value === null || value === undefined ? "-" : formatCount(value);
+}
+
+function reasonLabel(row: ExecutionEventRow) {
+  if (row.unmatchedReasonCode) {
+    return humanize(row.unmatchedReasonCode);
+  }
+  if (row.isPrimaryPhase4Scope) {
+    return row.matchStatus === "matched" ? "Matched evidence" : "In scoped evidence set";
+  }
+  return row.scopeStatus ? humanize(row.scopeStatus) : "Audit-only row";
+}
+
+function reasonDetail(row: ExecutionEventRow) {
+  if (row.unmatchedReasonDetail) {
+    return row.unmatchedReasonDetail;
+  }
+  if (!row.isPrimaryPhase4Scope) {
+    return row.scopeReason ?? null;
+  }
+  return null;
+}
+
+function humanize(value: string) {
+  return value.replaceAll("_", " ");
 }

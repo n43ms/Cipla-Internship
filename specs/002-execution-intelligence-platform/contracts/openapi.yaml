@@ -57,6 +57,7 @@ paths:
         - $ref: "#/components/parameters/Country"
         - $ref: "#/components/parameters/Month"
         - $ref: "#/components/parameters/InterventionType"
+        - $ref: "#/components/parameters/IncludeOutOfScope"
       responses:
         "200":
           description: Request approval, confirmation, and reporting status summary
@@ -71,6 +72,7 @@ paths:
         - $ref: "#/components/parameters/Country"
         - $ref: "#/components/parameters/Month"
         - $ref: "#/components/parameters/InterventionType"
+        - $ref: "#/components/parameters/IncludeOutOfScope"
         - name: workflowStatus
           in: query
           schema:
@@ -90,6 +92,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Country"
         - $ref: "#/components/parameters/Month"
+        - $ref: "#/components/parameters/IncludeOutOfScope"
       responses:
         "200":
           description: Intervention type counts, spend, and workflow mix
@@ -103,6 +106,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Country"
         - $ref: "#/components/parameters/Month"
+        - $ref: "#/components/parameters/IncludeOutOfScope"
         - $ref: "#/components/parameters/Therapy"
         - $ref: "#/components/parameters/EventType"
       responses:
@@ -118,6 +122,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Country"
         - $ref: "#/components/parameters/Month"
+        - $ref: "#/components/parameters/IncludeOutOfScope"
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
@@ -239,6 +244,13 @@ components:
       in: query
       schema:
         type: string
+    IncludeOutOfScope:
+      name: includeOutOfScope
+      in: query
+      schema:
+        type: boolean
+        default: false
+      description: Include audit-only rows outside Nepal/Sri Lanka Apr-May 2026 Phase 4 production scope.
     Page:
       name: page
       in: query
@@ -366,9 +378,21 @@ components:
           type: integer
         actionDueEvents:
           type: integer
+        plannedEventsWithExecutedEvidence:
+          type: integer
+        plannedEventsWithActionDueEvidence:
+          type: integer
+        executedSnapshotCount:
+          type: integer
+        actionDueSnapshotCount:
+          type: integer
         plannedHcps:
           type: integer
         engagedHcps:
+          type: integer
+        matchedEngagedHcps:
+          type: integer
+        rawEngagedHcps:
           type: integer
         hcpExecutionRate:
           type: number
@@ -376,6 +400,20 @@ components:
           type: number
         matchCoverage:
           type: number
+        snapshotSourceCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        primaryScope:
+          type: boolean
+        scopeStatuses:
+          type: array
+          items:
+            type: string
+        scopeReasons:
+          type: array
+          items:
+            type: string
     EventListResponse:
       type: object
       required: [meta, page, pageSize, total, rows]
@@ -472,6 +510,16 @@ components:
           type: number
         expenseConfirmedCoverage:
           type: number
+        primaryScope:
+          type: boolean
+        scopeStatuses:
+          type: array
+          items:
+            type: string
+        scopeReasons:
+          type: array
+          items:
+            type: string
     WorkflowRequestsResponse:
       type: object
       required: [meta, page, pageSize, total, rows]
@@ -512,6 +560,14 @@ components:
               currentOwnerStage:
                 type: string
                 nullable: true
+              isPrimaryPhase4Scope:
+                type: boolean
+              scopeStatus:
+                type: string
+                nullable: true
+              scopeReason:
+                type: string
+                nullable: true
     InterventionMixResponse:
       type: object
       required: [meta, rows]
@@ -532,6 +588,20 @@ components:
               requestCount:
                 type: integer
               executedCount:
+                type: integer
+              executedRequestCount:
+                type: integer
+              matchedRequestCount:
+                type: integer
+              executedSnapshotCount:
+                type: integer
+              actionDueCount:
+                type: integer
+              actionDueRequestCount:
+                type: integer
+              actionDueSnapshotCount:
+                type: integer
+              matchedWithoutExecutionCount:
                 type: integer
               approvedCount:
                 type: integer

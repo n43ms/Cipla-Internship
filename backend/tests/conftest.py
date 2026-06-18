@@ -30,6 +30,7 @@ def migration_files() -> list[str]:
         "0010_execution_governance_views.py",
         "0011_phase4_execution_matrix_fixes.py",
         "0012_phase4_real_data_repairs.py",
+        "0013_phase4_scope_and_quality_repairs.py",
     ]
 
 

@@ -8,9 +8,10 @@ export type WorkflowFilters = {
   workflowStatus?: string;
   page?: number;
   pageSize?: number;
+  includeOutOfScope?: boolean;
 };
 
-export function getWorkflowSummary(filters: Pick<WorkflowFilters, "country" | "month" | "interventionType"> = {}) {
+export function getWorkflowSummary(filters: Pick<WorkflowFilters, "country" | "month" | "interventionType" | "includeOutOfScope"> = {}) {
   return apiGet<WorkflowSummaryResponse>(`/api/workflow/summary${queryString(filters)}`);
 }
 
@@ -18,7 +19,7 @@ export function getWorkflowRequests(filters: WorkflowFilters = {}) {
   return apiGet<WorkflowRequestsResponse>(`/api/workflow/requests${queryString({ page: 1, pageSize: 10, ...filters })}`);
 }
 
-function queryString(values: Record<string, string | number | undefined>) {
+function queryString(values: Record<string, string | number | boolean | undefined>) {
   const params = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
     if (value !== undefined && value !== "") {

@@ -21,9 +21,10 @@ SESSION_DEPENDENCY = Depends(get_session)
 def execution_summary(
     country: str | None = None,
     month: str | None = None,
+    include_out_of_scope: Annotated[bool, Query(alias="includeOutOfScope")] = False,
     session: Session = SESSION_DEPENDENCY,
 ) -> ExecutionSummary:
-    return ExecutionService(session).summary(country, month)
+    return ExecutionService(session).summary(country, month, include_out_of_scope)
 
 
 @router.get("/filter-options", response_model=ExecutionFilterOptions, response_model_by_alias=True)
@@ -37,6 +38,7 @@ def execution_events(
     month: str | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 25,
+    include_out_of_scope: Annotated[bool, Query(alias="includeOutOfScope")] = False,
     session: Session = SESSION_DEPENDENCY,
 ) -> EventListResponse:
-    return ExecutionService(session).events(country, month, page, page_size)
+    return ExecutionService(session).events(country, month, page, page_size, include_out_of_scope)

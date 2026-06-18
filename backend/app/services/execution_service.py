@@ -22,10 +22,15 @@ class ExecutionService:
         self.session = session
         self.repository = ExecutionRepository(session)
 
-    def summary(self, country: str | None = None, month: str | None = None) -> ExecutionSummary:
+    def summary(
+        self,
+        country: str | None = None,
+        month: str | None = None,
+        include_out_of_scope: bool = False,
+    ) -> ExecutionSummary:
         validate_country_month_filters(self.session, country=country, month=month)
-        filters = _filters(country=country, month=month)
-        row = self.repository.summary(country, month)
+        filters = _filters(country=country, month=month, includeOutOfScope=include_out_of_scope)
+        row = self.repository.summary(country, month, include_out_of_scope)
         if not row:
             return ExecutionSummary(
                 meta=build_meta(
@@ -47,12 +52,19 @@ class ExecutionService:
                 "execution tab was missing."
             )
         limitations = []
+        if not include_out_of_scope:
+            limitations.append(
+                "Default Phase 4 scope is Nepal and Sri Lanka for Apr-May 2026 only. "
+                "Out-of-scope source rows are preserved for audit and can be requested "
+                "with includeOutOfScope=true."
+            )
         if not month:
             limitations.append(
-                "All-month scope mixes FY27 planner months with partial monthly execution "
-                "snapshots and consolidation requests. Select a month for operational "
-                "execution rates."
+                "All-month Phase 4 scope combines Apr 2026 and May 2026. Select a month "
+                "for operational execution rates."
             )
+        scope_statuses = list(dict.fromkeys(str(value) for value in row.get("scope_statuses") or []))
+        scope_reasons = list(dict.fromkeys(str(value) for value in row.get("scope_reasons") or []))
         return ExecutionSummary(
             meta=build_meta(
                 self.session,
@@ -66,12 +78,21 @@ class ExecutionService:
             weak_or_unmatched_events=int(row.get("weak_or_unmatched_events") or 0),
             executed_events=int(row.get("executed_events") or 0),
             action_due_events=int(row.get("action_due_events") or 0),
+            planned_events_with_executed_evidence=int(row.get("planned_events_with_executed_evidence") or 0),
+            planned_events_with_action_due_evidence=int(row.get("planned_events_with_action_due_evidence") or 0),
+            executed_snapshot_count=int(row.get("executed_snapshot_count") or 0),
+            action_due_snapshot_count=int(row.get("action_due_snapshot_count") or 0),
             planned_hcps=int(row.get("planned_hcps") or 0),
             engaged_hcps=int(row.get("engaged_hcps") or 0),
+            matched_engaged_hcps=int(row.get("matched_engaged_hcps") or 0),
+            raw_engaged_hcps=int(row.get("raw_engaged_hcps") or 0),
             hcp_execution_rate=Decimal(str(row.get("hcp_execution_rate") or 0)),
             event_execution_rate=Decimal(str(row.get("event_execution_rate") or 0)),
             match_coverage=Decimal(str(row.get("match_coverage") or 0)),
             snapshot_source_counts=dict(snapshot_counts),
+            primary_scope=bool(row.get("primary_scope")),
+            scope_statuses=scope_statuses,
+            scope_reasons=scope_reasons,
         )
 
     def events(
@@ -80,10 +101,17 @@ class ExecutionService:
         month: str | None,
         page: int,
         page_size: int,
+        include_out_of_scope: bool = False,
     ) -> EventListResponse:
         validate_country_month_filters(self.session, country=country, month=month)
-        filters = _filters(country=country, month=month, page=page, pageSize=page_size)
-        total, rows = self.repository.event_rows(country, month, page, page_size)
+        filters = _filters(
+            country=country,
+            month=month,
+            page=page,
+            pageSize=page_size,
+            includeOutOfScope=include_out_of_scope,
+        )
+        total, rows = self.repository.event_rows(country, month, page, page_size, include_out_of_scope)
         mapped = [
             ExecutionEventRow(
                 source_type=str(row.get("source_type") or "unknown"),
@@ -99,10 +127,21 @@ class ExecutionService:
                 execution_status=row.get("execution_status"),
                 snapshot_source=row.get("snapshot_source"),
                 source_derivation_note=row.get("source_derivation_note"),
+                unmatched_reason_code=row.get("unmatched_reason_code"),
+                unmatched_reason_detail=row.get("unmatched_reason_detail"),
+                is_primary_phase4_scope=bool(row.get("is_primary_phase4_scope")),
+                scope_status=row.get("scope_status"),
+                scope_reason=row.get("scope_reason"),
+                match_grain=row.get("match_grain"),
                 source_references=_as_dict(row.get("source_references")),
             )
             for row in rows
         ]
+        limitations = []
+        if not include_out_of_scope:
+            limitations.append(
+                "Events are scoped to Nepal/Sri Lanka Apr-May 2026 by default."
+            )
         return EventListResponse(
             meta=build_meta(
                 self.session,
@@ -114,6 +153,7 @@ class ExecutionService:
                     for row in mapped
                 )
                 else [],
+                limitations=limitations,
             ),
             page=page,
             page_size=page_size,

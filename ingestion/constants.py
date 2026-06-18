@@ -39,3 +39,6 @@ class RoiSegment(StrEnum):
 
 
 OFFICIAL_LKR_PER_USD = 310.0
+
+PHASE4_PRIMARY_COUNTRIES = ("Nepal", "Sri Lanka")
+PHASE4_EXECUTION_MONTHS = ("2026-04", "2026-05")

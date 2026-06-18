@@ -13,15 +13,24 @@ class InterventionService:
         self.session = session
         self.repository = InterventionRepository(session)
 
-    def mix(self, country: str | None = None, month: str | None = None) -> InterventionMixResponse:
+    def mix(
+        self,
+        country: str | None = None,
+        month: str | None = None,
+        include_out_of_scope: bool = False,
+    ) -> InterventionMixResponse:
         validate_country_month_filters(self.session, country=country, month=month)
-        filters = _filters(country=country, month=month)
-        rows = self.repository.mix(country, month)
+        filters = _filters(country=country, month=month, includeOutOfScope=include_out_of_scope)
+        rows = self.repository.mix(country, month, include_out_of_scope)
         has_missing_fx = any(
             str(row.get("fx_rate_status") or "missing") == "missing"
             for row in rows
         )
         limitations = [] if rows else ["No intervention mix rows match the selected filters."]
+        if not include_out_of_scope:
+            limitations.append(
+                "Intervention mix defaults to Phase 4 production scope: Nepal and Sri Lanka, Apr-May 2026."
+            )
         flags = []
         if has_missing_fx:
             flags.append("missing_fx")
@@ -42,6 +51,13 @@ class InterventionService:
                     intervention_sub_type=row.get("intervention_sub_type"),
                     request_count=int(row.get("request_count") or 0),
                     executed_count=int(row.get("executed_count") or 0),
+                    executed_request_count=int(row.get("executed_request_count") or 0),
+                    matched_request_count=int(row.get("matched_request_count") or 0),
+                    executed_snapshot_count=int(row.get("executed_snapshot_count") or 0),
+                    action_due_count=int(row.get("action_due_count") or 0),
+                    action_due_request_count=int(row.get("action_due_request_count") or 0),
+                    action_due_snapshot_count=int(row.get("action_due_snapshot_count") or 0),
+                    matched_without_execution_count=int(row.get("matched_without_execution_count") or 0),
                     approved_count=int(row.get("approved_count") or 0),
                     report_pending_count=int(row.get("report_pending_count") or 0),
                     confirmed_contracted_amount=row.get("confirmed_contracted_amount"),

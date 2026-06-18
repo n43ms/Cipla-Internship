@@ -34,6 +34,8 @@ class MatchCandidate:
     confidence: Decimal
     matched_on: dict[str, Any]
     notes: str | None = None
+    unmatched_reason_code: str | None = None
+    unmatched_reason_detail: str | None = None
 
 
 def match_event_names(left: str | None, right: str | None) -> MatchCandidate:
@@ -64,6 +66,8 @@ def match_event_names(left: str | None, right: str | None) -> MatchCandidate:
             confidence,
             {"left_normalized": left_normalized, "right_normalized": right_normalized},
             "Below confident threshold; review before using as matched KPI evidence",
+            "name_mismatch",
+            "The event name matched only weakly and must be reviewed before treating it as final execution evidence.",
         )
     return MatchCandidate(
         "none",
@@ -155,7 +159,7 @@ class EventMatcher:
                     plan_event_id=plan["id"],
                     execution_snapshot_id=None,
                     execution_request_id=None,
-                    candidate=_unmatched("unmatched_plan"),
+                    candidate=_unmatched("unmatched_plan", scope),
                     match_status="unmatched_plan",
                 )
             )
@@ -171,7 +175,7 @@ class EventMatcher:
                         plan_event_id=None,
                         execution_snapshot_id=snapshot["id"],
                         execution_request_id=None,
-                        candidate=_ignored() if ignored else _unmatched("unmatched_snapshot"),
+                        candidate=_ignored() if ignored else _unmatched("unmatched_snapshot", scope),
                         match_status="ignored" if ignored else "unmatched_snapshot",
                     )
                 )
@@ -186,7 +190,7 @@ class EventMatcher:
                         plan_event_id=None,
                         execution_snapshot_id=None,
                         execution_request_id=request["id"],
-                        candidate=_ignored() if ignored else _unmatched("unmatched_request"),
+                        candidate=_ignored() if ignored else _unmatched("unmatched_request", scope),
                         match_status="ignored" if ignored else "unmatched_request",
                     )
                 )
@@ -241,6 +245,12 @@ class EventMatcher:
                     adjusted_confidence,
                     {**result.matched_on, "event_type_warning": {"plan": plan_type, "candidate": candidate_type}},
                     "Event name matched but intervention type differs; review before treating as final",
+                    "name_mismatch" if adjusted_confidence < FUZZY_THRESHOLD else result.unmatched_reason_code,
+                    (
+                        "The event name or type matched only weakly and must be reviewed before treating it as final execution evidence."
+                        if adjusted_confidence < FUZZY_THRESHOLD
+                        else result.unmatched_reason_detail
+                    ),
                 )
             matches.append((candidate, result))
         return matches
@@ -257,8 +267,9 @@ def _strongest_many(matches: list[MatchCandidate]) -> MatchCandidate:
     return best
 
 
-def _unmatched(status: str) -> MatchCandidate:
-    return MatchCandidate("none", status, Decimal("0.0000"), {}, None)
+def _unmatched(status: str, scope: dict[str, Any] | None = None) -> MatchCandidate:
+    code, detail = _unmatched_reason(status, scope or {})
+    return MatchCandidate("none", status, Decimal("0.0000"), {}, None, code, detail)
 
 
 def _ignored() -> MatchCandidate:
@@ -268,3 +279,38 @@ def _ignored() -> MatchCandidate:
 def _is_ignored_event_name(value: Any) -> bool:
     normalized = normalize_event_name(value)
     return normalized in IGNORED_LABELS or normalized.startswith("total ")
+
+
+def _unmatched_reason(status: str, scope: dict[str, Any]) -> tuple[str | None, str | None]:
+    country_name = str(scope.get("country_name") or "")
+    month_label = str(scope.get("month_label") or "")
+    planner_available = bool(scope.get("planner_available", True))
+    snapshot_available = bool(scope.get("snapshot_available", True))
+    if status == "weak_match":
+        return (
+            "name_mismatch",
+            "The event name matched only weakly and must be reviewed before treating it as final execution evidence.",
+        )
+    if country_name and country_name not in {"Nepal", "Sri Lanka"}:
+        return "no_planner_for_country", "This market has no FY27 planner in the supplied Phase 4 source set."
+    if month_label and month_label < "2026-04":
+        return (
+            "historical_request_no_fy27_plan",
+            "This record is before FY27 planner coverage and is retained as historical consolidation evidence.",
+        )
+    if month_label and month_label > "2026-05":
+        return (
+            "future_plan_no_execution_yet",
+            "This record is outside the April-May 2026 execution snapshot window and is retained for future analysis.",
+        )
+    if not planner_available:
+        return "no_planner_for_country", "No planner row exists for this country/month."
+    if status == "unmatched_plan" and not snapshot_available:
+        return "no_snapshot_for_month", "No execution snapshot exists for this planned event month."
+    if status == "unmatched_plan":
+        return "planner_only", "The planned event has no confident matching execution or consolidation evidence."
+    if status == "unmatched_snapshot":
+        return "snapshot_only_no_matching_plan", "The snapshot row has no matching planner event in the same scoped country/month."
+    if status == "unmatched_request":
+        return "consolidation_only", "The consolidation request has no matching planner event."
+    return None, None

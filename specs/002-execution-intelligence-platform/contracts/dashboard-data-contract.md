@@ -20,6 +20,7 @@ Supported filters:
 
 - `country`
 - `month`
+- `includeOutOfScope` for execution, workflow, and intervention endpoints. Default is `false`; default responses must include only Nepal/Sri Lanka Apr-May 2026 Phase 4 production scope.
 - `monthStart`
 - `monthEnd`
 - `therapy`
@@ -42,14 +43,18 @@ Required fields:
 - planned events
 - matched events
 - weak/unmatched events
-- executed events
-- action-due events
+- executed planned events: planned events with matched executed snapshot evidence
+- action-due planned events: planned events with matched action-due snapshot evidence
+- raw executed snapshot count
+- raw action-due snapshot count
 - planned HCPs
-- engaged HCPs
+- matched engaged HCPs
+- raw engaged HCPs
 - HCP execution rate
 - event execution rate
 - match coverage
 - snapshot source counts, including `monthly_planner` and `derived_from_consolidation`
+- `primaryScope`, `scopeStatuses`, and `scopeReasons`
 
 ## Budget Summary
 
@@ -89,6 +94,8 @@ Required fields:
 - reports approved
 - expense submitted date coverage
 - expense confirmed date coverage
+- `primaryScope`, `scopeStatuses`, and `scopeReasons`
+- request-row scope fields: `isPrimaryPhase4Scope`, `scopeStatus`, and `scopeReason`
 - overdue reporting count when due-date logic is available
 
 ## Intervention Mix
@@ -98,7 +105,12 @@ Required fields:
 - intervention type
 - intervention subtype
 - request count
-- matched/executed count
+- matched request count
+- executed request-link count
+- executed distinct snapshot count
+- action-due request-link count
+- action-due distinct snapshot count
+- matched-without-execution count
 - approved count
 - report pending count
 - confirmed/contracted amount
