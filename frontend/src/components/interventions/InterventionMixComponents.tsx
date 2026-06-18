@@ -4,7 +4,8 @@ import type { InterventionMixRow } from "../../types/api";
 
 export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
   const data = rows.slice(0, 8).map((row) => ({
-    name: row.interventionType,
+    name: truncate(row.interventionType, 28),
+    fullName: row.interventionType,
     requests: row.requestCount,
     matched: row.matchedRequestCount,
     executedRequests: row.executedRequestCount,
@@ -14,7 +15,7 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
   }));
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="dashboard-card p-4">
       <div className="mb-4">
         <h3 className="font-medium">Intervention type mix</h3>
         <p className="text-sm text-muted">Category totals separate requests, matched evidence, true executed snapshots, action-due snapshots, and pending reports.</p>
@@ -22,14 +23,14 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
       {data.length === 0 ? (
         <p className="text-sm text-muted">No intervention rows match the current filters.</p>
       ) : (
-        <div className="h-80">
+        <div className="chart-frame h-[28rem] sm:h-96">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: 126, right: 16, top: 8, bottom: 8 }}>
+            <BarChart data={data} layout="vertical" margin={{ left: 4, right: 20, top: 8, bottom: 44 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-              <YAxis type="category" dataKey="name" width={126} tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
+              <YAxis type="category" dataKey="name" width={118} tick={{ fontSize: 11 }} />
+              <Tooltip labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullName ?? _label} />
+              <Legend wrapperStyle={{ bottom: 0, fontSize: 11, lineHeight: "18px" }} />
               <Bar dataKey="requests" fill="#2563eb" radius={[0, 4, 4, 0]} />
               <Bar dataKey="matched" name="matched evidence" fill="#7c3aed" radius={[0, 4, 4, 0]} />
               <Bar dataKey="executedRequests" name="executed request links" fill="#0f766e" radius={[0, 4, 4, 0]} />
@@ -46,7 +47,7 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
 
 export function InterventionMixTable({ rows }: { rows: InterventionMixRow[] }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white">
+    <div className="dashboard-card">
       <div className="border-b border-slate-200 p-4">
         <h3 className="font-medium">Intervention mix</h3>
         <p className="mt-1 text-sm text-muted">Aggregated by intervention type/subtype for the selected scope.</p>
@@ -109,4 +110,8 @@ function formatAmount(value: number | null) {
     return "-";
   }
   return new Intl.NumberFormat("en", { maximumFractionDigits: 0 }).format(value);
+}
+
+function truncate(value: string, length: number) {
+  return value.length > length ? `${value.slice(0, length - 1)}...` : value;
 }

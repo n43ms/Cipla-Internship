@@ -13,3 +13,25 @@
 body {
   margin: 0;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+@layer components {
+  .dashboard-card {
+    @apply min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition duration-200 ease-out;
+  }
+
+  .dashboard-card:hover {
+    @apply border-slate-300 shadow-md;
+  }
+
+  .chart-frame {
+    @apply min-h-0 min-w-0 overflow-hidden;
+  }
+
+  .soft-button {
+    @apply transition duration-150 ease-out hover:-translate-y-0.5 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/30 active:translate-y-0;
+  }
+}

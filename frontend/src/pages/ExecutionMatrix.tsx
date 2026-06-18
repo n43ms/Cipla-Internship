@@ -162,7 +162,7 @@ export function ExecutionMatrix() {
           <KpiCard icon={<CheckCircle2 size={18} />} label="Event execution" value={formatPercent(summaryData?.eventExecutionRate ?? 0)} />
         </div>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <PlannedVsEngagedChart
             planned={summaryData?.plannedHcps ?? 0}
             engaged={summaryData?.matchedEngagedHcps ?? summaryData?.engagedHcps ?? 0}
@@ -174,12 +174,12 @@ export function ExecutionMatrix() {
           <WorkflowPanel workflowData={workflowData} />
         </div>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <InterventionMixChart rows={interventionRows} />
           <InterventionMixTable rows={interventionRows} />
         </div>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <WorkflowRequestTable rows={workflowRows} total={workflowRequests.data?.total ?? 0} />
           <EventMatrixTable
             rows={eventRows}
@@ -211,7 +211,7 @@ function FilterPanel({
   recommendedMonth: { value: string; label: string } | null;
 }) {
   return (
-    <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
+    <div className="dashboard-card mt-6 p-4">
       <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
         <label className="text-sm font-medium text-slate-700">
           Country
@@ -244,7 +244,7 @@ function FilterPanel({
           </select>
         </label>
         <button
-          className="self-end rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="soft-button self-end rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           type="button"
           onClick={() => onChange({ country: "", month: "", includeOutOfScope: false })}
         >
@@ -280,7 +280,7 @@ function ScopeCoverageCards({ includeOutOfScope, scopeReasons }: { includeOutOfS
       <KpiCard icon={<CheckCircle2 size={18} />} label="Planner coverage" value="Nepal, Sri Lanka" />
       <KpiCard icon={<CheckCircle2 size={18} />} label="Snapshot coverage" value="Apr-May 2026" />
       <KpiCard icon={<CheckCircle2 size={18} />} label="Consolidation coverage" value="Scoped by API" />
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="dashboard-card p-4">
         <div className="flex items-center gap-2 text-muted">
           <AlertTriangle size={18} />
           <p className="text-sm">Out-of-scope policy</p>
@@ -314,13 +314,13 @@ function QualityPanel({
   ];
   if (messages.length === 0) {
     return (
-      <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+      <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 transition duration-200 ease-out">
         No Phase 4 data-quality limitations are reported for this scope.
       </div>
     );
   }
   return (
-    <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+    <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 transition duration-200 ease-out">
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 shrink-0" size={16} />
         <div>
@@ -353,7 +353,7 @@ function PlannedVsEngagedChart({
 }) {
   const data = [{ name: "HCPs", planned, engaged }];
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="dashboard-card p-4">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
           <h2 className="font-medium">Planned vs engaged HCPs</h2>
@@ -363,14 +363,14 @@ function PlannedVsEngagedChart({
           </p>
         </div>
       </div>
-      <div className="h-72">
+      <div className="chart-frame h-[20rem] sm:h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+          <BarChart data={data} margin={{ left: 0, right: 12, top: 8, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} width={48} />
             <Tooltip formatter={(value) => formatCount(Number(value))} />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
             <Bar dataKey="planned" fill="#2563eb" radius={[4, 4, 0, 0]} />
             <Bar dataKey="engaged" fill="#16a34a" radius={[4, 4, 0, 0]} />
           </BarChart>
@@ -406,7 +406,7 @@ function WorkflowPanel({ workflowData }: { workflowData: WorkflowSummaryResponse
 
 function CoverageCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="dashboard-card p-4">
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-2 text-2xl font-semibold">{formatPercent(value)}</p>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
@@ -432,7 +432,7 @@ function EventMatrixTable({
   onSelect: (row: ExecutionEventRow) => void;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white">
+    <div className="dashboard-card">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
         <div>
           <h2 className="font-medium">Event execution matrix</h2>
@@ -500,7 +500,7 @@ function EventMatrixTable({
       )}
       <div className="flex items-center justify-between border-t border-slate-200 p-4 text-sm">
         <button
-          className="rounded-md border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="soft-button rounded-md border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
           type="button"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
@@ -511,7 +511,7 @@ function EventMatrixTable({
           Page {page} of {pageCount}
         </span>
         <button
-          className="rounded-md border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="soft-button rounded-md border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
           type="button"
           disabled={page >= pageCount}
           onClick={() => onPageChange(page + 1)}
@@ -525,7 +525,7 @@ function EventMatrixTable({
 
 function WorkflowRequestTable({ rows, total }: { rows: WorkflowRequestRow[]; total: number }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white">
+    <div className="dashboard-card">
       <div className="flex items-center justify-between border-b border-slate-200 p-4">
         <div>
           <h2 className="font-medium">Workflow request drilldown</h2>
@@ -596,14 +596,14 @@ function EventDrawer({ row, onClose }: { row: ExecutionEventRow | null; onClose:
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/35" role="dialog" aria-modal="true">
-      <aside className="h-full w-full max-w-xl overflow-y-auto bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/35 backdrop-blur-[1px] transition-opacity duration-200" role="dialog" aria-modal="true">
+      <aside className="h-full w-full max-w-xl overflow-y-auto bg-white p-6 shadow-xl transition-transform duration-200">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-wide text-muted">Execution drilldown</p>
             <h2 className="mt-1 text-xl font-semibold">{row.eventName ?? "Unnamed event"}</h2>
           </div>
-          <button className="rounded-md border border-slate-300 px-3 py-2 text-sm" type="button" onClick={onClose}>
+          <button className="soft-button rounded-md border border-slate-300 px-3 py-2 text-sm" type="button" onClick={onClose}>
             Close
           </button>
         </div>
@@ -640,7 +640,7 @@ function Detail({ label, value }: { label: string; value: string }) {
 
 function KpiCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="dashboard-card p-4">
       <div className="flex items-center gap-2 text-muted">
         {icon}
         <p className="text-sm">{label}</p>
