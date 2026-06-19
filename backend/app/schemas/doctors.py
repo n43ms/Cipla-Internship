@@ -46,6 +46,14 @@ class DoctorRoiResponse(ApiModel):
     page: int
     page_size: int
     total: int
+    sort: str = "darkHorse"
+    sort_direction: str = "desc"
+    dark_horse_count: int = 0
+    no_rcpa_count: int = 0
+    missing_fx_count: int = 0
+    provisional_fx_count: int = 0
+    brand_filter_mode: str | None = None
+    period_filter_mode: str = "engagement_period"
     rows: list[DoctorRoiRow] = Field(default_factory=list)
     quadrant_counts: dict[str, int] = Field(default_factory=dict)
     segment_counts: dict[str, int] = Field(default_factory=dict)

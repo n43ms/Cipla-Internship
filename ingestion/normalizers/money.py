@@ -11,11 +11,11 @@ OFFICIAL_LKR_RATE_TO_USD = Decimal("1") / Decimal("310")
 OFFICIAL_LKR_RATE_DATE = date(2026, 6, 16)
 PROVISIONAL_PUBLIC_FX_RATE_DATE = date(2026, 6, 19)
 PROVISIONAL_PUBLIC_RATES_TO_USD: dict[str, Decimal] = {
-    "NPR": Decimal("1") / Decimal("150.94"),
-    "MMK": Decimal("1") / Decimal("2098.58"),
-    "OMR": Decimal("1") / Decimal("0.384985"),
+    "NPR": Decimal("1") / Decimal("151.06361"),
+    "MMK": Decimal("1") / Decimal("2104.074172"),
+    "OMR": Decimal("1") / Decimal("0.384497"),
     "AED": Decimal("1") / Decimal("3.6725"),
-    "MYR": Decimal("1") / Decimal("4.1390"),
+    "MYR": Decimal("1") / Decimal("4.114387"),
 }
 
 

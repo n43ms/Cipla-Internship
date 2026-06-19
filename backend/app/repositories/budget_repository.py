@@ -17,8 +17,11 @@ class BudgetRepository:
         include_out_of_scope: bool = False,
         page: int = 1,
         page_size: int = 100,
+        sort: str = "priority",
+        sort_direction: str = "desc",
     ) -> dict[str, Any]:
         offset = max(page - 1, 0) * page_size
+        order_by = _budget_order_by(sort, sort_direction)
         params = {
             "country": country,
             "month": month,
@@ -223,7 +226,7 @@ class BudgetRepository:
         ).scalar_one()
         rows = self.session.execute(
             text(
-                """
+                f"""
                 select *
                 from mv_budget_utilization
                 where (
@@ -236,12 +239,7 @@ class BudgetRepository:
                     or to_char(month_start_date, 'YYYY-MM') = cast(:month as text)
                 )
                 and (cast(:include_out_of_scope as boolean) or is_primary_phase4_scope)
-                order by
-                    spend_without_plan desc,
-                    plan_without_spend desc,
-                    coalesce(unspent_gap_usd, 0) desc,
-                    coalesce(actual_total_expense_usd, 0) desc,
-                    event_name
+                order by {order_by}
                 limit :limit offset :offset
                 """
             ),
@@ -253,3 +251,18 @@ class BudgetRepository:
             "total": int(total or 0),
             "rows": [dict(row) for row in rows],
         }
+
+
+def _budget_order_by(sort: str, direction: str) -> str:
+    direction_sql = "asc" if direction.lower() == "asc" else "desc"
+    columns = {
+        "priority": "spend_without_plan desc, plan_without_spend desc, coalesce(unspent_gap_usd, 0) desc, coalesce(overrun_amount_usd, 0) desc, coalesce(actual_total_expense_usd, 0) desc, event_name",
+        "unspentGapUsd": f"coalesce(unspent_gap_usd, 0) {direction_sql}, event_name",
+        "overrunAmountUsd": f"coalesce(overrun_amount_usd, 0) {direction_sql}, event_name",
+        "actualSpendUsd": f"coalesce(actual_total_expense_usd, 0) {direction_sql}, event_name",
+        "plannedBudgetUsd": f"coalesce(planned_budget_usd, 0) {direction_sql}, event_name",
+        "fxRateStatus": f"fx_rate_status {direction_sql}, event_name",
+        "btuBtcReconciliationStatus": f"btu_btc_reconciliation_status {direction_sql}, event_name",
+        "matchStatus": f"match_status {direction_sql}, event_name",
+    }
+    return columns.get(sort, columns["priority"])

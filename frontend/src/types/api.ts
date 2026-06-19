@@ -53,6 +53,8 @@ export type BudgetSummaryResponse = {
   page: number;
   pageSize: number;
   total: number;
+  sort: string;
+  sortDirection: string;
   rows: BudgetGapRow[];
 };
 
@@ -89,6 +91,7 @@ export type BudgetGapRow = {
   btuBtcReconciliationStatus: string;
   spendWithoutPlan: boolean;
   planWithoutSpend: boolean;
+  rowKind: string;
   scopeStatus?: string | null;
 };
 
@@ -267,6 +270,14 @@ export type DoctorRoiResponse = {
   page: number;
   pageSize: number;
   total: number;
+  sort: string;
+  sortDirection: string;
+  darkHorseCount: number;
+  noRcpaCount: number;
+  missingFxCount: number;
+  provisionalFxCount: number;
+  brandFilterMode: string | null;
+  periodFilterMode: string;
   rows: DoctorRoiRow[];
   quadrantCounts: Record<string, number>;
   segmentCounts: Record<string, number>;
@@ -379,6 +390,8 @@ export type DataQualityResponse = {
     errorCount: number;
     periodStart: string | null;
     periodEnd: string | null;
+    storageMode: string;
+    rowCountNote: string | null;
   }>;
   unmatchedBySource: Array<{
     sourceType: string;
@@ -404,4 +417,12 @@ export type DataQualityResponse = {
     source: string | null;
     rowCount: number;
   }>;
+};
+
+export type UnmatchedRecordsResponse = {
+  meta: ResponseMeta;
+  page: number;
+  pageSize: number;
+  total: number;
+  rows: DataQualityResponse["unmatchedRecords"];
 };

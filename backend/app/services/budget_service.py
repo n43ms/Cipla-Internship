@@ -22,9 +22,11 @@ class BudgetService:
         include_out_of_scope: bool = False,
         page: int = 1,
         page_size: int = 100,
+        sort: str = "priority",
+        sort_direction: str = "desc",
     ) -> BudgetSummary:
         validate_country_month_filters(self.session, country=country, month=month)
-        data = self.repository.summary(country, month, include_out_of_scope, page, page_size)
+        data = self.repository.summary(country, month, include_out_of_scope, page, page_size, sort, sort_direction)
         row = data["summary"]
         flags: list[str] = []
         limitations: list[str] = []
@@ -64,6 +66,7 @@ class BudgetService:
                 btu_btc_reconciliation_status=str(item.get("btu_btc_reconciliation_status") or "unknown"),
                 spend_without_plan=bool(item.get("spend_without_plan")),
                 plan_without_spend=bool(item.get("plan_without_spend")),
+                row_kind=_row_kind(item),
                 scope_status=item.get("scope_status"),
             )
             for item in data["rows"]
@@ -71,7 +74,13 @@ class BudgetService:
         return BudgetSummary(
             meta=build_meta(
                 self.session,
-                filters_applied=_filters(country=country, month=month, includeOutOfScope=include_out_of_scope),
+                filters_applied=_filters(
+                    country=country,
+                    month=month,
+                    includeOutOfScope=include_out_of_scope,
+                    sort=sort,
+                    sortDirection=sort_direction,
+                ),
                 flags=flags,
                 limitations=limitations,
             ),
@@ -102,6 +111,8 @@ class BudgetService:
             page=page,
             page_size=page_size,
             total=int(data.get("total") or 0),
+            sort=sort,
+            sort_direction=sort_direction,
             rows=mapped_rows,
         )
 
@@ -112,3 +123,17 @@ def _decimal(value: object) -> Decimal:
 
 def _filters(**values: object) -> dict[str, object]:
     return {key: value for key, value in values.items() if value not in (None, "")}
+
+
+def _row_kind(item: dict[str, object]) -> str:
+    if item.get("plan_without_spend"):
+        return "plan_without_spend"
+    if item.get("spend_without_plan"):
+        return "spend_without_plan"
+    if item.get("execution_request_id") and item.get("plan_event_id"):
+        return "matched_request_evidence"
+    if item.get("plan_event_id"):
+        return "plan_event"
+    if item.get("execution_request_id"):
+        return "request_evidence"
+    return "budget_evidence"

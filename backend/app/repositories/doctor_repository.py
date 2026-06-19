@@ -25,8 +25,11 @@ class DoctorRepository:
         include_out_of_scope: bool,
         page: int,
         page_size: int,
-    ) -> tuple[int, list[dict[str, Any]], dict[str, int], dict[str, int]]:
+        sort: str = "darkHorse",
+        sort_direction: str = "desc",
+    ) -> tuple[int, list[dict[str, Any]], dict[str, int], dict[str, int], dict[str, int]]:
         limit, offset = pagination(page, page_size)
+        order_by = _doctor_order_by(sort, sort_direction)
         params = {
             "country": country,
             "roi_segment": roi_segment,
@@ -90,17 +93,26 @@ class DoctorRepository:
                 select *
                 from mv_doctor_roi
                 {where}
-                order by
-                    dark_horse_flag desc,
-                    cipla_prescription_qty desc,
-                    total_roi_spend_usd desc,
-                    doctor_name nulls last,
-                    pcode_normalized
+                order by {order_by}
                 limit :limit offset :offset
                 """
             ),
             params,
         ).mappings()
+        quality = self.session.execute(
+            text(
+                f"""
+                select
+                    count(*) filter (where dark_horse_flag)::integer as dark_horse_count,
+                    count(*) filter (where not has_rcpa)::integer as no_rcpa_count,
+                    count(*) filter (where has_missing_fx)::integer as missing_fx_count,
+                    count(*) filter (where has_provisional_fx)::integer as provisional_fx_count
+                from mv_doctor_roi
+                {where}
+                """
+            ),
+            params,
+        ).mappings().first()
         quadrant_rows = self.session.execute(
             text(
                 f"""
@@ -128,6 +140,7 @@ class DoctorRepository:
             [dict(row) for row in rows],
             {str(row["quadrant_label"]): int(row["count"]) for row in quadrant_rows},
             {str(row["roi_segment"]): int(row["count"]) for row in segment_rows},
+            dict(quality or {}),
         )
 
     def doctor_profile(self, country_code: str, pcode: str) -> dict[str, Any] | None:
@@ -209,3 +222,16 @@ class DoctorRepository:
             {"country_code": country_code, "pcode": pcode},
         ).mappings()
         return [dict(row) for row in rows]
+
+
+def _doctor_order_by(sort: str, direction: str) -> str:
+    direction_sql = "asc" if direction.lower() == "asc" else "desc"
+    columns = {
+        "darkHorse": "dark_horse_flag desc, cipla_prescription_qty desc, total_roi_spend_usd asc, doctor_name nulls last, pcode_normalized",
+        "ciplaPrescriptionQty": f"cipla_prescription_qty {direction_sql}, doctor_name nulls last, pcode_normalized",
+        "totalRoiSpendUsd": f"total_roi_spend_usd {direction_sql}, doctor_name nulls last, pcode_normalized",
+        "spendPerCiplaPrescriptionUsd": f"spend_per_cipla_prescription_usd {direction_sql} nulls last, doctor_name nulls last, pcode_normalized",
+        "lastEngagementDate": f"last_engagement_date {direction_sql} nulls last, doctor_name nulls last, pcode_normalized",
+        "engagementCount": f"engagement_count {direction_sql}, doctor_name nulls last, pcode_normalized",
+    }
+    return columns.get(sort, columns["darkHorse"])

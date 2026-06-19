@@ -25,6 +25,8 @@ def doctor_roi(
     include_out_of_scope: Annotated[bool, Query(alias="includeOutOfScope")] = False,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 25,
+    sort: str = "darkHorse",
+    sort_direction: Annotated[str, Query(alias="sortDirection", pattern="^(asc|desc)$")] = "desc",
     session: Session = Depends(get_session),
 ) -> DoctorRoiResponse:
     return DoctorService(session).roi(
@@ -39,6 +41,8 @@ def doctor_roi(
         include_out_of_scope,
         page,
         page_size,
+        sort,
+        sort_direction,
     )
 
 

@@ -43,6 +43,8 @@ class SourceFileQualityRow(ApiModel):
     error_count: int = 0
     period_start: str | None = None
     period_end: str | None = None
+    storage_mode: str = "canonical_rows"
+    row_count_note: str | None = None
 
 
 class UnmatchedQualityRow(ApiModel):
@@ -108,3 +110,11 @@ class DataQualitySummary(ApiModel):
     unmatched_by_source: list[UnmatchedQualityRow] = Field(default_factory=list)
     unmatched_records: list[UnmatchedRecordRow] = Field(default_factory=list)
     fx_quality: list[FxQualityRow] = Field(default_factory=list)
+
+
+class UnmatchedRecordsResponse(ApiModel):
+    meta: ResponseMeta
+    page: int = 1
+    page_size: int = 50
+    total: int = 0
+    rows: list[UnmatchedRecordRow] = Field(default_factory=list)

@@ -1,40 +1,34 @@
 # Phase 5-7 Holistic Review Issues 2
 
-Review scope: Phase 5 Budget Utilization, Phase 6 Doctor ROI, and Phase 7 Data Quality against `tasks.md`, `finalplan.md`, `specs/002-execution-intelligence-platform/`, current backend/frontend code, and the live Supabase database.
+Review scope: Phase 5 Budget Utilization, Phase 6 Doctor ROI, and Phase 7 Data Quality against `tasks.md`, `finalplan.md`, `specs/002-execution-intelligence-platform/`, current backend/frontend code, generated reports, and live Supabase data.
 
 Review date: 2026-06-19
 
 ## Verdict
 
-Phase 5-7 are substantially corrected compared with the earlier review, but they are not yet flawless enough to call production-grade without caveats.
+Phase 5-7 are substantially implemented and the main app path is working, but the system is not yet fully production-grade. The remaining issues are mostly contract correctness, decision-safety, dashboard clarity, test depth, and operational hardening.
 
-The main data path works:
-
-- Supabase is on Alembic revision `0019_phase5_7_fix`.
-- Phase 5-7 focused backend tests pass.
-- Phase 5-7 focused frontend test passes.
-- Frontend production build passes.
-- Live APIs for budget, doctor ROI, data quality, and filters return 200.
-- Real source workbook rows are represented in canonical tables and materialized views.
-
-The remaining risks are mostly about production-grade clarity and decision safety:
-
-- Doctor ROI default scope is broader than the Phase 4/5 dashboard scope.
-- Doctor brand filtering is not brand-specific ROI; it is a doctor-in-brand-baseline filter.
-- Data Quality still uses fixture/dry-run local reports, not real-workbook reports.
-- Serial month parse count is not instrumented from actual parser diagnostics.
-- Tests are still too shallow for the most important analytical edge cases.
-- Frontend has chart sizing warnings, bundle-size warning, and visible encoding artifacts.
-
-Do not proceed to Phase 8 AI until P0 and P1 issues below are resolved or explicitly accepted, because AI must summarize trustworthy deterministic services.
+The app is no longer blocked by missing FX or broken Phase 5-7 pages. However, do not treat the current state as flawless or ready for AI summarization until the P0 issues below are fixed or explicitly accepted.
 
 ## Evidence Snapshot
 
-Live Supabase checks:
+Commands/checks run during this review:
+
+- `.\.venv\Scripts\python.exe -m pytest backend/tests/api/test_phase5_7_api.py backend/tests/database/test_budget_doctor_data_quality_views.py ingestion/tests/test_money_normalizer.py -q`: `7 passed`
+- `npm --prefix frontend test -- --run tests/phase5-7-pages.test.tsx`: `1 passed`
+- `npm --prefix frontend run build`: passed
+- Live API smoke checks:
+  - `/api/budget/summary?pageSize=3`: 200
+  - `/api/doctors/roi?pageSize=3`: 200
+  - `/api/doctors/roi?pageSize=3&includeOutOfScope=true`: 200
+  - `/api/data-quality`: 200
+  - `/api/filters`: 200
+
+Live Supabase state:
 
 | Check | Current Result |
 |---|---:|
-| Alembic revision | `0019_phase5_7_fix` |
+| Alembic revision | `0021_cleanup_fx_seeds` |
 | `source_files` | 8 |
 | `plan_events` | 832 |
 | `execution_snapshots` | 178 |
@@ -45,13 +39,12 @@ Live Supabase checks:
 | `rcpa_doctor_brand_summary` | 124,894 |
 | `mv_budget_utilization` | 3,716 |
 | `mv_doctor_roi` | 26,563 |
-| `mv_unmatched_events` | 3,176 |
+| `mv_data_quality` | 1 |
 
-Current Data Quality:
+Data Quality live values:
 
 | Metric | Current Result |
 |---|---:|
-| Latest ingestion status | `completed` |
 | Loaded files | 8 / 8 |
 | Rows seen | 1,179,273 |
 | Rows loaded | 423,654 |
@@ -61,357 +54,424 @@ Current Data Quality:
 | Match coverage | 61.38% |
 | Pcode coverage | 100% |
 | RCPA coverage | 99.26% |
-| Missing FX rows | 1,555 |
+| Missing FX rows | 0 |
+| Provisional FX rows | 1,555 |
 | BTU/BTC reconciliation issues | 88 |
 | Spend without plan | 2,334 |
 | Plan without spend | 763 |
 | Primary-scope unmatched records | 158 |
 | Serial month parse count | 0 |
-| Official LKR rate | `0.0032258065` USD per LKR |
 | Actual attendance rows missing Pcode | 0 |
+| Stale ingestion | false |
 
-Country/source scope:
+Country/source coverage:
 
-| Country | Requests | Planner Rows | Snapshot Rows | Doctor ROI Rows |
-|---|---:|---:|---:|---:|
-| UAE | 295 | 0 | 25 | 64 |
-| Sri Lanka | 1,398 | 459 | 73 | 13,689 |
-| Myanmar | 288 | 0 | 16 | 5,856 |
-| Malaysia | 58 | 0 | 7 | 2 |
-| Nepal | 876 | 373 | 45 | 6,905 |
-| Oman | 38 | 0 | 12 | 47 |
+| Country | Requests | Planner Rows | Snapshot Rows | Doctor ROI Rows | No-RCPA ROI Rows |
+|---|---:|---:|---:|---:|---:|
+| UAE | 295 | 0 | 25 | 64 | 64 |
+| Sri Lanka | 1,398 | 459 | 73 | 13,689 | 77 |
+| Myanmar | 288 | 0 | 16 | 5,856 | 6 |
+| Malaysia | 58 | 0 | 7 | 2 | 2 |
+| Nepal | 876 | 373 | 45 | 6,905 | 0 |
+| Oman | 38 | 0 | 12 | 47 | 47 |
 
-Tests/build run during review:
+Primary-scope unmatched records:
 
-- `python -m pytest backend/tests/api/test_phase5_7_api.py backend/tests/database/test_budget_doctor_data_quality_views.py -q`: 5 passed.
-- `npm --prefix frontend test -- --run tests/phase5-7-pages.test.tsx`: 1 passed, but Recharts emitted zero-size chart warnings.
-- `npm --prefix frontend run build`: passed, but Vite reported one 681.63 kB JS chunk.
+| Source | Reason | Rows |
+|---|---|---:|
+| consolidation | consolidation_only | 69 |
+| planner | planner_only | 52 |
+| execution_snapshot | snapshot_only_no_matching_plan | 37 |
 
-## What Was Fixed Since The First Phase 5-7 Review
+## Already Corrected Since The First Phase 5-7 Review
 
-- Budget summary no longer uses raw matched pair rows for event-level unspent/overrun totals.
-- Local budget totals are now returned by currency bucket.
-- Budget page now has country/month filters and pagination.
-- Doctor ROI now supports country, engagement month range, brand, speciality, doctor class, ROI segment, and pagination.
-- Doctor ROI spend allocation deduplices actual attendance to request/Pcode grain before allocation.
-- Doctor ROI exposes RCPA baseline period fields and separates unengaged opportunities from high-value engaged doctors.
-- Data Quality validation scoping now uses latest run per file, reducing current warnings from historical 9 to current 3.
-- Data Quality now exposes source file rows, unmatched groups, unmatched samples, FX quality, LKR seed metadata, and unallocated doctor spend fields.
-- OpenAPI Phase 5-7 endpoint parameters align with generated FastAPI output for the checked endpoints.
+- Missing FX is fixed: live Data Quality now shows `missing_fx_count = 0`.
+- Non-LKR public FX is marked `provisional`; LKR remains `official` company FX at `1 USD = 310 LKR`.
+- Mixed top-level local budget totals are now nullable when multiple currencies are present.
+- Budget page has country/month filters and pagination.
+- Doctor ROI page has country, month range, brand baseline, speciality, doctor class, ROI segment, out-of-scope toggle, pagination, and brand-mix drawer rendering.
+- Doctor ROI defaults to Nepal/Sri Lanka unless a country is selected or `includeOutOfScope=true`.
+- Data Quality now exposes source file rows, unmatched groups, unmatched samples, FX quality, LKR seed metadata, and unallocated doctor-spend fields.
+- Real ingestion report JSON/MD is now generated from the eight workbooks and reconciles to Supabase row counts.
+- Frontend build no longer emits the previous large initial chunk warning.
 
 ## P0: Must Fix Before Phase 8 AI
 
-### PH5-7-001: Regenerate real-workbook ingestion reports
+### PH5-7-001: Fix frontend/API numeric contract drift
 
-Problem: `data/reports/ingestion-report.md`, `data/reports/ingestion-report.json`, and `data/reports/workbook-profile-report.md` still describe tiny fixture/dry-run files, not the real eight workbooks loaded into Supabase.
+Problem: FastAPI/Pydantic serializes many `Decimal` fields as JSON strings, but `frontend/src/types/api.ts` declares them as `number`. Live examples:
 
-Why this matters: Phase 7 is the trust layer. The database is populated with real data, but the local report artifacts currently prove only fixture behavior. This creates audit confusion and makes demos harder to defend.
+- `/api/doctors/roi?pageSize=1`: `totalRoiSpendUsd`, `ciplaPrescriptionQty`, and `quadrantX` are strings.
+- `/api/data-quality`: `matchCoverage`, `officialLkrRateToUsd`, and `unallocatedDoctorSpendUsd` are strings.
+- `/api/budget/summary`: local currency bucket amounts are strings.
+
+Why this matters: The current UI often coerces values with `Number(...)`, but not consistently. AI context builders and future charts may treat strings as numbers incorrectly. This is a real contract mismatch between backend, OpenAPI, and frontend types.
+
+Files:
+
+- `backend/app/schemas/budget.py`
+- `backend/app/schemas/doctors.py`
+- `backend/app/schemas/data_quality.py`
+- `frontend/src/api/client.ts`
+- `frontend/src/types/api.ts`
+- `specs/002-execution-intelligence-platform/contracts/openapi.yaml`
+
+Tasks:
+
+- [ ] Decide the contract rule: either backend emits JSON numbers for dashboard numeric values, or frontend types model decimals as strings and parse them explicitly.
+- [ ] Add a single API parsing/normalization layer if frontend keeps numeric chart/card logic.
+- [ ] Update `frontend/src/types/api.ts` to match the real wire contract.
+- [ ] Add contract tests that fail if numeric wire types drift silently.
+- [ ] Regenerate or update OpenAPI after the decision.
+
+Acceptance criteria:
+
+- Frontend runtime types match actual API JSON.
+- Charts/cards/tables use deliberate numeric parsing, not accidental JavaScript coercion.
+- AI context code cannot accidentally receive stringified numbers as business metrics.
+
+### PH5-7-002: Replace shallow Phase 5-7 tests with data-driven regression tests
+
+Problem: Current database tests mostly assert SQL text fragments rather than executing edge-case datasets. API tests monkeypatch services instead of proving real DB semantics. Frontend has one broad render test.
+
+Why this matters: The important historical bugs in this project were semantic, not syntax-level: double-counted budget gaps, validation scoping, mixed currencies, duplicate attendance allocation, no-RCPA behavior, and brand-filter representation. The current tests would not reliably catch many of those regressions.
+
+Files:
+
+- `backend/tests/database/test_budget_doctor_data_quality_views.py`
+- `backend/tests/api/test_phase5_7_api.py`
+- `frontend/tests/phase5-7-pages.test.tsx`
+- `ingestion/tests/fixtures/`
+
+Tasks:
+
+- [ ] Add DB fixtures for one plan event matched to multiple requests and assert grouped budget gap totals.
+- [ ] Add mixed official/provisional FX fixtures and assert local/normalized output.
+- [ ] Add duplicate actual-attendance Pcode fixture and assert Doctor ROI spend is allocated once.
+- [ ] Add no-RCPA and historical-baseline fixture rows and assert ROI labels/limitations.
+- [ ] Add latest-run-per-file validation fixture and assert stale warnings disappear after corrected rerun.
+- [ ] Add frontend tests for filters, pagination, drawer brand mix, no-RCPA states, FX warnings, and Data Quality unmatched/source tables.
+
+Acceptance criteria:
+
+- Phase 5-7 analytical regressions fail in tests before reaching Supabase.
+- Frontend tests verify core workflows, not only that pages render.
+
+### PH5-7-003: Make Doctor ROI metadata derive from full filtered results, not current page rows
+
+Problem: `DoctorService.roi()` builds `no_rcpa`, `missing_fx`, and `provisional_fx` flags from the current paginated page only. `DoctorRoiCards` also calculates dark-horse and no-RCPA counts from the current page rows only.
 
 Evidence:
 
-- Local report says 4 files and 4 rows seen.
-- Supabase has 8 source files and 1,179,273 rows seen.
+- Live `/api/doctors/roi?pageSize=3` returns `dataQualityFlags: []`.
+- Primary-scope Doctor ROI still contains 77 Sri Lanka no-RCPA rows.
 
-Tasks:
+Why this matters: Users can see a clean header on page 1 even when the filtered result set contains no-RCPA or FX-quality caveats later. This is a data clarity issue.
 
-- [ ] Generate a real-workbook profile report from `data/raw/`.
-- [ ] Generate a real-workbook ingestion report from current Supabase run metadata.
-- [ ] Label reports clearly as `real-data` vs `fixture-dry-run`.
-- [ ] Keep reports gitignored if they may expose sensitive source details.
+Files:
 
-Acceptance criteria:
-
-- Local reports reconcile to Supabase source file counts and row counts.
-- Fixture reports cannot be mistaken for the production dataset.
-
-### PH6-001: Make Doctor ROI default scope explicit and safe
-
-Problem: Doctor ROI currently returns all countries by default, including UAE, Oman, Malaysia, and Myanmar. Execution and budget default to the Phase 4 primary analytical scope, but Doctor ROI does not.
-
-Why this matters: A user can see 26,563 doctors and interpret the full country universe as equally supported. In reality, planner and RCPA coverage differ by country:
-
-- Nepal and Sri Lanka have planner data.
-- Myanmar has RCPA and execution/request evidence but no planner rows.
-- UAE/Oman/Malaysia have request/snapshot evidence but no RCPA baseline.
-
-Tasks:
-
-- [ ] Decide and document Doctor ROI default scope: either primary countries only or all countries with strong scope warnings.
-- [ ] Add `includeOutOfScope` or `scope` semantics to `/api/doctors/roi`.
-- [ ] Add country-scope warning cards when rows include countries without planner or RCPA coverage.
-- [ ] Make the page header say whether the view is "primary market ROI" or "all loaded country ROI".
-- [ ] Add tests proving default scope behavior.
-
-Acceptance criteria:
-
-- A business user cannot mistake broader loaded evidence for fully comparable primary-scope ROI.
-- Doctor ROI scope behavior is consistent with Execution/Budget scope rules or explicitly documented as different.
-
-### PH6-002: Fix brand filter semantics in Doctor ROI
-
-Problem: The `brand` filter checks whether a doctor has that brand in `rcpa_doctor_brand_summary`, but the ROI metrics shown remain all-brand doctor totals.
-
-Why this matters: If a user selects a brand, they may assume prescription quantity, share, and ROI values are brand-specific. They are not. This is a representation mismatch.
-
-Tasks:
-
-- [ ] Choose the correct product behavior:
-  - Option A: keep brand filter as a doctor inclusion filter and label it as "Doctors with selected brand in RCPA baseline".
-  - Option B: compute brand-specific doctor ROI metrics from `rcpa_doctor_brand_summary`.
-- [ ] If Option B, add brand-specific columns such as selected-brand Cipla qty/value, competitor qty/value, share, and spend-per-selected-brand-prescription.
-- [ ] Update backend schema, OpenAPI, frontend labels, and tests.
-- [ ] Add a regression test proving selected brand values do not silently show all-brand totals.
-
-Acceptance criteria:
-
-- Selecting a brand produces either clearly labeled inclusion filtering or true brand-specific metrics.
-- The UI cannot imply false brand-level ROI precision.
-
-### PH7-001: Instrument serial month parsing from the parser, not validation text
-
-Problem: `serial_month_parse_count` is currently `0` and is computed by searching latest validation messages for the word `serial`. That does not prove whether Excel serial month values were parsed successfully.
-
-Why this matters: Excel serial dates were a known source-file risk. If successful serial parsing is not instrumented, Data Quality cannot validate that risk.
-
-Tasks:
-
-- [ ] Add parser diagnostics that count month inputs by source format: text, date object, Excel serial, failed.
-- [ ] Persist those diagnostics into ingestion run/file profile JSON or a dedicated quality table.
-- [ ] Update `mv_data_quality` to read the real diagnostic count.
-- [ ] Add an ingestion fixture and DB/API test where serial month values produce a positive serial count.
-
-Acceptance criteria:
-
-- Data Quality can show successful serial-month parsing, not just serial-related warnings.
-- The count is sourced from ingestion diagnostics, not string matching.
-
-### PH7-002: Make local/online row semantics clear for RCPA aggregation
-
-Problem: Data Quality reports `rows_seen` and `rows_loaded`, but for RCPA, loaded rows are compact summary rows, not raw prescription rows. This is architecturally correct for Supabase storage, but the labels are ambiguous.
-
-Why this matters: Users may think most RCPA rows were dropped. In reality, they were aggregated before persistence.
-
-Tasks:
-
-- [ ] Rename or supplement RCPA report metrics with `rawRowsSeen`, `summaryRowsWritten`, and `detailExtractRows`.
-- [ ] Show the compact-online-storage rule in Data Quality.
-- [ ] Add source-file detail that explains RCPA aggregation by workbook.
-
-Acceptance criteria:
-
-- RCPA row-count differences are interpreted as aggregation, not data loss.
-
-## P1: High Priority Production Hardening
-
-### PH5-001: Remove or deprecate mixed-currency top-level local totals
-
-Problem: The budget API still returns top-level local totals such as `actualTotalSpendLocal` even when multiple currencies exist. The frontend mostly uses grouped local currency totals, but the API shape can still be misused by future UI or AI code.
-
-Current evidence:
-
-- Primary-scope budget rows include LKR official and NPR missing-FX rows.
-- `localTotalsByCurrency` is correct.
-- Top-level local totals are still cross-currency sums.
-
-Tasks:
-
-- [ ] Return top-level local totals only when exactly one currency is present, or mark them deprecated/internal.
-- [ ] Prefer `localTotalsByCurrency` everywhere in frontend and AI context builders.
-- [ ] Add schema documentation warning that cross-currency local totals are invalid.
-
-Acceptance criteria:
-
-- No consumer can accidentally present `LKR + NPR` as one local number.
-
-### PH5-002: Add budget drilldown sorting and stronger row-grain labels
-
-Problem: Budget rows are paginated but not sortable, and matched request rows can still look like independent event budget gaps.
-
-Tasks:
-
-- [ ] Add sort parameters for gap, actual spend, planned amount, FX status, BTU/BTC status, and match status.
-- [ ] Add a visible row-grain field: `plan_event`, `matched_request_evidence`, `spend_without_plan`, `plan_without_spend`.
-- [ ] In the table, distinguish grouped summary totals from request evidence rows.
-- [ ] Add tests for pagination and sort query parameters.
-
-Acceptance criteria:
-
-- Users can navigate all 617 primary-scope budget rows predictably.
-- Request evidence rows cannot be confused with grouped event-level budget calculations.
-
-### PH6-003: Add true Doctor ROI sorting
-
-Problem: Doctor ROI is sorted by fixed SQL order only. The UI does not expose sort controls for the core business workflows.
-
-Tasks:
-
-- [ ] Add sort parameters for dark-horse priority, Cipla prescriptions, total ROI spend, spend per Cipla prescription, last engagement date, and engagement count.
-- [ ] Add frontend sort controls.
-- [ ] Add API and frontend tests for sort order.
-
-Acceptance criteria:
-
-- A user can intentionally rank opportunities instead of relying on hardcoded default order.
-
-### PH6-004: Add row-level RCPA baseline clarity in Doctor ROI table
-
-Problem: The page-level note says RCPA is historical baseline, but table rows do not show RCPA first/last month unless the drawer is opened.
-
-Tasks:
-
-- [ ] Add compact RCPA period text in each doctor row or a visible table column.
-- [ ] Add a no-RCPA badge directly in the table.
-- [ ] Add a tooltip or detail explaining that engagement period and RCPA period are different.
-
-Acceptance criteria:
-
-- Users understand period mismatch before opening a doctor drawer.
-
-### PH7-003: Make unmatched records drilldown paginated and filterable
-
-Problem: Data Quality includes an unmatched records sample, but it is limited and not paginated/filterable.
-
-Tasks:
-
-- [ ] Add `/api/data-quality/unmatched` with pagination and filters by country, month, source type, reason, and confidence.
-- [ ] Keep the summary endpoint lightweight.
-- [ ] Add a full unmatched table UI with pagination.
-
-Acceptance criteria:
-
-- Data Quality supports real remediation of all unmatched records, not just a sample.
-
-### PH7-004: Move data freshness threshold out of hardcoded SQL
-
-Problem: `mv_data_quality` hardcodes stale ingestion as `14 days`.
-
-Tasks:
-
-- [ ] Add `DATA_FRESHNESS_MAX_AGE_DAYS` setting or a small DB config table.
-- [ ] Compute stale/fresh status in service logic or from configurable SQL.
-- [ ] Document expected ingestion cadence.
-
-Acceptance criteria:
-
-- Freshness policy can change without editing and remigrating a materialized view.
-
-### PHX-001: Replace string-presence database tests with data-driven regression tests
-
-Problem: `backend/tests/database/test_budget_doctor_data_quality_views.py` mostly checks that SQL text contains expected fragments. It does not execute realistic edge-case rows.
-
-Tasks:
-
-- [ ] Add real migrated test database fixtures for:
-  - one plan event matched to multiple requests,
-  - mixed official/missing FX currencies,
-  - duplicate actual attendance Pcodes,
-  - missing actual Pcodes,
-  - old validation warning fixed in a later file run,
-  - serial month parser diagnostics,
-  - no-RCPA country rows.
-- [ ] Assert exact view outputs and API responses.
-
-Acceptance criteria:
-
-- The important analytical bugs fail tests before reaching Supabase.
-
-### PHX-002: Expand frontend tests beyond one render smoke test
-
-Problem: `frontend/tests/phase5-7-pages.test.tsx` is still a single broad render test.
-
-Tasks:
-
-- [ ] Add budget filter-change tests proving query URLs include selected country/month/page.
-- [ ] Add Doctor ROI filter, pagination, drawer, brand mix, no-RCPA, and historical-baseline tests.
-- [ ] Add Data Quality unmatched/source/FX table tests.
-- [ ] Add loading, error, empty, and partial-data state tests for each page.
-
-Acceptance criteria:
-
-- Critical Phase 5-7 UI behavior is tested, not just initial rendering.
-
-## P2: UI Polish and Demo Quality
-
-### PHUI-001: Fix Recharts zero-size warnings in tests and layout
-
-Problem: Vitest passes but Recharts emits repeated warnings that chart width/height are zero in the jsdom container.
-
-Tasks:
-
-- [ ] Add a reliable test layout shim for `ResizeObserver`, `offsetWidth`, `offsetHeight`, and `getBoundingClientRect`.
-- [ ] Verify dashboard charts in browser at desktop and mobile widths.
-- [ ] Keep chart containers with stable min height and no overflow.
-
-Acceptance criteria:
-
-- Frontend tests run without chart sizing warnings.
-- Charts do not overlap labels or flow out of cards.
-
-### PHUI-002: Fix visible encoding artifacts
-
-Problem: Some frontend strings render `Â·` instead of a normal separator.
-
-Known files:
-
-- `frontend/src/components/budget/BudgetComponents.tsx`
+- `backend/app/repositories/doctor_repository.py`
+- `backend/app/services/doctor_service.py`
 - `frontend/src/components/doctors/DoctorRoiComponents.tsx`
 
 Tasks:
 
-- [ ] Replace `Â·` with ASCII separators such as `-` or `|`.
-- [ ] Search the frontend for additional encoding artifacts.
+- [ ] Return aggregate quality counts for the full filtered Doctor ROI result set.
+- [ ] Build `meta.dataQualityFlags` from full filtered aggregates, not current page rows.
+- [ ] Show card counts from `segmentCounts`/aggregate counts rather than `data.rows`.
+- [ ] Add tests where page 1 has clean rows but later pages contain no-RCPA/provisional-FX rows.
 
 Acceptance criteria:
 
-- No mojibake appears in the dashboard UI.
+- Doctor ROI warnings reflect the selected result set, not just the currently visible page.
+- Summary cards do not change meaning when the user pages through results.
 
-### PHUI-003: Split the frontend bundle
+### PH5-7-004: Fix Budget table gap representation for overruns
 
-Problem: Vite reports a 681.63 kB minified JS chunk.
+Problem: `BudgetGapTable` displays `row.unspentGapUsd ?? row.overrunAmountUsd`. If `unspentGapUsd` is `0` and `overrunAmountUsd` is positive, the table displays `0` because `0` is not nullish.
+
+Why this matters: Event rows with overruns can be visually hidden as zero gaps. That violates the Phase 5 goal of showing unused budget and overruns clearly.
+
+Files:
+
+- `frontend/src/components/budget/BudgetComponents.tsx`
+- `backend/app/schemas/budget.py`
 
 Tasks:
 
-- [ ] Add route-level lazy loading for dashboard pages.
-- [ ] Consider manual chunks for Recharts and vendor libraries.
-- [ ] Re-run production build and record chunk sizes.
+- [ ] Render unspent and overrun as separate columns, or render a signed variance with explicit `unspent`/`overrun` label.
+- [ ] Add an overrun fixture to frontend tests.
+- [ ] Add row-level status styling for plan-only, request-only, matched gap, and matched overrun.
 
 Acceptance criteria:
 
-- Initial dashboard bundle is materially smaller, or the chunk-size warning is intentionally documented.
+- A positive overrun is never hidden behind a zero unspent value.
+- The budget table explains whether the row is underused, overrun, spend-without-plan, or plan-without-spend.
 
-### PHUI-004: Add consistent shared filter context
+### PH5-7-005: Regenerate real workbook profile report
 
-Problem: Budget and Doctor ROI now have page-local filters, while Execution has its own filters. This is usable, but not the final shared dashboard behavior in `finalplan.md`.
+Problem: `data/reports/ingestion-report.md` and JSON now describe the real eight workbooks, but `data/reports/workbook-profile-report.md` still describes tiny fixture files (`consolidation_tiny.xlsx`, `execution_may_tiny.xlsx`, etc.).
+
+Why this matters: Phase 7 is the trust layer. A stale workbook profile report creates audit confusion because one report proves real data and the other proves fixture data.
+
+Files:
+
+- `data/reports/workbook-profile-report.md`
+- `ingestion/report.py`
+- `ingestion/main.py`
 
 Tasks:
 
-- [ ] Add a minimal Zustand filter store for country/month shared across Execution, Budget, Doctor ROI, and Data Quality.
+- [ ] Regenerate workbook profile report from `data/raw/`.
+- [ ] Label fixture profile reports separately if they are still needed.
+- [ ] Ensure the profile report reconciles to the same eight source files as Supabase.
+
+Acceptance criteria:
+
+- The current profile report lists the eight real source workbooks, not fixture files.
+- Report consumers can tell real-data reports apart from fixture/test reports.
+
+## P1: High Priority Production Hardening
+
+### PH5-001: Add budget sorting and row-grain semantics
+
+Problem: Budget rows are paginated but not sortable. Rows also expose `matchStatus`, but not a clear business grain such as `matched_request_evidence`, `plan_without_spend`, or `spend_without_plan`.
+
+Why this matters: There are 617 primary-scope budget rows. Users need to rank by overrun, unspent gap, actual spend, FX status, and reconciliation status.
+
+Tasks:
+
+- [ ] Add `sort` and `sortDirection` query params to `/api/budget/summary`.
+- [ ] Support sort keys: `unspentGapUsd`, `overrunAmountUsd`, `actualSpendUsd`, `plannedBudgetUsd`, `fxRateStatus`, `btuBtcReconciliationStatus`, and `matchStatus`.
+- [ ] Add a `rowGrain` or `rowKind` field to the API.
+- [ ] Add frontend sort controls and visible row-grain badges.
+- [ ] Add API/frontend tests for sorting.
+
+Acceptance criteria:
+
+- Users can intentionally find the largest gaps/overruns.
+- Request evidence rows cannot be mistaken for grouped budget totals.
+
+### PH6-001: Decide whether brand filter must become true brand-specific ROI
+
+Problem: The Doctor ROI brand filter currently means "doctors with selected brand in RCPA baseline", while displayed ROI metrics remain all-brand doctor totals. The UI note says this, so it is not hidden, but the product behavior is still weaker than a true brand-specific ROI workflow.
+
+Tasks:
+
+- [ ] Confirm product decision:
+  - Option A: keep brand as baseline inclusion filter and expose `brandFilterMode = inclusion_only` in API/meta.
+  - Option B: implement selected-brand ROI metrics from `rcpa_doctor_brand_summary`.
+- [ ] If Option B, return selected-brand Cipla qty/value, competitor qty/value, share, and spend-per-selected-brand-prescription.
+- [ ] If Option A, make labels and exports impossible to misread as brand-specific ROI.
+- [ ] Add regression tests for selected-brand behavior.
+
+Acceptance criteria:
+
+- Selecting a brand cannot imply false brand-specific ROI precision.
+- The API tells consumers what the brand filter means.
+
+### PH6-002: Clarify Doctor ROI month filtering semantics
+
+Problem: Month filters apply to engagement evidence, but unengaged RCPA doctors with null engagement dates remain visible. This is useful for opportunities, but it can surprise users who expect a strict period filter.
+
+Files:
+
+- `backend/app/repositories/doctor_repository.py`
+- `backend/app/services/doctor_service.py`
+- `frontend/src/pages/DoctorRoi.tsx`
+
+Tasks:
+
+- [ ] Add explicit filter mode metadata: `engagement_period_filter`.
+- [ ] Consider a toggle: `showUnengagedBaselineOpportunities`.
+- [ ] Show active filter semantics beside the month controls.
+- [ ] Add tests for month-filtered ROI with unengaged baseline doctors.
+
+Acceptance criteria:
+
+- A user understands why unengaged doctors can appear under an engagement month filter.
+
+### PH6-003: Add true Doctor ROI sorting
+
+Problem: Doctor ROI has a fixed SQL order. The UI has pagination but no sort controls for the primary workflows.
+
+Tasks:
+
+- [ ] Add backend sort keys: `darkHorse`, `ciplaPrescriptionQty`, `totalRoiSpendUsd`, `spendPerCiplaPrescriptionUsd`, `lastEngagementDate`, and `engagementCount`.
+- [ ] Add frontend sort controls.
+- [ ] Add tests for sort order.
+
+Acceptance criteria:
+
+- Users can rank doctors by opportunity, value, spend, engagement, and inefficient spend.
+
+### PH7-001: Add paginated/filterable unmatched record endpoint
+
+Problem: Data Quality includes only a 50-row unmatched sample. It groups unmatched counts by source/reason, but it does not support full remediation of all unmatched rows.
+
+Files:
+
+- `backend/app/repositories/data_quality_repository.py`
+- `backend/app/routers/data_quality.py`
+- `frontend/src/pages/DataQuality.tsx`
+
+Tasks:
+
+- [ ] Add `/api/data-quality/unmatched` with `page`, `pageSize`, `country`, `month`, `sourceType`, `reasonCode`, and confidence filters.
+- [ ] Keep `/api/data-quality` summary lightweight.
+- [ ] Add full unmatched table with pagination.
+- [ ] Add tests for unmatched pagination and filters.
+
+Acceptance criteria:
+
+- Users can inspect and remediate all unmatched records, not only a sample.
+
+### PH7-002: Move stale-ingestion threshold out of materialized-view SQL
+
+Problem: `mv_data_quality.sql` hardcodes stale ingestion as `14 days`.
+
+Why this matters: Freshness policy is operational configuration. It should not require a view migration to change demo cadence.
+
+Files:
+
+- `database/views/mv_data_quality.sql`
+- `backend/app/config.py`
+- `backend/app/services/data_quality_service.py`
+- `docs/ingestion-runbook.md`
+
+Tasks:
+
+- [ ] Add `DATA_FRESHNESS_MAX_AGE_DAYS` setting or a small DB config table.
+- [ ] Compute stale status in backend service or from configurable DB policy.
+- [ ] Document expected ingestion cadence.
+- [ ] Add tests for stale threshold behavior.
+
+Acceptance criteria:
+
+- Freshness policy changes without editing/remigrating `mv_data_quality`.
+
+### PH7-003: Improve RCPA row-count wording in Data Quality
+
+Problem: Data Quality shows total `rowsSeen` and `rowsLoaded`, but the UI does not explain that RCPA raw rows are aggregated into compact online summaries and detailed local extracts.
+
+Evidence:
+
+- Real ingestion report explains `Online Rows` and `Detail Rows`.
+- Data Quality page only shows generic row counts.
+
+Tasks:
+
+- [ ] Add `rawRowsSeen`, `summaryRowsWritten`, and `detailExtractRows` to source-file quality for RCPA files.
+- [ ] Show "compact online summary" wording in Data Quality.
+- [ ] Link/report local extract path only in local reports, not public dashboard UI if sensitive.
+
+Acceptance criteria:
+
+- Users understand RCPA aggregation as intentional storage optimization, not missing data.
+
+### PH7-004: Show all promised Data Quality metrics in the UI
+
+Problem: The Data Quality page does not visibly show every Phase 7 metric promised in `tasks.md`. It shows several, but serial-month count and intervention-type coverage are not presented as first-class visible metrics.
+
+Files:
+
+- `frontend/src/pages/DataQuality.tsx`
+- `backend/app/schemas/data_quality.py`
+
+Tasks:
+
+- [ ] Add visible cards/rows for `serialMonthParseCount` and `interventionTypeCoverage`.
+- [ ] Add visible note for provisional FX count and public-rate status.
+- [ ] Add source derivation note for Sri Lanka May derived snapshots in the page body, not only meta.
+
+Acceptance criteria:
+
+- T163 is honestly satisfied in the visible page, not only in API payload.
+
+### PHX-001: Add safe database diagnostics and avoid broad joins on Supabase free tier
+
+Problem: A broad diagnostic query joining countries to requests, planner rows, snapshots, and `mv_doctor_roi` hit Supabase temp-space limits: `No space left on device`.
+
+Why this matters: The app can operate, but production diagnostics/reviews must not require large cartesian joins or temp-heavy queries. Supabase free tier remains a real operational constraint.
+
+Tasks:
+
+- [ ] Add pre-aggregated diagnostic views or scripts for country/source coverage.
+- [ ] Document safe review SQL in `docs/ingestion-runbook.md` or `docs/demo-validation.md`.
+- [ ] Add indexes or materialized summaries where repeated diagnostics are needed.
+- [ ] Avoid using full `SCHEMA.sql` or ad hoc joins as the normal review path.
+
+Acceptance criteria:
+
+- Reviewers can inspect source coverage and quality without triggering temp-space failures.
+
+## P2: Product/UI Quality
+
+### PHUI-001: Add shared filter context
+
+Problem: Execution, Budget, and Doctor ROI each manage local filters. This is usable, but the final architecture asks for shared dashboard scope through React Query plus Zustand.
+
+Tasks:
+
+- [ ] Add a minimal `filterStore` for country/month.
 - [ ] Keep page-specific filters local or namespaced.
-- [ ] Show selected scope consistently in page headers.
+- [ ] Show active global scope consistently in headers.
+- [ ] Ensure query keys include shared and page-specific filters.
 
 Acceptance criteria:
 
-- Users can compare execution, budget, and ROI under the same selected country/month without resetting each page.
+- A user can compare Execution, Budget, Doctor ROI, and Data Quality under the same selected country/month without resetting each page.
+
+### PHUI-002: Add stronger empty/error/partial states for Phase 5-7 filters
+
+Problem: Pages have basic loading/error/empty states, but filter-specific no-data explanations are thin.
+
+Tasks:
+
+- [ ] Budget empty state should mention selected country/month and whether out-of-scope is excluded.
+- [ ] Doctor ROI empty state should distinguish no attendance, no RCPA baseline, and too-restrictive filters.
+- [ ] Data Quality should handle no unmatched records and no validation issues with specific success copy.
+- [ ] Add tests for these states.
+
+Acceptance criteria:
+
+- Empty states explain what the user can do next without implying data loss.
+
+### PHUI-003: Add browser-level layout verification for Phase 5-7
+
+Problem: Unit tests pass and previous chart sizing warnings are fixed, but there is no recorded browser screenshot/layout verification after the latest Phase 5-7 changes.
+
+Tasks:
+
+- [ ] Run the frontend against the backend locally.
+- [ ] Verify Budget, Doctor ROI, and Data Quality at desktop and mobile widths.
+- [ ] Check chart overflow, table scroll behavior, drawer behavior, and sticky nav.
+- [ ] Record issues or screenshots in `docs/demo-validation.md`.
+
+Acceptance criteria:
+
+- Phase 5-7 pages are visually demo-safe, not just test-safe.
 
 ## Data Mismatch And Representation Notes
 
-These are not necessarily bugs, but they must remain visible:
+These are not necessarily implementation bugs, but they must remain visible in the product:
 
-- Match coverage is 61.38%, so execution and budget metrics should continue to show weak/unmatched warnings.
+- Match coverage is 61.38%; execution and budget metrics must continue to show weak/unmatched warnings.
 - Primary-scope unmatched records still include 69 consolidation-only, 52 planner-only, and 37 snapshot-only records.
-- NPR has missing FX, so Nepal spend cannot be fully represented in USD until a company NPR rate is supplied.
-- Doctor ROI combines historical RCPA baseline through Mar 2026 with execution engagement through May 2026.
-- Countries without RCPA should not appear as comparable doctor ROI markets unless explicitly marked no-RCPA.
-- Local `SCHEMA.sql` is a full Supabase dump including internal Supabase objects; for engineering review, add an app-only schema snapshot or docs so reviewers are not forced to read storage/auth internals.
+- 1,555 execution request rows use provisional public FX. They are usable for provisional USD analysis but not official finance reporting.
+- Doctor ROI mixes FY27 engagement evidence with historical RCPA baseline ending March 2026.
+- UAE, Oman, and Malaysia have request/snapshot evidence but no RCPA coverage; Myanmar has no planner rows. These markets are not comparable to Nepal/Sri Lanka primary-scope ROI without warnings.
+- 50 plan events have multiple matched/weak request rows; budget summaries group these, but detail rows still need clear grain labels.
 
 ## Recommended Fix Order
 
-1. Regenerate real-workbook reports and fix Data Quality row-count wording.
-2. Decide Doctor ROI default scope and brand-filter semantics.
-3. Remove/deprecate mixed-currency top-level local totals.
-4. Instrument serial month parse counts from ingestion diagnostics.
-5. Add unmatched records pagination/filtering.
-6. Add data-driven DB regression tests for the exact analytical risks.
-7. Fix frontend chart warnings, encoding artifacts, and bundle splitting.
-8. Add shared filter context after the page-level APIs are stable.
+1. Fix frontend/API numeric contract drift.
+2. Add full-result Doctor ROI quality aggregates and fix page-based card counts.
+3. Fix Budget overrun display.
+4. Regenerate real workbook profile report.
+5. Add data-driven DB/API/frontend regression tests.
+6. Add budget/doctor sorting and unmatched record pagination.
+7. Move stale-ingestion policy to config.
+8. Improve Data Quality UI wording for RCPA aggregation, serial months, intervention coverage, and provisional FX.
+9. Add shared filter context and browser layout verification.
 

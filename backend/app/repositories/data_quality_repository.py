@@ -78,7 +78,16 @@ class DataQualityRepository:
                     coalesce(irf.warnings, 0)::integer as warning_count,
                     coalesce(irf.errors, 0)::integer as error_count,
                     sf.period_start::text,
-                    sf.period_end::text
+                    sf.period_end::text,
+                    case
+                        when sf.source_type = 'rcpa' then 'compact_online_summary'
+                        else 'canonical_rows'
+                    end as storage_mode,
+                    case
+                        when sf.source_type = 'rcpa'
+                            then 'Rows loaded are compact online RCPA summary rows; raw prescription detail is represented in local detail extracts.'
+                        else null
+                    end as row_count_note
                 from source_files sf
                 left join ingestion_run_files irf on irf.source_file_id = sf.id
                 left join ingestion_runs ir on ir.id = irf.ingestion_run_id
@@ -106,9 +115,45 @@ class DataQualityRepository:
         return [dict(row) for row in rows]
 
     def unmatched_records(self, limit: int = 50) -> list[dict[str, Any]]:
+        return self.unmatched_records_page(page=1, page_size=limit)[1]
+
+    def unmatched_records_page(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 50,
+        country: str | None = None,
+        month: str | None = None,
+        source_type: str | None = None,
+        reason_code: str | None = None,
+    ) -> tuple[int, list[dict[str, Any]]]:
+        offset = max(page - 1, 0) * page_size
+        params = {
+            "country": country,
+            "month": month,
+            "source_type": source_type,
+            "reason_code": reason_code,
+            "limit": page_size,
+            "offset": offset,
+        }
+        where = """
+            where is_primary_phase4_scope
+              and (
+                cast(:country as text) is null
+                or lower(country_code) = lower(cast(:country as text))
+                or lower(country_name) = lower(cast(:country as text))
+              )
+              and (
+                cast(:month as text) is null
+                or to_char(month_start_date, 'YYYY-MM') = cast(:month as text)
+              )
+              and (cast(:source_type as text) is null or source_type = cast(:source_type as text))
+              and (cast(:reason_code as text) is null or unmatched_reason_code = cast(:reason_code as text))
+        """
+        total = self.session.execute(text(f"select count(*)::integer from mv_unmatched_events {where}"), params).scalar_one()
         rows = self.session.execute(
             text(
-                """
+                f"""
                 select
                     source_type,
                     country_name as country,
@@ -120,14 +165,15 @@ class DataQualityRepository:
                     candidate_match,
                     confidence
                 from mv_unmatched_events
-                where is_primary_phase4_scope
+                {where}
                 order by country_name, month_start_date, source_type, event_name
                 limit :limit
+                offset :offset
                 """
             ),
-            {"limit": limit},
+            params,
         ).mappings()
-        return [dict(row) for row in rows]
+        return int(total or 0), [dict(row) for row in rows]
 
     def fx_quality(self) -> list[dict[str, Any]]:
         rows = self.session.execute(

@@ -27,6 +27,7 @@ class BudgetGapRow(ApiModel):
     btu_btc_reconciliation_status: str
     spend_without_plan: bool
     plan_without_spend: bool
+    row_kind: str = "budget_evidence"
     scope_status: str | None = None
 
 
@@ -72,4 +73,6 @@ class BudgetSummary(ApiModel):
     page: int = 1
     page_size: int = 100
     total: int = 0
+    sort: str = "priority"
+    sort_direction: str = "desc"
     rows: list[BudgetGapRow] = Field(default_factory=list)

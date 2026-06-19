@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from backend.app.config import get_settings
 from backend.app.repositories.data_quality_repository import DataQualityRepository
 from backend.app.schemas.data_quality import (
     DataQualitySummary,
@@ -12,6 +14,7 @@ from backend.app.schemas.data_quality import (
     SourceFileQualityRow,
     UnmatchedQualityRow,
     UnmatchedRecordRow,
+    UnmatchedRecordsResponse,
     ValidationIssueRow,
 )
 from backend.app.schemas.filters import FilterOption, FiltersResponse
@@ -25,6 +28,9 @@ class DataQualityService:
 
     def summary(self) -> DataQualitySummary:
         row = self.repository.summary() or {}
+        latest = self.latest_ingestion()
+        stale_ingestion = _is_stale(latest.completed_at, latest.status)
+        row["stale_ingestion"] = stale_ingestion
         flags = _quality_flags(row)
         limitations = []
         if row.get("derived_snapshot_count"):
@@ -33,7 +39,7 @@ class DataQualityService:
             limitations.append("Non-LKR financial rows without company FX remain local-only for USD comparisons.")
         return DataQualitySummary(
             meta=build_meta(self.session, flags=flags, limitations=limitations),
-            latest_ingestion=self.latest_ingestion(),
+            latest_ingestion=latest,
             source_file_count=int(row.get("source_file_count") or 0),
             loaded_file_count=int(row.get("loaded_file_count") or 0),
             rows_seen=int(row.get("rows_seen") or 0),
@@ -61,12 +67,50 @@ class DataQualityService:
             actual_attendance_missing_pcode_count=int(row.get("actual_attendance_missing_pcode_count") or 0),
             unallocated_doctor_spend_local=_decimal(row.get("unallocated_doctor_spend_local")),
             unallocated_doctor_spend_usd=_decimal(row.get("unallocated_doctor_spend_usd")),
-            stale_ingestion=bool(row.get("stale_ingestion")),
+            stale_ingestion=stale_ingestion,
             validation_issues=[ValidationIssueRow(**item) for item in self.repository.validation_issues()],
             source_files=[SourceFileQualityRow(**item) for item in self.repository.source_file_quality()],
             unmatched_by_source=[UnmatchedQualityRow(**item) for item in self.repository.unmatched_by_source()],
             unmatched_records=[UnmatchedRecordRow(**item) for item in self.repository.unmatched_records()],
             fx_quality=[FxQualityRow(**item) for item in self.repository.fx_quality()],
+        )
+
+    def unmatched_records(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 50,
+        country: str | None = None,
+        month: str | None = None,
+        source_type: str | None = None,
+        reason_code: str | None = None,
+    ) -> UnmatchedRecordsResponse:
+        total, rows = self.repository.unmatched_records_page(
+            page=page,
+            page_size=page_size,
+            country=country,
+            month=month,
+            source_type=source_type,
+            reason_code=reason_code,
+        )
+        return UnmatchedRecordsResponse(
+            meta=build_meta(
+                self.session,
+                filters_applied=_filters(
+                    country=country,
+                    month=month,
+                    sourceType=source_type,
+                    reasonCode=reason_code,
+                    page=page,
+                    pageSize=page_size,
+                ),
+                flags=["weak_match_coverage"] if total else [],
+                limitations=["Unmatched records are restricted to the primary Phase 4 analytical scope."],
+            ),
+            page=page,
+            page_size=page_size,
+            total=total,
+            rows=[UnmatchedRecordRow(**item) for item in rows],
         )
 
     def latest_ingestion(self) -> IngestionLatestResponse:
@@ -121,3 +165,17 @@ def _quality_flags(row: dict[str, object]) -> list[str]:
     if int(row.get("actual_attendance_missing_pcode_count") or 0):
         flags.append("unallocated_doctor_spend")
     return flags
+
+
+def _is_stale(completed_at: datetime | None, status: str) -> bool:
+    if not completed_at:
+        return True
+    if status not in {"completed", "completed_with_warnings"}:
+        return True
+    completed = completed_at if completed_at.tzinfo else completed_at.replace(tzinfo=UTC)
+    max_age_days = get_settings().data_freshness_max_age_days
+    return completed < datetime.now(UTC) - timedelta(days=max_age_days)
+
+
+def _filters(**values: object) -> dict[str, object]:
+    return {key: value for key, value in values.items() if value not in (None, "")}

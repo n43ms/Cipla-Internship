@@ -34,10 +34,12 @@ class DoctorService:
         include_out_of_scope: bool,
         page: int,
         page_size: int,
+        sort: str = "darkHorse",
+        sort_direction: str = "desc",
     ) -> DoctorRoiResponse:
         validate_country_month_filters(self.session, country=country, month=month_start)
         validate_country_month_filters(self.session, country=None, month=month_end)
-        total, rows, quadrant_counts, segment_counts = self.repository.roi_rows(
+        total, rows, quadrant_counts, segment_counts, quality_counts = self.repository.roi_rows(
             country,
             roi_segment,
             quadrant,
@@ -49,13 +51,17 @@ class DoctorService:
             include_out_of_scope,
             page,
             page_size,
+            sort,
+            sort_direction,
         )
         mapped = [_doctor_row(row) for row in rows]
         flags = []
-        if any(not row.has_rcpa for row in mapped):
+        if int(quality_counts.get("no_rcpa_count") or 0):
             flags.append("no_rcpa")
-        if any(row.has_missing_fx for row in mapped):
+        if int(quality_counts.get("missing_fx_count") or 0):
             flags.append("missing_fx")
+        if int(quality_counts.get("provisional_fx_count") or 0):
+            flags.append("provisional_fx")
         limitations = [
             "Doctor spend is allocated evenly across parsed actual-attendance Pcodes per request.",
             "RCPA is treated as historical prescription baseline; engagement month filters do not imply same-period prescription lift.",
@@ -81,6 +87,10 @@ class DoctorService:
                     includeOutOfScope=include_out_of_scope,
                     page=page,
                     pageSize=page_size,
+                    sort=sort,
+                    sortDirection=sort_direction,
+                    brandFilterMode="baseline_inclusion" if brand else None,
+                    periodFilterMode="engagement_period",
                 ),
                 flags=flags,
                 limitations=limitations,
@@ -88,6 +98,14 @@ class DoctorService:
             page=page,
             page_size=page_size,
             total=total,
+            sort=sort,
+            sort_direction=sort_direction,
+            dark_horse_count=int(quality_counts.get("dark_horse_count") or 0),
+            no_rcpa_count=int(quality_counts.get("no_rcpa_count") or 0),
+            missing_fx_count=int(quality_counts.get("missing_fx_count") or 0),
+            provisional_fx_count=int(quality_counts.get("provisional_fx_count") or 0),
+            brand_filter_mode="baseline_inclusion" if brand else None,
+            period_filter_mode="engagement_period",
             rows=mapped,
             quadrant_counts=quadrant_counts,
             segment_counts=segment_counts,
