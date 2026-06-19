@@ -15,6 +15,7 @@ describe("Phase 5-7 dashboard pages", () => {
     vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(input);
       if (url.includes("/api/data-quality")) return ok(dataQuality());
+      if (url.includes("/api/filters")) return ok(filters());
       if (url.includes("/api/budget/summary")) return ok(budgetSummary());
       if (url.includes("/api/doctors/roi")) return ok(doctorRoi());
       if (url.includes("/api/doctors/LK/1001")) return ok(doctorDetail());
@@ -35,7 +36,7 @@ describe("Phase 5-7 dashboard pages", () => {
 
     renderWithProviders(<App />);
 
-    await waitFor(() => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument(), { timeout: 5000 });
 
     fireEvent.click(screen.getByText("Budget"));
     await waitFor(() => expect(screen.getByText("Budget utilization")).toBeInTheDocument());
@@ -94,8 +95,31 @@ function dataQuality() {
     interventionTypeCoverage: 1,
     unmatchedEventCount: 2,
     derivedSnapshotCount: 1,
+    serialMonthParseCount: 0,
+    staticFxSeedDate: "2026-01-01",
+    officialLkrRateToUsd: 0.0032258065,
+    actualAttendanceMissingPcodeCount: 0,
+    unallocatedDoctorSpendLocal: 0,
+    unallocatedDoctorSpendUsd: 0,
     staleIngestion: false,
     validationIssues: [{ severity: "warning", sourceFile: "test.xlsx", sheetName: "Working", rowNumber: 2, entityType: "request", fieldName: "country", errorCode: "missing_field", message: "Missing country" }],
+    sourceFiles: [{ sourceFile: "test.xlsx", sourceType: "planner", status: "loaded", rowsSeen: 10, rowsLoaded: 9, rowsSkipped: 1, warningCount: 1, errorCount: 0, periodStart: null, periodEnd: null }],
+    unmatchedBySource: [{ sourceType: "planner", reasonCode: "planner_only", recordCount: 2 }],
+    unmatchedRecords: [{ sourceType: "planner", country: "Sri Lanka", month: "2026-05", eventName: "Unmatched CME", eventType: "CME", reasonCode: "planner_only", reasonDetail: "No request", candidateMatch: null, confidence: 0 }],
+    fxQuality: [{ currencyCode: "LKR", rateStatus: "official", rateToUsd: 0.0032258065, rateDate: "2026-01-01", source: "company", rowCount: 1 }],
+  };
+}
+
+function filters() {
+  return {
+    countries: [{ value: "LK", label: "Sri Lanka" }],
+    months: [{ value: "2026-05", label: "2026-05" }],
+    interventionTypes: [{ value: "CME", label: "CME" }],
+    brands: [{ value: "Brand A", label: "Brand A" }],
+    specialities: [{ value: "Cardiology", label: "Cardiology" }],
+    doctorClasses: [{ value: "A", label: "A" }],
+    roiSegments: [{ value: "high_value_unengaged", label: "high value unengaged" }],
+    latestIngestionStatus: "completed",
   };
 }
 
@@ -125,6 +149,10 @@ function budgetSummary() {
     provisionalFxCount: 0,
     currencyCodes: ["LKR"],
     fxRateStatuses: ["official"],
+    localTotalsByCurrency: [{ currencyCode: "LKR", estimatedInterventionLocal: 310000, confirmedContractedAmountLocal: 279000, directHcpBtuSpendLocal: 155000, overheadBtcSpendLocal: 62000, actualTotalSpendLocal: 217000, associationAmountLocal: 0, rowCount: 1, missingFxCount: 0, provisionalFxCount: 0 }],
+    page: 1,
+    pageSize: 25,
+    total: 1,
     rows: [{ eventName: "Diabetes CME", eventType: "CME", country: "Sri Lanka", month: "2026-05", matchStatus: "matched", plannedBudgetUsd: 1000, actualTotalExpenseUsd: 700, unspentGapUsd: 300, fxRateStatus: "official", btuBtcReconciliationStatus: "reconciled", spendWithoutPlan: false, planWithoutSpend: false }],
   };
 }
@@ -146,6 +174,7 @@ function doctorRoi() {
       doctorClass: "A",
       activeStatus: "Active",
       engagementCount: 0,
+      firstEngagementDate: null,
       lastEngagementDate: null,
       directHcpBtuSpendUsd: 0,
       overheadBtcSpendUsd: 0,
@@ -160,9 +189,14 @@ function doctorRoi() {
       quadrantY: 100,
       quadrantLabel: "low effort / high reward",
       darkHorseFlag: true,
+      darkHorseUnengagedFlag: true,
+      highValueEngagedFlag: false,
       hasRcpa: true,
       hasMissingFx: false,
       hasProvisionalFx: false,
+      rcpaFirstMonth: "2025-04-01",
+      rcpaLastMonth: "2026-03-01",
+      rcpaMonthCount: 12,
     }],
   };
 }

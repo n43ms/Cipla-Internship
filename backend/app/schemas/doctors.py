@@ -16,6 +16,7 @@ class DoctorRoiRow(ApiModel):
     doctor_class: str | None = None
     active_status: str | None = None
     engagement_count: int = 0
+    first_engagement_date: str | None = None
     last_engagement_date: str | None = None
     direct_hcp_btu_spend_usd: Decimal = Decimal("0")
     overhead_btc_spend_usd: Decimal = Decimal("0")
@@ -30,9 +31,14 @@ class DoctorRoiRow(ApiModel):
     quadrant_y: Decimal = Decimal("0")
     quadrant_label: str
     dark_horse_flag: bool
+    dark_horse_unengaged_flag: bool = False
+    high_value_engaged_flag: bool = False
     has_rcpa: bool
     has_missing_fx: bool = False
     has_provisional_fx: bool = False
+    rcpa_first_month: str | None = None
+    rcpa_last_month: str | None = None
+    rcpa_month_count: int = 0
 
 
 class DoctorRoiResponse(ApiModel):

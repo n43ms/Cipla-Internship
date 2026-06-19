@@ -7,6 +7,7 @@ with latest_run as (
 ),
 latest_file_runs as (
     select distinct on (irf.source_file_id)
+        irf.ingestion_run_id,
         irf.source_file_id,
         irf.status,
         irf.rows_seen,
@@ -21,7 +22,9 @@ latest_file_runs as (
 validation_latest as (
     select ve.*
     from validation_errors ve
-    join latest_file_runs lfr on lfr.source_file_id = ve.source_file_id
+    join latest_file_runs lfr
+      on lfr.source_file_id = ve.source_file_id
+     and lfr.ingestion_run_id = ve.ingestion_run_id
 ),
 request_pcode as (
     select
@@ -83,6 +86,44 @@ unmatched as (
     from mv_unmatched_events
     where is_primary_phase4_scope
 ),
+serial_months as (
+    select greatest(
+        coalesce((
+            select sum(coalesce((file_row -> 'summaries' ->> 'serial_month_parse_count')::integer, 0))
+            from latest_run lr2
+            cross join jsonb_array_elements(coalesce(lr2.summary_json::jsonb -> 'files', '[]'::jsonb)) as file_row
+        ), 0),
+        coalesce((
+            select count(*)::integer
+            from validation_latest
+            where lower(coalesce(error_code, '')) like '%serial%'
+               or lower(coalesce(message, '')) like '%serial%'
+        ), 0)
+    )::integer as serial_month_parse_count
+),
+fx_seed as (
+    select
+        max(rate_date) filter (where currency_code = 'LKR' and rate_status = 'official') as static_fx_seed_date,
+        max(rate_to_usd) filter (where currency_code = 'LKR' and rate_status = 'official') as official_lkr_rate_to_usd
+    from exchange_rates
+),
+unallocated_doctor_spend as (
+    select
+        count(*) filter (
+            where rd.attendance_type = 'actual'
+              and (rd.pcode_normalized is null or rd.parse_status <> 'parsed')
+        )::integer as actual_attendance_missing_pcode_count,
+        coalesce(sum(er.actual_total_expense_local) filter (
+            where rd.attendance_type = 'actual'
+              and (rd.pcode_normalized is null or rd.parse_status <> 'parsed')
+        ), 0) as unallocated_doctor_spend_local,
+        coalesce(sum(er.actual_total_expense_usd) filter (
+            where rd.attendance_type = 'actual'
+              and (rd.pcode_normalized is null or rd.parse_status <> 'parsed')
+        ), 0) as unallocated_doctor_spend_usd
+    from request_doctors rd
+    join execution_requests er on er.id = rd.execution_request_id
+),
 derived as (
     select count(*)::integer as derived_snapshot_count
     from execution_snapshots
@@ -135,6 +176,12 @@ select
         else 0 end as intervention_type_coverage,
     unmatched.unmatched_event_count,
     derived.derived_snapshot_count,
+    serial_months.serial_month_parse_count,
+    fx_seed.static_fx_seed_date,
+    fx_seed.official_lkr_rate_to_usd,
+    uds.actual_attendance_missing_pcode_count,
+    uds.unallocated_doctor_spend_local,
+    uds.unallocated_doctor_spend_usd,
     (
         lr.completed_at is null
         or lr.completed_at < now() - interval '14 days'
@@ -151,4 +198,7 @@ cross join rcpa
 cross join doctor_coverage dc
 cross join execution_quality eq
 cross join unmatched
+cross join serial_months
+cross join fx_seed
+cross join unallocated_doctor_spend uds
 cross join derived;

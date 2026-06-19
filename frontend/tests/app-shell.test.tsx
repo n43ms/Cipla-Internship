@@ -8,6 +8,6 @@ describe("App shell", () => {
   it("renders the execution governance shell", () => {
     renderWithProviders(<App />);
 
-    expect(screen.getByText("Loading execution governance")).toBeInTheDocument();
+    expect(screen.getByText("Loading dashboard page")).toBeInTheDocument();
   });
 });

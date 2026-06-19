@@ -17,12 +17,15 @@ from ingestion.validators import IssueCollector
 def load_rcpa(profile: WorkbookProfile) -> LoadResult:
     issues = IssueCollector()
     rows_seen = 0
+    serial_month_parse_count = 0
     detail_aggregate: dict[tuple[object, ...], dict[str, object]] = {}
     for sheet in canonical_sheet_data(profile):
         for row_number, row in iter_mapped_rows(sheet, RCPA_SCHEMA):
             rows_seen += 1
             country = normalize_country_name(row.get("country") or profile.country_scope)
             month = month_start(row.get("month"))
+            if month.status == "ok_excel_serial":
+                serial_month_parse_count += 1
             pcode = normalize_pcode(row.get("pcode"))
             brand = _text(row.get("brand_group"))
             sku = _text(row.get("sku")) or brand
@@ -84,6 +87,7 @@ def load_rcpa(profile: WorkbookProfile) -> LoadResult:
             "rcpa_country_brand_month_summary": country_brand_month,
             "rcpa_detail_record_count": len(detail_records),
             "rcpa_online_record_count": online_rows_loaded,
+            "serial_month_parse_count": serial_month_parse_count,
         },
     )
 

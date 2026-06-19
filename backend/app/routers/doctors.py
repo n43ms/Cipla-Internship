@@ -15,13 +15,31 @@ router = APIRouter(prefix="/doctors", tags=["doctors"])
 @router.get("/roi", response_model=DoctorRoiResponse, response_model_by_alias=True)
 def doctor_roi(
     country: str | None = None,
-    segment: str | None = None,
+    roi_segment: Annotated[str | None, Query(alias="roiSegment")] = None,
     quadrant: str | None = None,
+    month_start: Annotated[str | None, Query(alias="monthStart")] = None,
+    month_end: Annotated[str | None, Query(alias="monthEnd")] = None,
+    brand: str | None = None,
+    speciality: str | None = None,
+    doctor_class: Annotated[str | None, Query(alias="doctorClass")] = None,
+    include_out_of_scope: Annotated[bool, Query(alias="includeOutOfScope")] = False,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 25,
     session: Session = Depends(get_session),
 ) -> DoctorRoiResponse:
-    return DoctorService(session).roi(country, segment, quadrant, page, page_size)
+    return DoctorService(session).roi(
+        country,
+        roi_segment,
+        quadrant,
+        month_start,
+        month_end,
+        brand,
+        speciality,
+        doctor_class,
+        include_out_of_scope,
+        page,
+        page_size,
+    )
 
 
 @router.get("/{country_code}/{pcode}", response_model=DoctorDetailResponse, response_model_by_alias=True)

@@ -364,7 +364,7 @@ function PlannedVsEngagedChart({
         </div>
       </div>
       <div className="chart-frame h-[20rem] sm:h-72">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={320} minHeight={240}>
           <BarChart data={data} margin={{ left: 0, right: 12, top: 8, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="name" tick={{ fontSize: 12 }} />

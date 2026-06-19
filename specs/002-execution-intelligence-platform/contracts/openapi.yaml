@@ -2,690 +2,2141 @@ openapi: 3.1.0
 info:
   title: Cipla EMEU Execution Intelligence API
   version: 0.1.0
-  description: Read-only dashboard API plus grounded AI query endpoint for the protected MVP.
-servers:
-  - url: http://localhost:8000
-    description: Local backend
 paths:
   /api/health:
     get:
-      summary: Health check
+      tags:
+      - health
+      summary: Health
+      operationId: health_api_health_get
       responses:
-        "200":
-          description: Service is healthy
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthResponse"
-  /api/filters:
-    get:
-      summary: Available dashboard filters
-      responses:
-        "200":
-          description: Filter options and latest ingestion metadata
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FiltersResponse"
-  /api/ingestion/latest:
-    get:
-      summary: Latest ingestion run summary
-      responses:
-        "200":
-          description: Latest run status
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/IngestionSummary"
-  /api/data-quality:
-    get:
-      summary: Data quality dashboard summary
-      parameters:
-        - $ref: "#/components/parameters/Country"
-        - $ref: "#/components/parameters/Month"
-      responses:
-        "200":
-          description: Data quality metrics
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DataQualityResponse"
-  /api/workflow/summary:
-    get:
-      summary: Request and post-event workflow governance summary
-      parameters:
-        - $ref: "#/components/parameters/Country"
-        - $ref: "#/components/parameters/Month"
-        - $ref: "#/components/parameters/InterventionType"
-        - $ref: "#/components/parameters/IncludeOutOfScope"
-      responses:
-        "200":
-          description: Request approval, confirmation, and reporting status summary
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WorkflowSummaryResponse"
-  /api/workflow/requests:
-    get:
-      summary: Workflow governance request-level rows
-      parameters:
-        - $ref: "#/components/parameters/Country"
-        - $ref: "#/components/parameters/Month"
-        - $ref: "#/components/parameters/InterventionType"
-        - $ref: "#/components/parameters/IncludeOutOfScope"
-        - name: workflowStatus
-          in: query
-          schema:
-            type: string
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: Paginated workflow governance rows
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WorkflowRequestsResponse"
-  /api/interventions/mix:
-    get:
-      summary: Intervention type and subtype mix
-      parameters:
-        - $ref: "#/components/parameters/Country"
-        - $ref: "#/components/parameters/Month"
-        - $ref: "#/components/parameters/IncludeOutOfScope"
-      responses:
-        "200":
-          description: Intervention type counts, spend, and workflow mix
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InterventionMixResponse"
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Api Health Get
   /api/execution/summary:
     get:
-      summary: Execution KPI summary
+      tags:
+      - execution
+      summary: Execution Summary
+      operationId: execution_summary_api_execution_summary_get
       parameters:
-        - $ref: "#/components/parameters/Country"
-        - $ref: "#/components/parameters/Month"
-        - $ref: "#/components/parameters/IncludeOutOfScope"
-        - $ref: "#/components/parameters/Therapy"
-        - $ref: "#/components/parameters/EventType"
+      - name: country
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country
+      - name: month
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Month
+      - name: includeOutOfScope
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includeoutofscope
       responses:
-        "200":
-          description: Execution KPIs
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExecutionSummaryResponse"
+                $ref: '#/components/schemas/ExecutionSummary'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/execution/filter-options:
+    get:
+      tags:
+      - execution
+      summary: Execution Filter Options
+      operationId: execution_filter_options_api_execution_filter_options_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionFilterOptions'
   /api/execution/events:
     get:
-      summary: Event-level execution matrix
+      tags:
+      - execution
+      summary: Execution Events
+      operationId: execution_events_api_execution_events_get
       parameters:
-        - $ref: "#/components/parameters/Country"
-        - $ref: "#/components/parameters/Month"
-        - $ref: "#/components/parameters/IncludeOutOfScope"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
+      - name: country
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country
+      - name: month
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Month
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Pagesize
+      - name: includeOutOfScope
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includeoutofscope
       responses:
-        "200":
-          description: Paginated events
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EventListResponse"
+                $ref: '#/components/schemas/EventListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/workflow/summary:
+    get:
+      tags:
+      - workflow
+      summary: Workflow Summary
+      operationId: workflow_summary_api_workflow_summary_get
+      parameters:
+      - name: country
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country
+      - name: month
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Month
+      - name: interventionType
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Interventiontype
+      - name: includeOutOfScope
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includeoutofscope
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowSummary'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/workflow/requests:
+    get:
+      tags:
+      - workflow
+      summary: Workflow Requests
+      operationId: workflow_requests_api_workflow_requests_get
+      parameters:
+      - name: country
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country
+      - name: month
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Month
+      - name: interventionType
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Interventiontype
+      - name: workflowStatus
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Workflowstatus
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Pagesize
+      - name: includeOutOfScope
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includeoutofscope
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRequestsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/interventions/mix:
+    get:
+      tags:
+      - interventions
+      summary: Intervention Mix
+      operationId: intervention_mix_api_interventions_mix_get
+      parameters:
+      - name: country
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country
+      - name: month
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Month
+      - name: includeOutOfScope
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includeoutofscope
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterventionMixResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/budget/summary:
     get:
-      summary: Budget utilization summary
+      tags:
+      - budget
+      summary: Budget Summary
+      operationId: budget_summary_api_budget_summary_get
       parameters:
-        - $ref: "#/components/parameters/Country"
-        - $ref: "#/components/parameters/Month"
+      - name: country
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country
+      - name: month
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Month
+      - name: includeOutOfScope
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includeoutofscope
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 100
+          title: Pagesize
       responses:
-        "200":
-          description: Budget KPIs
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BudgetSummaryResponse"
+                $ref: '#/components/schemas/BudgetSummary'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/doctors/roi:
     get:
-      summary: Doctor ROI rows
+      tags:
+      - doctors
+      summary: Doctor Roi
+      operationId: doctor_roi_api_doctors_roi_get
       parameters:
-        - $ref: "#/components/parameters/Country"
-        - $ref: "#/components/parameters/MonthStart"
-        - $ref: "#/components/parameters/MonthEnd"
-        - name: roiSegment
-          in: query
-          schema:
-            type: string
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
+      - name: country
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country
+      - name: roiSegment
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Roisegment
+      - name: quadrant
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Quadrant
+      - name: monthStart
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Monthstart
+      - name: monthEnd
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Monthend
+      - name: brand
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Brand
+      - name: speciality
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Speciality
+      - name: doctorClass
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Doctorclass
+      - name: includeOutOfScope
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includeoutofscope
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Pagesize
       responses:
-        "200":
-          description: Paginated doctor ROI data
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DoctorRoiResponse"
-  /api/doctors/{countryCode}/{pcode}:
+                $ref: '#/components/schemas/DoctorRoiResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/doctors/{country_code}/{pcode}:
     get:
-      summary: Doctor detail
+      tags:
+      - doctors
+      summary: Doctor Detail
+      operationId: doctor_detail_api_doctors__country_code___pcode__get
       parameters:
-        - name: countryCode
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: pcode
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Doctor profile, engagement, prescription trend, and limitations
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DoctorDetailResponse"
-        "404":
-          description: Doctor not found
-  /api/ai/query:
-    post:
-      summary: Grounded AI business question
-      requestBody:
+      - name: country_code
+        in: path
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AiQueryRequest"
+        schema:
+          type: string
+          title: Country Code
+      - name: pcode
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Pcode
       responses:
-        "200":
-          description: Grounded answer with metrics and limitations
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AiQueryResponse"
+                $ref: '#/components/schemas/DoctorDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/data-quality:
+    get:
+      tags:
+      - data-quality
+      summary: Data Quality
+      operationId: data_quality_api_data_quality_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataQualitySummary'
+  /api/filters:
+    get:
+      tags:
+      - data-quality
+      summary: Filters
+      operationId: filters_api_filters_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FiltersResponse'
+  /api/ingestion/latest:
+    get:
+      tags:
+      - data-quality
+      summary: Latest Ingestion
+      operationId: latest_ingestion_api_ingestion_latest_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionLatestResponse'
 components:
-  parameters:
-    Country:
-      name: country
-      in: query
-      schema:
-        type: string
-    Month:
-      name: month
-      in: query
-      schema:
-        type: string
-        example: "2026-05"
-    MonthStart:
-      name: monthStart
-      in: query
-      schema:
-        type: string
-        example: "2025-11"
-    MonthEnd:
-      name: monthEnd
-      in: query
-      schema:
-        type: string
-        example: "2026-03"
-    Therapy:
-      name: therapy
-      in: query
-      schema:
-        type: string
-    EventType:
-      name: eventType
-      in: query
-      schema:
-        type: string
-    InterventionType:
-      name: interventionType
-      in: query
-      schema:
-        type: string
-    IncludeOutOfScope:
-      name: includeOutOfScope
-      in: query
-      schema:
-        type: boolean
-        default: false
-      description: Include audit-only rows outside Nepal/Sri Lanka Apr-May 2026 Phase 4 production scope.
-    Page:
-      name: page
-      in: query
-      schema:
-        type: integer
-        default: 1
-        minimum: 1
-    PageSize:
-      name: pageSize
-      in: query
-      schema:
-        type: integer
-        default: 25
-        minimum: 1
-        maximum: 100
   schemas:
-    HealthResponse:
-      type: object
-      required: [status]
+    BudgetGapRow:
       properties:
+        eventName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eventname
+        eventType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eventtype
+        country:
+          type: string
+          title: Country
+        month:
+          type: string
+          title: Month
+        matchStatus:
+          type: string
+          title: Matchstatus
+        plannedBudgetUsd:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Plannedbudgetusd
+        estimatedInterventionLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Estimatedinterventionlocal
+        confirmedContractedAmountLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmedcontractedamountlocal
+        actualTotalExpenseLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actualtotalexpenselocal
+        directHcpBtuSpendLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Directhcpbtuspendlocal
+        overheadBtcSpendLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Overheadbtcspendlocal
+        actualTotalExpenseUsd:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actualtotalexpenseusd
+        unspentGapUsd:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unspentgapusd
+        overrunAmountUsd:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Overrunamountusd
+        currencyCode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Currencycode
+        fxRateStatus:
+          type: string
+          title: Fxratestatus
+        btuBtcReconciliationStatus:
+          type: string
+          title: Btubtcreconciliationstatus
+        spendWithoutPlan:
+          type: boolean
+          title: Spendwithoutplan
+        planWithoutSpend:
+          type: boolean
+          title: Planwithoutspend
+        scopeStatus:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scopestatus
+      type: object
+      required:
+      - country
+      - month
+      - matchStatus
+      - fxRateStatus
+      - btuBtcReconciliationStatus
+      - spendWithoutPlan
+      - planWithoutSpend
+      title: BudgetGapRow
+    BudgetSummary:
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        plannedBudgetUsd:
+          type: string
+          title: Plannedbudgetusd
+          default: '0'
+        estimatedInterventionLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Estimatedinterventionlocal
+        estimatedInterventionUsd:
+          type: string
+          title: Estimatedinterventionusd
+          default: '0'
+        confirmedContractedAmountLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmedcontractedamountlocal
+        confirmedContractedAmountUsd:
+          type: string
+          title: Confirmedcontractedamountusd
+          default: '0'
+        confirmedVsEstimatedVarianceLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmedvsestimatedvariancelocal
+        confirmedVsEstimatedVarianceUsd:
+          type: string
+          title: Confirmedvsestimatedvarianceusd
+          default: '0'
+        directHcpBtuSpendLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Directhcpbtuspendlocal
+        directHcpBtuSpendUsd:
+          type: string
+          title: Directhcpbtuspendusd
+          default: '0'
+        overheadBtcSpendLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Overheadbtcspendlocal
+        overheadBtcSpendUsd:
+          type: string
+          title: Overheadbtcspendusd
+          default: '0'
+        actualTotalSpendLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actualtotalspendlocal
+        actualTotalSpendUsd:
+          type: string
+          title: Actualtotalspendusd
+          default: '0'
+        associationAmountLocal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Associationamountlocal
+        unspentGapUsd:
+          type: string
+          title: Unspentgapusd
+          default: '0'
+        overrunAmountUsd:
+          type: string
+          title: Overrunamountusd
+          default: '0'
+        planWithoutSpendCount:
+          type: integer
+          title: Planwithoutspendcount
+          default: 0
+        spendWithoutPlanCount:
+          type: integer
+          title: Spendwithoutplancount
+          default: 0
+        btuBtcReconciliationIssueCount:
+          type: integer
+          title: Btubtcreconciliationissuecount
+          default: 0
+        missingFxCount:
+          type: integer
+          title: Missingfxcount
+          default: 0
+        provisionalFxCount:
+          type: integer
+          title: Provisionalfxcount
+          default: 0
+        currencyCodes:
+          items:
+            type: string
+          type: array
+          title: Currencycodes
+        fxRateStatuses:
+          items:
+            type: string
+          type: array
+          title: Fxratestatuses
+        localTotalsByCurrency:
+          items:
+            $ref: '#/components/schemas/LocalCurrencyTotal'
+          type: array
+          title: Localtotalsbycurrency
+        page:
+          type: integer
+          title: Page
+          default: 1
+        pageSize:
+          type: integer
+          title: Pagesize
+          default: 100
+        total:
+          type: integer
+          title: Total
+          default: 0
+        rows:
+          items:
+            $ref: '#/components/schemas/BudgetGapRow'
+          type: array
+          title: Rows
+      type: object
+      required:
+      - meta
+      title: BudgetSummary
+    DataQualitySummary:
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        latestIngestion:
+          $ref: '#/components/schemas/IngestionLatestResponse'
+        sourceFileCount:
+          type: integer
+          title: Sourcefilecount
+          default: 0
+        loadedFileCount:
+          type: integer
+          title: Loadedfilecount
+          default: 0
+        rowsSeen:
+          type: integer
+          title: Rowsseen
+          default: 0
+        rowsLoaded:
+          type: integer
+          title: Rowsloaded
+          default: 0
+        rowsSkipped:
+          type: integer
+          title: Rowsskipped
+          default: 0
+        validationErrorCount:
+          type: integer
+          title: Validationerrorcount
+          default: 0
+        validationWarningCount:
+          type: integer
+          title: Validationwarningcount
+          default: 0
+        matchCoverage:
+          type: string
+          title: Matchcoverage
+          default: '0'
+        pcodeCoverage:
+          type: string
+          title: Pcodecoverage
+          default: '0'
+        rcpaCoverage:
+          type: string
+          title: Rcpacoverage
+          default: '0'
+        missingFxCount:
+          type: integer
+          title: Missingfxcount
+          default: 0
+        provisionalFxCount:
+          type: integer
+          title: Provisionalfxcount
+          default: 0
+        btuBtcReconciliationIssueCount:
+          type: integer
+          title: Btubtcreconciliationissuecount
+          default: 0
+        missingConfirmedAmountCount:
+          type: integer
+          title: Missingconfirmedamountcount
+          default: 0
+        spendWithoutPlanCount:
+          type: integer
+          title: Spendwithoutplancount
+          default: 0
+        planWithoutSpendCount:
+          type: integer
+          title: Planwithoutspendcount
+          default: 0
+        requestWorkflowCoverage:
+          type: string
+          title: Requestworkflowcoverage
+          default: '0'
+        postWorkflowCoverage:
+          type: string
+          title: Postworkflowcoverage
+          default: '0'
+        interventionTypeCoverage:
+          type: string
+          title: Interventiontypecoverage
+          default: '0'
+        unmatchedEventCount:
+          type: integer
+          title: Unmatchedeventcount
+          default: 0
+        derivedSnapshotCount:
+          type: integer
+          title: Derivedsnapshotcount
+          default: 0
+        serialMonthParseCount:
+          type: integer
+          title: Serialmonthparsecount
+          default: 0
+        staticFxSeedDate:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Staticfxseeddate
+        officialLkrRateToUsd:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Officiallkrratetousd
+        actualAttendanceMissingPcodeCount:
+          type: integer
+          title: Actualattendancemissingpcodecount
+          default: 0
+        unallocatedDoctorSpendLocal:
+          type: string
+          title: Unallocateddoctorspendlocal
+          default: '0'
+        unallocatedDoctorSpendUsd:
+          type: string
+          title: Unallocateddoctorspendusd
+          default: '0'
+        staleIngestion:
+          type: boolean
+          title: Staleingestion
+          default: false
+        validationIssues:
+          items:
+            $ref: '#/components/schemas/ValidationIssueRow'
+          type: array
+          title: Validationissues
+        sourceFiles:
+          items:
+            $ref: '#/components/schemas/SourceFileQualityRow'
+          type: array
+          title: Sourcefiles
+        unmatchedBySource:
+          items:
+            $ref: '#/components/schemas/UnmatchedQualityRow'
+          type: array
+          title: Unmatchedbysource
+        unmatchedRecords:
+          items:
+            $ref: '#/components/schemas/UnmatchedRecordRow'
+          type: array
+          title: Unmatchedrecords
+        fxQuality:
+          items:
+            $ref: '#/components/schemas/FxQualityRow'
+          type: array
+          title: Fxquality
+      type: object
+      required:
+      - meta
+      - latestIngestion
+      title: DataQualitySummary
+    DoctorBrandMixRow:
+      properties:
+        brandGroup:
+          type: string
+          title: Brandgroup
+        ownOrCompetitor:
+          type: string
+          title: Ownorcompetitor
+        prescriptionQty:
+          type: string
+          title: Prescriptionqty
+          default: '0'
+        prescriptionValueLocal:
+          type: string
+          title: Prescriptionvaluelocal
+          default: '0'
+      type: object
+      required:
+      - brandGroup
+      - ownOrCompetitor
+      title: DoctorBrandMixRow
+    DoctorDetailResponse:
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        profile:
+          $ref: '#/components/schemas/DoctorRoiRow'
+        engagementHistory:
+          items:
+            $ref: '#/components/schemas/DoctorEngagementRow'
+          type: array
+          title: Engagementhistory
+        prescriptionTrend:
+          items:
+            $ref: '#/components/schemas/DoctorPrescriptionTrendRow'
+          type: array
+          title: Prescriptiontrend
+        brandMix:
+          items:
+            $ref: '#/components/schemas/DoctorBrandMixRow'
+          type: array
+          title: Brandmix
+      type: object
+      required:
+      - meta
+      - profile
+      title: DoctorDetailResponse
+    DoctorEngagementRow:
+      properties:
+        requestId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Requestid
+        interventionName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Interventionname
+        interventionType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Interventiontype
+        month:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Month
+        actualInterventionDate:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actualinterventiondate
+        totalRoiSpendUsd:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Totalroispendusd
+        fxRateStatus:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fxratestatus
+      type: object
+      title: DoctorEngagementRow
+    DoctorPrescriptionTrendRow:
+      properties:
+        month:
+          type: string
+          title: Month
+        ciplaPrescriptionQty:
+          type: string
+          title: Ciplaprescriptionqty
+          default: '0'
+        competitorPrescriptionQty:
+          type: string
+          title: Competitorprescriptionqty
+          default: '0'
+        totalPrescriptionQty:
+          type: string
+          title: Totalprescriptionqty
+          default: '0'
+      type: object
+      required:
+      - month
+      title: DoctorPrescriptionTrendRow
+    DoctorRoiResponse:
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        page:
+          type: integer
+          title: Page
+        pageSize:
+          type: integer
+          title: Pagesize
+        total:
+          type: integer
+          title: Total
+        rows:
+          items:
+            $ref: '#/components/schemas/DoctorRoiRow'
+          type: array
+          title: Rows
+        quadrantCounts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Quadrantcounts
+        segmentCounts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Segmentcounts
+      type: object
+      required:
+      - meta
+      - page
+      - pageSize
+      - total
+      title: DoctorRoiResponse
+    DoctorRoiRow:
+      properties:
+        countryCode:
+          type: string
+          title: Countrycode
+        countryName:
+          type: string
+          title: Countryname
+        pcodeNormalized:
+          type: string
+          title: Pcodenormalized
+        doctorName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Doctorname
+        speciality:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Speciality
+        doctorClass:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Doctorclass
+        activeStatus:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Activestatus
+        engagementCount:
+          type: integer
+          title: Engagementcount
+          default: 0
+        firstEngagementDate:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Firstengagementdate
+        lastEngagementDate:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lastengagementdate
+        directHcpBtuSpendUsd:
+          type: string
+          title: Directhcpbtuspendusd
+          default: '0'
+        overheadBtcSpendUsd:
+          type: string
+          title: Overheadbtcspendusd
+          default: '0'
+        totalRoiSpendUsd:
+          type: string
+          title: Totalroispendusd
+          default: '0'
+        ciplaPrescriptionQty:
+          type: string
+          title: Ciplaprescriptionqty
+          default: '0'
+        competitorPrescriptionQty:
+          type: string
+          title: Competitorprescriptionqty
+          default: '0'
+        totalPrescriptionQty:
+          type: string
+          title: Totalprescriptionqty
+          default: '0'
+        ciplaShareQty:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ciplashareqty
+        spendPerCiplaPrescriptionUsd:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Spendperciplaprescriptionusd
+        roiSegment:
+          type: string
+          title: Roisegment
+        quadrantX:
+          type: string
+          title: Quadrantx
+          default: '0'
+        quadrantY:
+          type: string
+          title: Quadranty
+          default: '0'
+        quadrantLabel:
+          type: string
+          title: Quadrantlabel
+        darkHorseFlag:
+          type: boolean
+          title: Darkhorseflag
+        darkHorseUnengagedFlag:
+          type: boolean
+          title: Darkhorseunengagedflag
+          default: false
+        highValueEngagedFlag:
+          type: boolean
+          title: Highvalueengagedflag
+          default: false
+        hasRcpa:
+          type: boolean
+          title: Hasrcpa
+        hasMissingFx:
+          type: boolean
+          title: Hasmissingfx
+          default: false
+        hasProvisionalFx:
+          type: boolean
+          title: Hasprovisionalfx
+          default: false
+        rcpaFirstMonth:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rcpafirstmonth
+        rcpaLastMonth:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rcpalastmonth
+        rcpaMonthCount:
+          type: integer
+          title: Rcpamonthcount
+          default: 0
+      type: object
+      required:
+      - countryCode
+      - countryName
+      - pcodeNormalized
+      - roiSegment
+      - quadrantLabel
+      - darkHorseFlag
+      - hasRcpa
+      title: DoctorRoiRow
+    EventListResponse:
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        page:
+          type: integer
+          title: Page
+        pageSize:
+          type: integer
+          title: Pagesize
+        total:
+          type: integer
+          title: Total
+        rows:
+          items:
+            $ref: '#/components/schemas/ExecutionEventRow'
+          type: array
+          title: Rows
+      type: object
+      required:
+      - meta
+      - page
+      - pageSize
+      - total
+      - rows
+      title: EventListResponse
+    ExecutionEventRow:
+      properties:
+        sourceType:
+          type: string
+          title: Sourcetype
+        eventName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eventname
+        eventType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eventtype
+        country:
+          type: string
+          title: Country
+        month:
+          type: string
+          title: Month
+        matchStatus:
+          anyOf:
+          - type: string
+            enum:
+            - matched
+            - weak_match
+            - unmatched_plan
+            - unmatched_snapshot
+            - unmatched_request
+            - ignored
+          - type: string
+          title: Matchstatus
+        confidence:
+          type: string
+          title: Confidence
+        candidateMatch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidatematch
+        plannedHcps:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Plannedhcps
+        engagedHcps:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Engagedhcps
+        executionStatus:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Executionstatus
+        snapshotSource:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Snapshotsource
+        sourceDerivationNote:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sourcederivationnote
+        unmatchedReasonCode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unmatchedreasoncode
+        unmatchedReasonDetail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unmatchedreasondetail
+        isPrimaryPhase4Scope:
+          type: boolean
+          title: Isprimaryphase4Scope
+          default: false
+        scopeStatus:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scopestatus
+        scopeReason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scopereason
+        matchGrain:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Matchgrain
+        sourceReferences:
+          type: object
+          title: Sourcereferences
+      type: object
+      required:
+      - sourceType
+      - country
+      - month
+      - matchStatus
+      - confidence
+      title: ExecutionEventRow
+    ExecutionFilterOption:
+      properties:
+        value:
+          type: string
+          title: Value
+        label:
+          type: string
+          title: Label
+      type: object
+      required:
+      - value
+      - label
+      title: ExecutionFilterOption
+    ExecutionFilterOptions:
+      properties:
+        countries:
+          items:
+            $ref: '#/components/schemas/ExecutionFilterOption'
+          type: array
+          title: Countries
+        months:
+          items:
+            $ref: '#/components/schemas/ExecutionFilterOption'
+          type: array
+          title: Months
+        recommendedMonth:
+          anyOf:
+          - $ref: '#/components/schemas/ExecutionFilterOption'
+          - type: 'null'
+      type: object
+      title: ExecutionFilterOptions
+    ExecutionSummary:
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        plannedEvents:
+          type: integer
+          title: Plannedevents
+          default: 0
+        matchedEvents:
+          type: integer
+          title: Matchedevents
+          default: 0
+        weakOrUnmatchedEvents:
+          type: integer
+          title: Weakorunmatchedevents
+          default: 0
+        executedEvents:
+          type: integer
+          title: Executedevents
+          default: 0
+        actionDueEvents:
+          type: integer
+          title: Actiondueevents
+          default: 0
+        plannedEventsWithExecutedEvidence:
+          type: integer
+          title: Plannedeventswithexecutedevidence
+          default: 0
+        plannedEventsWithActionDueEvidence:
+          type: integer
+          title: Plannedeventswithactiondueevidence
+          default: 0
+        executedSnapshotCount:
+          type: integer
+          title: Executedsnapshotcount
+          default: 0
+        actionDueSnapshotCount:
+          type: integer
+          title: Actionduesnapshotcount
+          default: 0
+        plannedHcps:
+          type: integer
+          title: Plannedhcps
+          default: 0
+        engagedHcps:
+          type: integer
+          title: Engagedhcps
+          default: 0
+        matchedEngagedHcps:
+          type: integer
+          title: Matchedengagedhcps
+          default: 0
+        rawEngagedHcps:
+          type: integer
+          title: Rawengagedhcps
+          default: 0
+        hcpExecutionRate:
+          type: string
+          title: Hcpexecutionrate
+          default: '0'
+        eventExecutionRate:
+          type: string
+          title: Eventexecutionrate
+          default: '0'
+        matchCoverage:
+          type: string
+          title: Matchcoverage
+          default: '0'
+        snapshotSourceCounts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Snapshotsourcecounts
+        primaryScope:
+          type: boolean
+          title: Primaryscope
+          default: true
+        scopeStatuses:
+          items:
+            type: string
+          type: array
+          title: Scopestatuses
+        scopeReasons:
+          items:
+            type: string
+          type: array
+          title: Scopereasons
+      type: object
+      required:
+      - meta
+      title: ExecutionSummary
+    FilterOption:
+      properties:
+        value:
+          type: string
+          title: Value
+        label:
+          type: string
+          title: Label
+      type: object
+      required:
+      - value
+      - label
+      title: FilterOption
+    FiltersResponse:
+      properties:
+        countries:
+          items:
+            $ref: '#/components/schemas/FilterOption'
+          type: array
+          title: Countries
+        months:
+          items:
+            $ref: '#/components/schemas/FilterOption'
+          type: array
+          title: Months
+        interventionTypes:
+          items:
+            $ref: '#/components/schemas/FilterOption'
+          type: array
+          title: Interventiontypes
+        brands:
+          items:
+            $ref: '#/components/schemas/FilterOption'
+          type: array
+          title: Brands
+        specialities:
+          items:
+            $ref: '#/components/schemas/FilterOption'
+          type: array
+          title: Specialities
+        doctorClasses:
+          items:
+            $ref: '#/components/schemas/FilterOption'
+          type: array
+          title: Doctorclasses
+        roiSegments:
+          items:
+            $ref: '#/components/schemas/FilterOption'
+          type: array
+          title: Roisegments
+        latestIngestionStatus:
+          type: string
+          title: Latestingestionstatus
+          default: unknown
+      type: object
+      title: FiltersResponse
+    FxQualityRow:
+      properties:
+        currencyCode:
+          type: string
+          title: Currencycode
+        rateStatus:
+          type: string
+          title: Ratestatus
+        rateToUsd:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ratetousd
+        rateDate:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ratedate
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+        rowCount:
+          type: integer
+          title: Rowcount
+          default: 0
+      type: object
+      required:
+      - currencyCode
+      - rateStatus
+      title: FxQualityRow
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    IngestionLatestResponse:
+      properties:
+        id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Id
         status:
           type: string
-          enum: [ok]
-    ResponseMeta:
+          title: Status
+          default: unknown
+        startedAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Startedat
+        completedAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completedat
+        sourceFileCount:
+          type: integer
+          title: Sourcefilecount
+          default: 0
+        totalRowsSeen:
+          type: integer
+          title: Totalrowsseen
+          default: 0
+        totalRowsLoaded:
+          type: integer
+          title: Totalrowsloaded
+          default: 0
+        totalRowsSkipped:
+          type: integer
+          title: Totalrowsskipped
+          default: 0
+        warningCount:
+          type: integer
+          title: Warningcount
+          default: 0
+        errorCount:
+          type: integer
+          title: Errorcount
+          default: 0
       type: object
-      required: [generatedAt, latestIngestionStatus, dataQualityFlags, limitations]
+      title: IngestionLatestResponse
+    InterventionMixResponse:
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        rows:
+          items:
+            $ref: '#/components/schemas/InterventionMixRow'
+          type: array
+          title: Rows
+      type: object
+      required:
+      - meta
+      - rows
+      title: InterventionMixResponse
+    InterventionMixRow:
+      properties:
+        interventionType:
+          type: string
+          title: Interventiontype
+        interventionSubType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Interventionsubtype
+        requestCount:
+          type: integer
+          title: Requestcount
+        executedCount:
+          type: integer
+          title: Executedcount
+        executedRequestCount:
+          type: integer
+          title: Executedrequestcount
+          default: 0
+        matchedRequestCount:
+          type: integer
+          title: Matchedrequestcount
+          default: 0
+        executedSnapshotCount:
+          type: integer
+          title: Executedsnapshotcount
+          default: 0
+        actionDueCount:
+          type: integer
+          title: Actionduecount
+          default: 0
+        actionDueRequestCount:
+          type: integer
+          title: Actionduerequestcount
+          default: 0
+        actionDueSnapshotCount:
+          type: integer
+          title: Actionduesnapshotcount
+          default: 0
+        matchedWithoutExecutionCount:
+          type: integer
+          title: Matchedwithoutexecutioncount
+          default: 0
+        approvedCount:
+          type: integer
+          title: Approvedcount
+        reportPendingCount:
+          type: integer
+          title: Reportpendingcount
+        confirmedContractedAmount:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmedcontractedamount
+        directHcpBtuSpend:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Directhcpbtuspend
+        overheadBtcSpend:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Overheadbtcspend
+        totalActualSpend:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Totalactualspend
+        fxRateStatus:
+          anyOf:
+          - type: string
+            enum:
+            - official
+            - provisional
+            - missing
+          - type: string
+          title: Fxratestatus
+      type: object
+      required:
+      - interventionType
+      - requestCount
+      - executedCount
+      - approvedCount
+      - reportPendingCount
+      - fxRateStatus
+      title: InterventionMixRow
+    LocalCurrencyTotal:
+      properties:
+        currencyCode:
+          type: string
+          title: Currencycode
+        estimatedInterventionLocal:
+          type: string
+          title: Estimatedinterventionlocal
+          default: '0'
+        confirmedContractedAmountLocal:
+          type: string
+          title: Confirmedcontractedamountlocal
+          default: '0'
+        directHcpBtuSpendLocal:
+          type: string
+          title: Directhcpbtuspendlocal
+          default: '0'
+        overheadBtcSpendLocal:
+          type: string
+          title: Overheadbtcspendlocal
+          default: '0'
+        actualTotalSpendLocal:
+          type: string
+          title: Actualtotalspendlocal
+          default: '0'
+        associationAmountLocal:
+          type: string
+          title: Associationamountlocal
+          default: '0'
+        rowCount:
+          type: integer
+          title: Rowcount
+          default: 0
+        missingFxCount:
+          type: integer
+          title: Missingfxcount
+          default: 0
+        provisionalFxCount:
+          type: integer
+          title: Provisionalfxcount
+          default: 0
+      type: object
+      required:
+      - currencyCode
+      title: LocalCurrencyTotal
+    ResponseMeta:
       properties:
         generatedAt:
           type: string
           format: date-time
+          title: Generatedat
         latestIngestionRunId:
-          type: string
-          nullable: true
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latestingestionrunid
         latestIngestionStatus:
           type: string
+          title: Latestingestionstatus
+          default: unknown
+        filtersApplied:
+          type: object
+          title: Filtersapplied
         dataQualityFlags:
-          type: array
           items:
             type: string
+          type: array
+          title: Dataqualityflags
         limitations:
-          type: array
           items:
             type: string
+          type: array
+          title: Limitations
         sourceDerivationNotes:
-          type: array
           items:
             type: string
-    FiltersResponse:
+          type: array
+          title: Sourcederivationnotes
       type: object
-      required: [meta, countries, months]
+      title: ResponseMeta
+    SourceFileQualityRow:
       properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        countries:
-          type: array
-          items:
-            type: string
-        months:
-          type: array
-          items:
-            type: string
-        therapies:
-          type: array
-          items:
-            type: string
-        eventTypes:
-          type: array
-          items:
-            type: string
-        brands:
-          type: array
-          items:
-            type: string
-    IngestionSummary:
-      type: object
-      required: [id, status, rowsSeen, rowsLoaded, rowsSkipped, warningCount, errorCount]
-      properties:
-        id:
-          type: string
+        sourceFile:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sourcefile
+        sourceType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sourcetype
         status:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
         rowsSeen:
           type: integer
+          title: Rowsseen
+          default: 0
         rowsLoaded:
           type: integer
+          title: Rowsloaded
+          default: 0
         rowsSkipped:
           type: integer
+          title: Rowsskipped
+          default: 0
         warningCount:
           type: integer
+          title: Warningcount
+          default: 0
         errorCount:
           type: integer
-    DataQualityResponse:
+          title: Errorcount
+          default: 0
+        periodStart:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Periodstart
+        periodEnd:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Periodend
       type: object
-      required: [meta, matchCoverage, pcodeCoverage, rcpaCoverage, validationErrors]
+      title: SourceFileQualityRow
+    UnmatchedQualityRow:
       properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        matchCoverage:
-          type: number
-        snapshotSourceCounts:
-          type: object
-          additionalProperties:
-            type: integer
-        pcodeCoverage:
-          type: number
-        rcpaCoverage:
-          type: number
-        validationErrors:
-          type: integer
-        unmatchedRecords:
-          type: integer
-    ExecutionSummaryResponse:
-      type: object
-      required: [meta, plannedEvents, matchedEvents, executedEvents, actionDueEvents, matchCoverage]
-      properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        plannedEvents:
-          type: integer
-        matchedEvents:
-          type: integer
-        weakOrUnmatchedEvents:
-          type: integer
-        executedEvents:
-          type: integer
-        actionDueEvents:
-          type: integer
-        plannedEventsWithExecutedEvidence:
-          type: integer
-        plannedEventsWithActionDueEvidence:
-          type: integer
-        executedSnapshotCount:
-          type: integer
-        actionDueSnapshotCount:
-          type: integer
-        plannedHcps:
-          type: integer
-        engagedHcps:
-          type: integer
-        matchedEngagedHcps:
-          type: integer
-        rawEngagedHcps:
-          type: integer
-        hcpExecutionRate:
-          type: number
-        eventExecutionRate:
-          type: number
-        matchCoverage:
-          type: number
-        snapshotSourceCounts:
-          type: object
-          additionalProperties:
-            type: integer
-        primaryScope:
-          type: boolean
-        scopeStatuses:
-          type: array
-          items:
-            type: string
-        scopeReasons:
-          type: array
-          items:
-            type: string
-    EventListResponse:
-      type: object
-      required: [meta, page, pageSize, total, rows]
-      properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        page:
-          type: integer
-        pageSize:
-          type: integer
-        total:
-          type: integer
-        rows:
-          type: array
-          items:
-            type: object
-    BudgetSummaryResponse:
-      type: object
-      required: [meta, plannedBudget, confirmedContractedAmount, actualTotalSpend, currencyCode, missingFx]
-      properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        plannedBudget:
-          type: number
-        estimatedIntervention:
-          type: number
-          nullable: true
-        confirmedContractedAmount:
-          type: number
-          nullable: true
-        confirmedVsEstimatedVariance:
-          type: number
-          nullable: true
-        directHcpBtuSpend:
-          type: number
-          nullable: true
-        overheadBtcSpend:
-          type: number
-          nullable: true
-        actualTotalSpend:
-          type: number
-        unspentGap:
-          type: number
-        overrunAmount:
-          type: number
-        currencyCode:
+        sourceType:
           type: string
-        missingFx:
-          type: boolean
-        fxRateDate:
+          title: Sourcetype
+        reasonCode:
           type: string
-          nullable: true
-        fxRateSource:
+          title: Reasoncode
+        recordCount:
+          type: integer
+          title: Recordcount
+          default: 0
+      type: object
+      required:
+      - sourceType
+      - reasonCode
+      title: UnmatchedQualityRow
+    UnmatchedRecordRow:
+      properties:
+        sourceType:
           type: string
-          nullable: true
-        fxRateStatus:
-          type: string
-          enum: [official, provisional, missing]
-    WorkflowSummaryResponse:
-      type: object
-      required: [meta, requestApprovalCounts, requestConfirmationCounts, postApprovalCounts, postConfirmationCounts, ownerStageCounts]
-      properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        requestApprovalCounts:
-          type: object
-          additionalProperties:
-            type: integer
-        requestConfirmationCounts:
-          type: object
-          additionalProperties:
-            type: integer
-        postApprovalCounts:
-          type: object
-          additionalProperties:
-            type: integer
-        postConfirmationCounts:
-          type: object
-          additionalProperties:
-            type: integer
-        ownerStageCounts:
-          type: object
-          additionalProperties:
-            type: integer
-        pendingRequestCount:
-          type: integer
-        pendingReportCount:
-          type: integer
-        reportsSentForCorrection:
-          type: integer
-        reportsApproved:
-          type: integer
-        expenseSubmittedCoverage:
-          type: number
-        expenseConfirmedCoverage:
-          type: number
-        primaryScope:
-          type: boolean
-        scopeStatuses:
-          type: array
-          items:
-            type: string
-        scopeReasons:
-          type: array
-          items:
-            type: string
-    WorkflowRequestsResponse:
-      type: object
-      required: [meta, page, pageSize, total, rows]
-      properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        page:
-          type: integer
-        pageSize:
-          type: integer
-        total:
-          type: integer
-        rows:
-          type: array
-          items:
-            type: object
-            properties:
-              reqId:
-                type: string
-              country:
-                type: string
-              month:
-                type: string
-              repName:
-                type: string
-                nullable: true
-              interventionType:
-                type: string
-                nullable: true
-              requestApprovalStatus:
-                type: string
-              requestConfirmationStatus:
-                type: string
-              postApprovalStatus:
-                type: string
-              postConfirmationStatus:
-                type: string
-              currentOwnerStage:
-                type: string
-                nullable: true
-              isPrimaryPhase4Scope:
-                type: boolean
-              scopeStatus:
-                type: string
-                nullable: true
-              scopeReason:
-                type: string
-                nullable: true
-    InterventionMixResponse:
-      type: object
-      required: [meta, rows]
-      properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        rows:
-          type: array
-          items:
-            type: object
-            required: [interventionType, requestCount]
-            properties:
-              interventionType:
-                type: string
-              interventionSubType:
-                type: string
-                nullable: true
-              requestCount:
-                type: integer
-              executedCount:
-                type: integer
-              executedRequestCount:
-                type: integer
-              matchedRequestCount:
-                type: integer
-              executedSnapshotCount:
-                type: integer
-              actionDueCount:
-                type: integer
-              actionDueRequestCount:
-                type: integer
-              actionDueSnapshotCount:
-                type: integer
-              matchedWithoutExecutionCount:
-                type: integer
-              approvedCount:
-                type: integer
-              reportPendingCount:
-                type: integer
-              confirmedContractedAmount:
-                type: number
-                nullable: true
-              directHcpBtuSpend:
-                type: number
-                nullable: true
-              overheadBtcSpend:
-                type: number
-                nullable: true
-              totalActualSpend:
-                type: number
-                nullable: true
-              fxRateStatus:
-                type: string
-                enum: [official, provisional, missing]
-    DoctorRoiResponse:
-      type: object
-      required: [meta, page, pageSize, total, rows]
-      properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        page:
-          type: integer
-        pageSize:
-          type: integer
-        total:
-          type: integer
-        rows:
-          type: array
-          items:
-            type: object
-    DoctorDetailResponse:
-      type: object
-      required: [meta, profile, engagementHistory, prescriptionTrend]
-      properties:
-        meta:
-          $ref: "#/components/schemas/ResponseMeta"
-        profile:
-          type: object
-        engagementHistory:
-          type: array
-          items:
-            type: object
-        prescriptionTrend:
-          type: array
-          items:
-            type: object
-    AiQueryRequest:
-      type: object
-      required: [question]
-      properties:
-        question:
-          type: string
-          minLength: 1
-          maxLength: 1000
+          title: Sourcetype
         country:
           type: string
+          title: Country
         month:
           type: string
-        pageContext:
-          type: string
-        filters:
-          type: object
-    AiQueryResponse:
-      type: object
-      required: [answer, supportingMetrics, limitations, confidence]
-      properties:
-        answer:
-          type: string
-        supportingMetrics:
-          type: array
-          items:
-            type: object
-        limitations:
-          type: array
-          items:
-            type: string
+          title: Month
+        eventName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eventname
+        eventType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eventtype
+        reasonCode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reasoncode
+        reasonDetail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reasondetail
+        candidateMatch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidatematch
         confidence:
           type: string
-          enum: [high, medium, low, unavailable]
-        redactionApplied:
+          title: Confidence
+          default: '0'
+      type: object
+      required:
+      - sourceType
+      - country
+      - month
+      title: UnmatchedRecordRow
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    ValidationIssueRow:
+      properties:
+        severity:
+          type: string
+          title: Severity
+        sourceFile:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sourcefile
+        sheetName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sheetname
+        rowNumber:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Rownumber
+        entityType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Entitytype
+        fieldName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fieldname
+        errorCode:
+          type: string
+          title: Errorcode
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - severity
+      - errorCode
+      - message
+      title: ValidationIssueRow
+    WorkflowRequestRow:
+      properties:
+        reqId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reqid
+        country:
+          type: string
+          title: Country
+        month:
+          type: string
+          title: Month
+        repName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Repname
+        interventionType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Interventiontype
+        requestApprovalStatus:
+          type: string
+          title: Requestapprovalstatus
+        requestConfirmationStatus:
+          type: string
+          title: Requestconfirmationstatus
+        postApprovalStatus:
+          type: string
+          title: Postapprovalstatus
+        postConfirmationStatus:
+          type: string
+          title: Postconfirmationstatus
+        currentOwnerStage:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Currentownerstage
+        expenseSubmittedDate:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Expensesubmitteddate
+        expenseConfirmedDate:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Expenseconfirmeddate
+        isPrimaryPhase4Scope:
           type: boolean
+          title: Isprimaryphase4Scope
+          default: false
+        scopeStatus:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scopestatus
+        scopeReason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scopereason
+      type: object
+      required:
+      - country
+      - month
+      - requestApprovalStatus
+      - requestConfirmationStatus
+      - postApprovalStatus
+      - postConfirmationStatus
+      title: WorkflowRequestRow
+    WorkflowRequestsResponse:
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        page:
+          type: integer
+          title: Page
+        pageSize:
+          type: integer
+          title: Pagesize
+        total:
+          type: integer
+          title: Total
+        rows:
+          items:
+            $ref: '#/components/schemas/WorkflowRequestRow'
+          type: array
+          title: Rows
+      type: object
+      required:
+      - meta
+      - page
+      - pageSize
+      - total
+      - rows
+      title: WorkflowRequestsResponse
+    WorkflowSummary:
+      properties:
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        requestApprovalCounts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Requestapprovalcounts
+        requestConfirmationCounts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Requestconfirmationcounts
+        postApprovalCounts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Postapprovalcounts
+        postConfirmationCounts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Postconfirmationcounts
+        ownerStageCounts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Ownerstagecounts
+        pendingRequestCount:
+          type: integer
+          title: Pendingrequestcount
+          default: 0
+        pendingReportCount:
+          type: integer
+          title: Pendingreportcount
+          default: 0
+        reportsSentForCorrection:
+          type: integer
+          title: Reportssentforcorrection
+          default: 0
+        reportsApproved:
+          type: integer
+          title: Reportsapproved
+          default: 0
+        expenseSubmittedCoverage:
+          type: number
+          title: Expensesubmittedcoverage
+          default: 0
+        expenseConfirmedCoverage:
+          type: number
+          title: Expenseconfirmedcoverage
+          default: 0
+        primaryScope:
+          type: boolean
+          title: Primaryscope
+          default: true
+        scopeStatuses:
+          items:
+            type: string
+          type: array
+          title: Scopestatuses
+        scopeReasons:
+          items:
+            type: string
+          type: array
+          title: Scopereasons
+      type: object
+      required:
+      - meta
+      - requestApprovalCounts
+      - requestConfirmationCounts
+      - postApprovalCounts
+      - postConfirmationCounts
+      - ownerStageCounts
+      title: WorkflowSummary

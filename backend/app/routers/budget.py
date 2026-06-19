@@ -17,6 +17,8 @@ def budget_summary(
     country: str | None = None,
     month: str | None = None,
     include_out_of_scope: Annotated[bool, Query(alias="includeOutOfScope")] = False,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 100,
     session: Session = Depends(get_session),
 ) -> BudgetSummary:
-    return BudgetService(session).summary(country, month, include_out_of_scope)
+    return BudgetService(session).summary(country, month, include_out_of_scope, page, page_size)

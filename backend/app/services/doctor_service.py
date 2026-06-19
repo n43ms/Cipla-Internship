@@ -24,25 +24,66 @@ class DoctorService:
     def roi(
         self,
         country: str | None,
-        segment: str | None,
+        roi_segment: str | None,
         quadrant: str | None,
+        month_start: str | None,
+        month_end: str | None,
+        brand: str | None,
+        speciality: str | None,
+        doctor_class: str | None,
+        include_out_of_scope: bool,
         page: int,
         page_size: int,
     ) -> DoctorRoiResponse:
-        validate_country_month_filters(self.session, country=country, month=None)
-        total, rows, quadrant_counts, segment_counts = self.repository.roi_rows(country, segment, quadrant, page, page_size)
+        validate_country_month_filters(self.session, country=country, month=month_start)
+        validate_country_month_filters(self.session, country=None, month=month_end)
+        total, rows, quadrant_counts, segment_counts = self.repository.roi_rows(
+            country,
+            roi_segment,
+            quadrant,
+            month_start,
+            month_end,
+            brand,
+            speciality,
+            doctor_class,
+            include_out_of_scope,
+            page,
+            page_size,
+        )
         mapped = [_doctor_row(row) for row in rows]
         flags = []
         if any(not row.has_rcpa for row in mapped):
             flags.append("no_rcpa")
         if any(row.has_missing_fx for row in mapped):
             flags.append("missing_fx")
+        limitations = [
+            "Doctor spend is allocated evenly across parsed actual-attendance Pcodes per request.",
+            "RCPA is treated as historical prescription baseline; engagement month filters do not imply same-period prescription lift.",
+        ]
+        if not include_out_of_scope and not country:
+            limitations.append("Doctor ROI defaults to Nepal and Sri Lanka primary markets; select a country or include out-of-scope rows to inspect all loaded markets.")
+        if brand:
+            limitations.append("Brand filter identifies doctors with that brand in the RCPA baseline; displayed ROI metrics remain all-brand doctor totals.")
+        if month_start or month_end:
+            limitations.append("Month range filters apply to engagement evidence; unengaged RCPA doctors remain visible as opportunity candidates.")
         return DoctorRoiResponse(
             meta=build_meta(
                 self.session,
-                filters_applied=_filters(country=country, segment=segment, quadrant=quadrant, page=page, pageSize=page_size),
+                filters_applied=_filters(
+                    country=country,
+                    roiSegment=roi_segment,
+                    quadrant=quadrant,
+                    monthStart=month_start,
+                    monthEnd=month_end,
+                    brand=brand,
+                    speciality=speciality,
+                    doctorClass=doctor_class,
+                    includeOutOfScope=include_out_of_scope,
+                    page=page,
+                    pageSize=page_size,
+                ),
                 flags=flags,
-                limitations=["Doctor spend is allocated evenly across parsed actual-attendance Pcodes per request."],
+                limitations=limitations,
             ),
             page=page,
             page_size=page_size,
@@ -81,6 +122,7 @@ def _doctor_row(row: dict[str, object]) -> DoctorRoiRow:
         doctor_class=row.get("doctor_class"),
         active_status=row.get("active_status"),
         engagement_count=int(row.get("engagement_count") or 0),
+        first_engagement_date=str(row.get("first_engagement_date")) if row.get("first_engagement_date") else None,
         last_engagement_date=str(row.get("last_engagement_date")) if row.get("last_engagement_date") else None,
         direct_hcp_btu_spend_usd=row.get("direct_hcp_btu_spend_usd") or 0,
         overhead_btc_spend_usd=row.get("overhead_btc_spend_usd") or 0,
@@ -95,9 +137,14 @@ def _doctor_row(row: dict[str, object]) -> DoctorRoiRow:
         quadrant_y=row.get("quadrant_y") or 0,
         quadrant_label=str(row.get("quadrant_label") or "insufficient data"),
         dark_horse_flag=bool(row.get("dark_horse_flag")),
+        dark_horse_unengaged_flag=bool(row.get("dark_horse_unengaged_flag")),
+        high_value_engaged_flag=bool(row.get("high_value_engaged_flag")),
         has_rcpa=bool(row.get("has_rcpa")),
         has_missing_fx=bool(row.get("has_missing_fx")),
         has_provisional_fx=bool(row.get("has_provisional_fx")),
+        rcpa_first_month=str(row.get("rcpa_first_month")) if row.get("rcpa_first_month") else None,
+        rcpa_last_month=str(row.get("rcpa_last_month")) if row.get("rcpa_last_month") else None,
+        rcpa_month_count=int(row.get("rcpa_month_count") or 0),
     )
 
 

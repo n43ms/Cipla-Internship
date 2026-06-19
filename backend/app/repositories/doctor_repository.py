@@ -15,16 +15,28 @@ class DoctorRepository:
     def roi_rows(
         self,
         country: str | None,
-        segment: str | None,
+        roi_segment: str | None,
         quadrant: str | None,
+        month_start: str | None,
+        month_end: str | None,
+        brand: str | None,
+        speciality: str | None,
+        doctor_class: str | None,
+        include_out_of_scope: bool,
         page: int,
         page_size: int,
     ) -> tuple[int, list[dict[str, Any]], dict[str, int], dict[str, int]]:
         limit, offset = pagination(page, page_size)
         params = {
             "country": country,
-            "segment": segment,
+            "roi_segment": roi_segment,
             "quadrant": quadrant,
+            "month_start": month_start,
+            "month_end": month_end,
+            "brand": brand,
+            "speciality": speciality,
+            "doctor_class": doctor_class,
+            "include_out_of_scope": include_out_of_scope,
             "limit": limit,
             "offset": offset,
         }
@@ -34,8 +46,42 @@ class DoctorRepository:
                 or lower(country_code) = lower(cast(:country as text))
                 or lower(country_name) = lower(cast(:country as text))
             )
-            and (cast(:segment as text) is null or roi_segment = cast(:segment as text))
+            and (cast(:roi_segment as text) is null or roi_segment = cast(:roi_segment as text))
             and (cast(:quadrant as text) is null or quadrant_label = cast(:quadrant as text))
+            and (
+                cast(:month_start as text) is null
+                or last_engagement_date is null
+                or last_engagement_date >= to_date(cast(:month_start as text), 'YYYY-MM')
+            )
+            and (
+                cast(:month_end as text) is null
+                or first_engagement_date is null
+                or first_engagement_date < (to_date(cast(:month_end as text), 'YYYY-MM') + interval '1 month')
+            )
+            and (
+                cast(:speciality as text) is null
+                or lower(speciality) = lower(cast(:speciality as text))
+            )
+            and (
+                cast(:doctor_class as text) is null
+                or lower(doctor_class) = lower(cast(:doctor_class as text))
+            )
+            and (
+                cast(:include_out_of_scope as boolean)
+                or cast(:country as text) is not null
+                or country_code in ('NP', 'LK')
+            )
+            and (
+                cast(:brand as text) is null
+                or exists (
+                    select 1
+                    from rcpa_doctor_brand_summary rdbs
+                    join countries bc on bc.id = rdbs.country_id
+                    where lower(bc.code) = lower(mv_doctor_roi.country_code)
+                      and rdbs.pcode_normalized = mv_doctor_roi.pcode_normalized
+                      and lower(rdbs.brand_group) = lower(cast(:brand as text))
+                )
+            )
         """
         total = int(self.session.execute(text(f"select count(*) from mv_doctor_roi {where}"), params).scalar_one())
         rows = self.session.execute(
@@ -57,14 +103,10 @@ class DoctorRepository:
         ).mappings()
         quadrant_rows = self.session.execute(
             text(
-                """
+                f"""
                 select quadrant_label, count(*)::integer as count
                 from mv_doctor_roi
-                where (
-                    cast(:country as text) is null
-                    or lower(country_code) = lower(cast(:country as text))
-                    or lower(country_name) = lower(cast(:country as text))
-                )
+                {where}
                 group by quadrant_label
                 """
             ),
@@ -72,14 +114,10 @@ class DoctorRepository:
         ).mappings()
         segment_rows = self.session.execute(
             text(
-                """
+                f"""
                 select roi_segment, count(*)::integer as count
                 from mv_doctor_roi
-                where (
-                    cast(:country as text) is null
-                    or lower(country_code) = lower(cast(:country as text))
-                    or lower(country_name) = lower(cast(:country as text))
-                )
+                {where}
                 group by roi_segment
                 """
             ),

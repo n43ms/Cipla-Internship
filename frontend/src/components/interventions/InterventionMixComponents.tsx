@@ -24,7 +24,7 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
         <p className="text-sm text-muted">No intervention rows match the current filters.</p>
       ) : (
         <div className="chart-frame h-[28rem] sm:h-96">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={320} minHeight={240}>
             <BarChart data={data} layout="vertical" margin={{ left: 4, right: 20, top: 8, bottom: 44 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />

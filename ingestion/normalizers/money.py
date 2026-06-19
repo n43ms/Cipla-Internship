@@ -9,6 +9,14 @@ from ingestion.normalizers.currencies import currency_for_country
 
 OFFICIAL_LKR_RATE_TO_USD = Decimal("1") / Decimal("310")
 OFFICIAL_LKR_RATE_DATE = date(2026, 6, 16)
+PROVISIONAL_PUBLIC_FX_RATE_DATE = date(2026, 6, 19)
+PROVISIONAL_PUBLIC_RATES_TO_USD: dict[str, Decimal] = {
+    "NPR": Decimal("1") / Decimal("150.94"),
+    "MMK": Decimal("1") / Decimal("2098.58"),
+    "OMR": Decimal("1") / Decimal("0.384985"),
+    "AED": Decimal("1") / Decimal("3.6725"),
+    "MYR": Decimal("1") / Decimal("4.1390"),
+}
 
 
 @dataclass(frozen=True)
@@ -32,6 +40,14 @@ def fx_for_country(country: str | None) -> FxLookup:
             rate_status="official",
             rate_source="company",
             rate_date=OFFICIAL_LKR_RATE_DATE,
+        )
+    if currency_code in PROVISIONAL_PUBLIC_RATES_TO_USD:
+        return FxLookup(
+            currency_code=currency_code,
+            rate_to_usd=PROVISIONAL_PUBLIC_RATES_TO_USD[currency_code],
+            rate_status="provisional",
+            rate_source="public_market_rate",
+            rate_date=PROVISIONAL_PUBLIC_FX_RATE_DATE,
         )
     return FxLookup(
         currency_code=currency_code,

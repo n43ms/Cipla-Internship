@@ -147,9 +147,9 @@ describe("Execution governance page", () => {
 
     renderWithProviders(<App />);
 
-    expect(screen.getByText("Loading execution governance")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText("Scope: 2026-05")).toBeInTheDocument());
+    expect(screen.getByText("Loading dashboard page")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument(), { timeout: 5000 });
+    await waitFor(() => expect(screen.getByText("Scope: 2026-05")).toBeInTheDocument(), { timeout: 5000 });
     expect(screen.getByText("Planner coverage")).toBeInTheDocument();
     expect(screen.getByText("Snapshot coverage")).toBeInTheDocument();
     expect(screen.getByText("Out-of-scope policy")).toBeInTheDocument();
@@ -185,7 +185,7 @@ describe("Execution governance page", () => {
 
     renderWithProviders(<App />);
 
-    await waitFor(() => expect(screen.getByText("Execution governance unavailable")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Execution governance unavailable")).toBeInTheDocument(), { timeout: 5000 });
   });
 
   it("renders empty matrix and sends selected filters", async () => {

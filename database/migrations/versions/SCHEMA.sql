@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict j6YhbtzbhwEsA3Fq91wZJwcBx0e1eDKpihlcVjvRrYSGBKEQV3G5iCpWXNPP8fS
+\restrict tWzLhDpqclOaLuVCcUlUdyjEA2bBhhFa4G2feoMGkN1I3tdlORHXGjdEOiPzbjQ
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.1
@@ -3669,7 +3669,7 @@ CREATE TABLE public.request_doctors (
 --
 
 CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
- WITH actual_attendance AS (
+ WITH actual_attendance_raw AS (
          SELECT rd.id AS request_doctor_id,
             rd.execution_request_id,
             er.country_id,
@@ -3690,6 +3690,26 @@ CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
            FROM (public.request_doctors rd
              JOIN public.execution_requests er ON ((er.id = rd.execution_request_id)))
           WHERE ((rd.attendance_type = 'actual'::text) AND (rd.pcode_normalized IS NOT NULL) AND (rd.parse_status = 'parsed'::text))
+        ), actual_attendance AS (
+         SELECT (min((actual_attendance_raw.request_doctor_id)::text))::uuid AS request_doctor_id,
+            actual_attendance_raw.execution_request_id,
+            actual_attendance_raw.country_id,
+            actual_attendance_raw.calendar_month_id,
+            max(actual_attendance_raw.actual_intervention_date) AS actual_intervention_date,
+            max(actual_attendance_raw.intervention_date) AS intervention_date,
+            actual_attendance_raw.pcode_normalized,
+            max(actual_attendance_raw.doctor_name_raw) FILTER (WHERE (actual_attendance_raw.doctor_name_raw IS NOT NULL)) AS doctor_name_raw,
+            max(actual_attendance_raw.doctor_class_raw) FILTER (WHERE (actual_attendance_raw.doctor_class_raw IS NOT NULL)) AS doctor_class_raw,
+            max(actual_attendance_raw.actual_btu_expense_local) AS actual_btu_expense_local,
+            max(actual_attendance_raw.actual_btc_expense_local) AS actual_btc_expense_local,
+            max(actual_attendance_raw.actual_total_expense_local) AS actual_total_expense_local,
+            max(actual_attendance_raw.actual_btu_expense_usd) AS actual_btu_expense_usd,
+            max(actual_attendance_raw.actual_btc_expense_usd) AS actual_btc_expense_usd,
+            max(actual_attendance_raw.actual_total_expense_usd) AS actual_total_expense_usd,
+            max(actual_attendance_raw.currency_code) AS currency_code,
+            max(actual_attendance_raw.fx_rate_status) AS fx_rate_status
+           FROM actual_attendance_raw
+          GROUP BY actual_attendance_raw.execution_request_id, actual_attendance_raw.country_id, actual_attendance_raw.calendar_month_id, actual_attendance_raw.pcode_normalized
         ), request_actual_counts AS (
          SELECT actual_attendance.execution_request_id,
             (count(DISTINCT actual_attendance.pcode_normalized))::numeric AS doctor_count
@@ -3701,6 +3721,7 @@ CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
             max(aa.doctor_name_raw) FILTER (WHERE (aa.doctor_name_raw IS NOT NULL)) AS attended_doctor_name,
             max(aa.doctor_class_raw) FILTER (WHERE (aa.doctor_class_raw IS NOT NULL)) AS attended_doctor_class,
             (count(DISTINCT aa.execution_request_id))::integer AS engagement_count,
+            min(COALESCE(aa.actual_intervention_date, aa.intervention_date)) AS first_engagement_date,
             max(COALESCE(aa.actual_intervention_date, aa.intervention_date)) AS last_engagement_date,
             sum((aa.actual_btu_expense_local / NULLIF(rac.doctor_count, (0)::numeric))) AS direct_hcp_btu_spend_local,
             sum((aa.actual_btc_expense_local / NULLIF(rac.doctor_count, (0)::numeric))) AS overhead_btc_spend_local,
@@ -3720,6 +3741,8 @@ CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
             max(rcpa_doctor_month_summary.speciality) FILTER (WHERE (rcpa_doctor_month_summary.speciality IS NOT NULL)) AS speciality,
             max(rcpa_doctor_month_summary.doctor_class) FILTER (WHERE (rcpa_doctor_month_summary.doctor_class IS NOT NULL)) AS doctor_class,
             max(rcpa_doctor_month_summary.active_status) FILTER (WHERE (rcpa_doctor_month_summary.active_status IS NOT NULL)) AS active_status,
+            min(cm.month_start_date) AS rcpa_first_month,
+            max(cm.month_start_date) AS rcpa_last_month,
             sum(rcpa_doctor_month_summary.own_prescription_qty) AS cipla_prescription_qty,
             sum(rcpa_doctor_month_summary.own_prescription_value_local) AS cipla_prescription_value_local,
             sum(rcpa_doctor_month_summary.competitor_prescription_qty) AS competitor_prescription_qty,
@@ -3727,7 +3750,8 @@ CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
             sum(rcpa_doctor_month_summary.total_prescription_qty) AS total_prescription_qty,
             sum(rcpa_doctor_month_summary.total_prescription_value_local) AS total_prescription_value_local,
             (count(*))::integer AS rcpa_month_count
-           FROM public.rcpa_doctor_month_summary
+           FROM (public.rcpa_doctor_month_summary
+             JOIN public.calendar_months cm ON ((cm.id = rcpa_doctor_month_summary.calendar_month_id)))
           WHERE (rcpa_doctor_month_summary.pcode_normalized IS NOT NULL)
           GROUP BY rcpa_doctor_month_summary.country_id, rcpa_doctor_month_summary.pcode_normalized
         ), doctor_universe AS (
@@ -3753,6 +3777,7 @@ CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
             COALESCE(d.doctor_class, rx.doctor_class, e.attended_doctor_class) AS doctor_class,
             COALESCE(d.active_status, rx.active_status) AS active_status,
             COALESCE(e.engagement_count, 0) AS engagement_count,
+            e.first_engagement_date,
             e.last_engagement_date,
             COALESCE(e.direct_hcp_btu_spend_local, (0)::numeric) AS direct_hcp_btu_spend_local,
             COALESCE(e.overhead_btc_spend_local, (0)::numeric) AS overhead_btc_spend_local,
@@ -3767,6 +3792,8 @@ CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
             COALESCE(rx.total_prescription_qty, (0)::numeric) AS total_prescription_qty,
             COALESCE(rx.total_prescription_value_local, (0)::numeric) AS total_prescription_value_local,
             rx.rcpa_month_count,
+            rx.rcpa_first_month,
+            rx.rcpa_last_month,
             (rx.pcode_normalized IS NOT NULL) AS has_rcpa,
             COALESCE(e.has_missing_fx, false) AS has_missing_fx,
             COALESCE(e.has_provisional_fx, false) AS has_provisional_fx
@@ -3792,6 +3819,7 @@ CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
     m.doctor_class,
     m.active_status,
     m.engagement_count,
+    m.first_engagement_date,
     m.last_engagement_date,
     m.direct_hcp_btu_spend_local,
     m.overhead_btc_spend_local,
@@ -3806,6 +3834,8 @@ CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
     m.total_prescription_qty,
     m.total_prescription_value_local,
     m.rcpa_month_count,
+    m.rcpa_first_month,
+    m.rcpa_last_month,
     m.has_rcpa,
     m.has_missing_fx,
     m.has_provisional_fx,
@@ -3836,7 +3866,9 @@ CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
             WHEN (((m.total_roi_spend_usd)::double precision <= COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision < COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'low effort / low reward'::text
             ELSE 'high effort / low reward'::text
         END AS quadrant_label,
-    (m.has_rcpa AND ((m.total_roi_spend_usd)::double precision <= COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision)) AND (m.cipla_prescription_qty > (0)::numeric)) AS dark_horse_flag,
+    (m.has_rcpa AND (m.engagement_count = 0) AND ((m.total_roi_spend_usd)::double precision <= COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision)) AND (m.cipla_prescription_qty > (0)::numeric)) AS dark_horse_flag,
+    (m.has_rcpa AND (m.engagement_count = 0) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision)) AND (m.cipla_prescription_qty > (0)::numeric)) AS dark_horse_unengaged_flag,
+    (m.has_rcpa AND (m.engagement_count > 0) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision))) AS high_value_engaged_flag,
     now() AS refreshed_at
    FROM (metrics m
      LEFT JOIN thresholds t ON ((t.country_id = m.country_id)))
@@ -4064,7 +4096,8 @@ CREATE MATERIALIZED VIEW public.mv_data_quality AS
           ORDER BY ingestion_runs.started_at DESC
          LIMIT 1
         ), latest_file_runs AS (
-         SELECT DISTINCT ON (irf.source_file_id) irf.source_file_id,
+         SELECT DISTINCT ON (irf.source_file_id) irf.ingestion_run_id,
+            irf.source_file_id,
             irf.status,
             irf.rows_seen,
             irf.rows_loaded,
@@ -4087,7 +4120,7 @@ CREATE MATERIALIZED VIEW public.mv_data_quality AS
             ve.message,
             ve.raw_value
            FROM (public.validation_errors ve
-             JOIN latest_file_runs lfr ON ((lfr.source_file_id = ve.source_file_id)))
+             JOIN latest_file_runs lfr ON (((lfr.source_file_id = ve.source_file_id) AND (lfr.ingestion_run_id = ve.ingestion_run_id))))
         ), request_pcode AS (
          SELECT (count(*))::integer AS request_doctor_rows,
             (count(*) FILTER (WHERE (request_doctors.pcode_normalized IS NOT NULL)))::integer AS request_doctor_rows_with_pcode
@@ -4131,6 +4164,22 @@ CREATE MATERIALIZED VIEW public.mv_data_quality AS
          SELECT (count(*))::integer AS unmatched_event_count
            FROM public.mv_unmatched_events
           WHERE mv_unmatched_events.is_primary_phase4_scope
+        ), serial_months AS (
+         SELECT (GREATEST(COALESCE(( SELECT sum(COALESCE((((file_row.value -> 'summaries'::text) ->> 'serial_month_parse_count'::text))::integer, 0)) AS sum
+                   FROM (latest_run lr2
+                     CROSS JOIN LATERAL jsonb_array_elements(COALESCE(((lr2.summary_json)::jsonb -> 'files'::text), '[]'::jsonb)) file_row(value))), (0)::bigint), (COALESCE(( SELECT (count(*))::integer AS count
+                   FROM validation_latest
+                  WHERE ((lower(COALESCE(validation_latest.error_code, ''::text)) ~~ '%serial%'::text) OR (lower(COALESCE(validation_latest.message, ''::text)) ~~ '%serial%'::text))), 0))::bigint))::integer AS serial_month_parse_count
+        ), fx_seed AS (
+         SELECT max(exchange_rates.rate_date) FILTER (WHERE ((exchange_rates.currency_code = 'LKR'::text) AND (exchange_rates.rate_status = 'official'::text))) AS static_fx_seed_date,
+            max(exchange_rates.rate_to_usd) FILTER (WHERE ((exchange_rates.currency_code = 'LKR'::text) AND (exchange_rates.rate_status = 'official'::text))) AS official_lkr_rate_to_usd
+           FROM public.exchange_rates
+        ), unallocated_doctor_spend AS (
+         SELECT (count(*) FILTER (WHERE ((rd.attendance_type = 'actual'::text) AND ((rd.pcode_normalized IS NULL) OR (rd.parse_status <> 'parsed'::text)))))::integer AS actual_attendance_missing_pcode_count,
+            COALESCE(sum(er.actual_total_expense_local) FILTER (WHERE ((rd.attendance_type = 'actual'::text) AND ((rd.pcode_normalized IS NULL) OR (rd.parse_status <> 'parsed'::text)))), (0)::numeric) AS unallocated_doctor_spend_local,
+            COALESCE(sum(er.actual_total_expense_usd) FILTER (WHERE ((rd.attendance_type = 'actual'::text) AND ((rd.pcode_normalized IS NULL) OR (rd.parse_status <> 'parsed'::text)))), (0)::numeric) AS unallocated_doctor_spend_usd
+           FROM (public.request_doctors rd
+             JOIN public.execution_requests er ON ((er.id = rd.execution_request_id)))
         ), derived AS (
          SELECT (count(*))::integer AS derived_snapshot_count
            FROM public.execution_snapshots
@@ -4197,9 +4246,15 @@ CREATE MATERIALIZED VIEW public.mv_data_quality AS
         END AS intervention_type_coverage,
     unmatched.unmatched_event_count,
     derived.derived_snapshot_count,
+    serial_months.serial_month_parse_count,
+    fx_seed.static_fx_seed_date,
+    fx_seed.official_lkr_rate_to_usd,
+    uds.actual_attendance_missing_pcode_count,
+    uds.unallocated_doctor_spend_local,
+    uds.unallocated_doctor_spend_usd,
     ((lr.completed_at IS NULL) OR (lr.completed_at < (now() - '14 days'::interval)) OR (lr.status <> ALL (ARRAY['completed'::text, 'completed_with_warnings'::text]))) AS stale_ingestion,
     now() AS refreshed_at
-   FROM ((((((((((latest_run lr
+   FROM (((((((((((((latest_run lr
      CROSS JOIN request_pcode rp)
      CROSS JOIN workflow)
      CROSS JOIN interventions)
@@ -4209,6 +4264,9 @@ CREATE MATERIALIZED VIEW public.mv_data_quality AS
      CROSS JOIN doctor_coverage dc)
      CROSS JOIN execution_quality eq)
      CROSS JOIN unmatched)
+     CROSS JOIN serial_months)
+     CROSS JOIN fx_seed)
+     CROSS JOIN unallocated_doctor_spend uds)
      CROSS JOIN derived)
   WITH NO DATA;
 
@@ -5842,6 +5900,13 @@ CREATE INDEX ix_mv_doctor_roi_country_pcode ON public.mv_doctor_roi USING btree 
 
 
 --
+-- Name: ix_mv_doctor_roi_engagement_window; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_doctor_roi_engagement_window ON public.mv_doctor_roi USING btree (first_engagement_date, last_engagement_date);
+
+
+--
 -- Name: ix_mv_doctor_roi_quadrant; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6832,5 +6897,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict j6YhbtzbhwEsA3Fq91wZJwcBx0e1eDKpihlcVjvRrYSGBKEQV3G5iCpWXNPP8fS
+\unrestrict tWzLhDpqclOaLuVCcUlUdyjEA2bBhhFa4G2feoMGkN1I3tdlORHXGjdEOiPzbjQ
 

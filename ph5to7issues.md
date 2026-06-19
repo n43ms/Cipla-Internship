@@ -4,6 +4,32 @@ Review scope: Phase 5 Budget Utilization, Phase 6 Doctor ROI, and Phase 7 Data Q
 
 Review date: 2026-06-19
 
+## Correction Status: 2026-06-19
+
+This original review captured the pre-correction Phase 5-7 state. The architecture has since been corrected through migrations and code changes up to `0021_cleanup_fx_seeds`.
+
+Resolved or materially corrected:
+
+- budget summary gap calculations now group matched request evidence by `plan_event_id` before calculating event-level unspent/overrun totals;
+- local money is exposed through `localTotalsByCurrency`, and top-level local totals are nullable when multiple currencies are present;
+- budget and Doctor ROI pages have filter controls and pagination;
+- Doctor ROI spend allocation deduplicates actual attendance to request/Pcode grain;
+- Doctor ROI exposes RCPA baseline periods, unengaged opportunity flags, high-value engaged flags, and visible no-RCPA state;
+- Doctor ROI defaults to Nepal/Sri Lanka primary markets unless a specific country or `includeOutOfScope=true` is requested;
+- brand filters are explicitly labeled as RCPA-baseline inclusion filters, not true brand-specific ROI metrics;
+- Data Quality validation counts now scope to latest run per file;
+- Data Quality exposes source-file rows, unmatched groups, unmatched samples, FX quality, official LKR seed metadata, and unallocated doctor spend fields;
+- public internet FX rates for NPR, MMK, OMR, AED, and MYR are seeded and applied as `provisional`, while LKR remains the only `official` company rate;
+- real-workbook profile and dry-run ingestion reports have been regenerated in `data/reports`;
+- frontend chart test sizing warnings and visible separator encoding artifacts have been fixed;
+- frontend pages are route-lazy-loaded and the build no longer emits the previous oversized initial chunk warning.
+
+Still intentionally not converted to "official" business truth:
+
+- provisional public FX rates must be replaced with company finance rates before official finance reporting;
+- brand-selected Doctor ROI currently filters the doctor universe by brand baseline coverage but does not recompute brand-specific ROI metrics;
+- serial month parse diagnostics are instrumented for future ingestion summaries; the current real-workbook dry-run produced `serial_month_parse_count = 0`.
+
 ## Verdict
 
 Phase 5-7 are implemented enough to render and return API data, but they are not yet production-grade or fully aligned with the promised architecture. The biggest gaps are not missing files; they are semantic correctness, contract drift, filter incompleteness, insufficient real-data tests, and UI drilldowns that do not fully expose uncertainty.
@@ -526,4 +552,3 @@ Acceptance criteria:
 6. Add database and API regression tests for every issue above.
 7. Refresh materialized views in Supabase and verify counts/metrics again.
 8. Only then proceed to Phase 8 AI.
-

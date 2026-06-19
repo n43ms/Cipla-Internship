@@ -1,5 +1,5 @@
 create materialized view if not exists mv_doctor_roi as
-with actual_attendance as (
+with actual_attendance_raw as (
     select
         rd.id as request_doctor_id,
         rd.execution_request_id,
@@ -24,6 +24,28 @@ with actual_attendance as (
       and rd.pcode_normalized is not null
       and rd.parse_status = 'parsed'
 ),
+actual_attendance as (
+    select
+        min(request_doctor_id::text)::uuid as request_doctor_id,
+        execution_request_id,
+        country_id,
+        calendar_month_id,
+        max(actual_intervention_date) as actual_intervention_date,
+        max(intervention_date) as intervention_date,
+        pcode_normalized,
+        max(doctor_name_raw) filter (where doctor_name_raw is not null) as doctor_name_raw,
+        max(doctor_class_raw) filter (where doctor_class_raw is not null) as doctor_class_raw,
+        max(actual_btu_expense_local) as actual_btu_expense_local,
+        max(actual_btc_expense_local) as actual_btc_expense_local,
+        max(actual_total_expense_local) as actual_total_expense_local,
+        max(actual_btu_expense_usd) as actual_btu_expense_usd,
+        max(actual_btc_expense_usd) as actual_btc_expense_usd,
+        max(actual_total_expense_usd) as actual_total_expense_usd,
+        max(currency_code) as currency_code,
+        max(fx_rate_status) as fx_rate_status
+    from actual_attendance_raw
+    group by execution_request_id, country_id, calendar_month_id, pcode_normalized
+),
 request_actual_counts as (
     select execution_request_id, count(distinct pcode_normalized)::numeric as doctor_count
     from actual_attendance
@@ -36,6 +58,7 @@ engagement as (
         max(aa.doctor_name_raw) filter (where aa.doctor_name_raw is not null) as attended_doctor_name,
         max(aa.doctor_class_raw) filter (where aa.doctor_class_raw is not null) as attended_doctor_class,
         count(distinct aa.execution_request_id)::integer as engagement_count,
+        min(coalesce(aa.actual_intervention_date, aa.intervention_date)) as first_engagement_date,
         max(coalesce(aa.actual_intervention_date, aa.intervention_date)) as last_engagement_date,
         sum(aa.actual_btu_expense_local / nullif(rac.doctor_count, 0)) as direct_hcp_btu_spend_local,
         sum(aa.actual_btc_expense_local / nullif(rac.doctor_count, 0)) as overhead_btc_spend_local,
@@ -57,6 +80,8 @@ rx as (
         max(speciality) filter (where speciality is not null) as speciality,
         max(doctor_class) filter (where doctor_class is not null) as doctor_class,
         max(active_status) filter (where active_status is not null) as active_status,
+        min(cm.month_start_date) as rcpa_first_month,
+        max(cm.month_start_date) as rcpa_last_month,
         sum(own_prescription_qty) as cipla_prescription_qty,
         sum(own_prescription_value_local) as cipla_prescription_value_local,
         sum(competitor_prescription_qty) as competitor_prescription_qty,
@@ -65,6 +90,7 @@ rx as (
         sum(total_prescription_value_local) as total_prescription_value_local,
         count(*)::integer as rcpa_month_count
     from rcpa_doctor_month_summary
+    join calendar_months cm on cm.id = rcpa_doctor_month_summary.calendar_month_id
     where pcode_normalized is not null
     group by country_id, pcode_normalized
 ),
@@ -86,6 +112,7 @@ metrics as (
         coalesce(d.doctor_class, rx.doctor_class, e.attended_doctor_class) as doctor_class,
         coalesce(d.active_status, rx.active_status) as active_status,
         coalesce(e.engagement_count, 0) as engagement_count,
+        e.first_engagement_date,
         e.last_engagement_date,
         coalesce(e.direct_hcp_btu_spend_local, 0) as direct_hcp_btu_spend_local,
         coalesce(e.overhead_btc_spend_local, 0) as overhead_btc_spend_local,
@@ -100,6 +127,8 @@ metrics as (
         coalesce(rx.total_prescription_qty, 0) as total_prescription_qty,
         coalesce(rx.total_prescription_value_local, 0) as total_prescription_value_local,
         rx.rcpa_month_count,
+        rx.rcpa_first_month,
+        rx.rcpa_last_month,
         (rx.pcode_normalized is not null) as has_rcpa,
         coalesce(e.has_missing_fx, false) as has_missing_fx,
         coalesce(e.has_provisional_fx, false) as has_provisional_fx
@@ -147,10 +176,22 @@ select
     end as quadrant_label,
     (
         m.has_rcpa
+        and m.engagement_count = 0
         and m.total_roi_spend_usd <= coalesce(t.median_spend_usd, 0)
         and m.cipla_prescription_qty >= coalesce(t.median_cipla_qty, 0)
         and m.cipla_prescription_qty > 0
     ) as dark_horse_flag,
+    (
+        m.has_rcpa
+        and m.engagement_count = 0
+        and m.cipla_prescription_qty >= coalesce(t.median_cipla_qty, 0)
+        and m.cipla_prescription_qty > 0
+    ) as dark_horse_unengaged_flag,
+    (
+        m.has_rcpa
+        and m.engagement_count > 0
+        and m.cipla_prescription_qty >= coalesce(t.median_cipla_qty, 0)
+    ) as high_value_engaged_flag,
     now() as refreshed_at
 from metrics m
 left join thresholds t on t.country_id = m.country_id;

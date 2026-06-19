@@ -13,9 +13,10 @@ def test_lkr_uses_official_company_rate() -> None:
     assert fx.to_usd(Decimal("310")) == Decimal("1.0000")
 
 
-def test_non_lkr_preserves_local_amount_without_fake_usd() -> None:
+def test_non_lkr_uses_provisional_public_rate_until_company_rate_exists() -> None:
     fx = fx_for_country("Nepal")
 
     assert fx.currency_code == "NPR"
-    assert fx.rate_status == "missing"
-    assert fx.to_usd(Decimal("1000")) is None
+    assert fx.rate_status == "provisional"
+    assert fx.rate_source == "public_market_rate"
+    assert fx.to_usd(Decimal("150.94")) == Decimal("1.0000")

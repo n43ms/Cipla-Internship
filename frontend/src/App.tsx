@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import { DataFreshnessBanner } from "./components/common/DataStateComponents";
 import { useDashboardMeta } from "./hooks/useDashboardMeta";
-import { BudgetUtilization } from "./pages/BudgetUtilization";
-import { DataQuality } from "./pages/DataQuality";
-import { DoctorRoi } from "./pages/DoctorRoi";
-import { ExecutionMatrix } from "./pages/ExecutionMatrix";
+const BudgetUtilization = lazy(() => import("./pages/BudgetUtilization").then((module) => ({ default: module.BudgetUtilization })));
+const DataQuality = lazy(() => import("./pages/DataQuality").then((module) => ({ default: module.DataQuality })));
+const DoctorRoi = lazy(() => import("./pages/DoctorRoi").then((module) => ({ default: module.DoctorRoi })));
+const ExecutionMatrix = lazy(() => import("./pages/ExecutionMatrix").then((module) => ({ default: module.ExecutionMatrix })));
 
 type PageKey = "execution" | "budget" | "doctors" | "quality";
 
@@ -47,10 +47,12 @@ export default function App() {
           <DataFreshnessBanner meta={meta.data.meta} />
         </div>
       ) : null}
-      {page === "execution" ? <ExecutionMatrix /> : null}
-      {page === "budget" ? <BudgetUtilization /> : null}
-      {page === "doctors" ? <DoctorRoi /> : null}
-      {page === "quality" ? <DataQuality /> : null}
+      <Suspense fallback={<main className="p-6 text-sm text-slate-500">Loading dashboard page</main>}>
+        {page === "execution" ? <ExecutionMatrix /> : null}
+        {page === "budget" ? <BudgetUtilization /> : null}
+        {page === "doctors" ? <DoctorRoi /> : null}
+        {page === "quality" ? <DataQuality /> : null}
+      </Suspense>
     </div>
   );
 }

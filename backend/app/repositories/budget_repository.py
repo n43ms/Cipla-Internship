@@ -15,8 +15,17 @@ class BudgetRepository:
         country: str | None,
         month: str | None,
         include_out_of_scope: bool = False,
+        page: int = 1,
+        page_size: int = 100,
     ) -> dict[str, Any]:
-        params = {"country": country, "month": month, "include_out_of_scope": include_out_of_scope}
+        offset = max(page - 1, 0) * page_size
+        params = {
+            "country": country,
+            "month": month,
+            "include_out_of_scope": include_out_of_scope,
+            "limit": page_size,
+            "offset": offset,
+        }
         summary = self.session.execute(
             text(
                 """
@@ -40,6 +49,39 @@ class BudgetRepository:
                         select distinct plan_event_id, planned_budget_usd
                         from filtered
                         where plan_event_id is not null
+                    ) rows
+                ),
+                matched_plan_groups as (
+                    select
+                        plan_event_id,
+                        max(planned_budget_usd) as planned_budget_usd,
+                        coalesce(sum(actual_total_expense_usd), 0) as actual_total_expense_usd
+                    from (
+                        select distinct
+                            plan_event_id,
+                            planned_budget_usd,
+                            execution_request_id,
+                            actual_total_expense_usd
+                        from filtered
+                        where plan_event_id is not null
+                          and execution_request_id is not null
+                    ) rows
+                    group by plan_event_id
+                ),
+                plan_gap_totals as (
+                    select
+                        coalesce(sum(greatest(planned_budget_usd - actual_total_expense_usd, 0)), 0) as matched_unspent_gap_usd,
+                        coalesce(sum(greatest(actual_total_expense_usd - planned_budget_usd, 0)), 0) as matched_overrun_amount_usd
+                    from matched_plan_groups
+                ),
+                plan_only_gap_totals as (
+                    select coalesce(sum(planned_budget_usd), 0) as plan_only_unspent_gap_usd
+                    from (
+                        select distinct plan_event_id, planned_budget_usd
+                        from filtered
+                        where plan_event_id is not null
+                          and execution_request_id is null
+                          and plan_without_spend
                     ) rows
                 ),
                 request_totals as (
@@ -81,8 +123,8 @@ class BudgetRepository:
                     (select count(*) from filtered)::integer as row_count,
                     plan_totals.planned_budget_usd,
                     request_totals.*,
-                    coalesce(sum(unspent_gap_usd), 0) as unspent_gap_usd,
-                    coalesce(sum(overrun_amount_usd), 0) as overrun_amount_usd,
+                    (plan_gap_totals.matched_unspent_gap_usd + plan_only_gap_totals.plan_only_unspent_gap_usd) as unspent_gap_usd,
+                    plan_gap_totals.matched_overrun_amount_usd as overrun_amount_usd,
                     count(*) filter (where plan_without_spend)::integer as plan_without_spend_count,
                     count(*) filter (where spend_without_plan)::integer as spend_without_plan_count,
                     count(*) filter (where btu_btc_reconciliation_status = 'mismatch')::integer as btu_btc_reconciliation_issue_count,
@@ -91,9 +133,12 @@ class BudgetRepository:
                     array_remove(array_agg(distinct currency_code), null) as currency_codes,
                     array_remove(array_agg(distinct fx_rate_status), null) as fx_rate_statuses,
                     max(refreshed_at) as refreshed_at
-                from filtered, plan_totals, request_totals
+                from filtered, plan_totals, request_totals, plan_gap_totals, plan_only_gap_totals
                 group by
                     plan_totals.planned_budget_usd,
+                    plan_gap_totals.matched_unspent_gap_usd,
+                    plan_gap_totals.matched_overrun_amount_usd,
+                    plan_only_gap_totals.plan_only_unspent_gap_usd,
                     request_totals.estimated_intervention_local,
                     request_totals.estimated_intervention_usd,
                     request_totals.confirmed_contracted_amount_local,
@@ -111,6 +156,71 @@ class BudgetRepository:
             ),
             params,
         ).mappings().first()
+        local_totals = self.session.execute(
+            text(
+                """
+                select
+                    currency_code,
+                    coalesce(sum(estimated_intervention_local), 0) as estimated_intervention_local,
+                    coalesce(sum(confirmed_contracted_amount_local), 0) as confirmed_contracted_amount_local,
+                    coalesce(sum(direct_hcp_btu_spend_local), 0) as direct_hcp_btu_spend_local,
+                    coalesce(sum(overhead_btc_spend_local), 0) as overhead_btc_spend_local,
+                    coalesce(sum(actual_total_expense_local), 0) as actual_total_spend_local,
+                    coalesce(sum(association_amount_local), 0) as association_amount_local,
+                    count(*)::integer as row_count,
+                    count(*) filter (where missing_fx)::integer as missing_fx_count,
+                    count(*) filter (where provisional_fx)::integer as provisional_fx_count
+                from (
+                    select distinct
+                        execution_request_id,
+                        currency_code,
+                        estimated_intervention_local,
+                        confirmed_contracted_amount_local,
+                        direct_hcp_btu_spend_local,
+                        overhead_btc_spend_local,
+                        actual_total_expense_local,
+                        association_amount_local,
+                        missing_fx,
+                        provisional_fx
+                    from mv_budget_utilization
+                    where execution_request_id is not null
+                    and (
+                        cast(:country as text) is null
+                        or lower(country_code) = lower(cast(:country as text))
+                        or lower(country_name) = lower(cast(:country as text))
+                    )
+                    and (
+                        cast(:month as text) is null
+                        or to_char(month_start_date, 'YYYY-MM') = cast(:month as text)
+                    )
+                    and (cast(:include_out_of_scope as boolean) or is_primary_phase4_scope)
+                ) rows
+                where currency_code is not null
+                group by currency_code
+                order by currency_code
+                """
+            ),
+            params,
+        ).mappings()
+        total = self.session.execute(
+            text(
+                """
+                select count(*)::integer
+                from mv_budget_utilization
+                where (
+                    cast(:country as text) is null
+                    or lower(country_code) = lower(cast(:country as text))
+                    or lower(country_name) = lower(cast(:country as text))
+                )
+                and (
+                    cast(:month as text) is null
+                    or to_char(month_start_date, 'YYYY-MM') = cast(:month as text)
+                )
+                and (cast(:include_out_of_scope as boolean) or is_primary_phase4_scope)
+                """
+            ),
+            params,
+        ).scalar_one()
         rows = self.session.execute(
             text(
                 """
@@ -132,9 +242,14 @@ class BudgetRepository:
                     coalesce(unspent_gap_usd, 0) desc,
                     coalesce(actual_total_expense_usd, 0) desc,
                     event_name
-                limit 100
+                limit :limit offset :offset
                 """
             ),
             params,
         ).mappings()
-        return {"summary": dict(summary) if summary else {}, "rows": [dict(row) for row in rows]}
+        return {
+            "summary": dict(summary) if summary else {},
+            "local_totals_by_currency": [dict(row) for row in local_totals],
+            "total": int(total or 0),
+            "rows": [dict(row) for row in rows],
+        }

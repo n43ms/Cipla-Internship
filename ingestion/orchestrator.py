@@ -73,6 +73,7 @@ class IngestionSummary:
                     "rows_loaded": result.rows_loaded if result else 0,
                     "rows_skipped": result.rows_skipped if result else 0,
                     "issue_count": len(result.issues) if result else 0,
+                    "summaries": _reportable_summaries(result.summaries) if result else {},
                 }
                 for profile, result in zip(self.profiles, self.load_results, strict=False)
             ],
@@ -229,3 +230,11 @@ def _filter_sources(source_files: list[SourceFile], source: str) -> list[SourceF
     if source == "all":
         return source_files
     return [source_file for source_file in source_files if source_file.source_type == source]
+
+
+def _reportable_summaries(summaries: dict[str, Any]) -> dict[str, Any]:
+    reportable: dict[str, Any] = {}
+    for key, value in summaries.items():
+        if isinstance(value, str | int | float | bool) or value is None:
+            reportable[key] = value
+    return reportable

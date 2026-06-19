@@ -23,7 +23,7 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         BudgetService,
         "summary",
-        lambda self, country=None, month=None, include_out_of_scope=False: {
+        lambda self, country=None, month=None, include_out_of_scope=False, page=1, page_size=100: {
             "meta": _meta(),
             "plannedBudgetUsd": Decimal("1000"),
             "estimatedInterventionLocal": Decimal("310000"),
@@ -48,13 +48,30 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
             "provisionalFxCount": 0,
             "currencyCodes": ["LKR"],
             "fxRateStatuses": ["official"],
+            "localTotalsByCurrency": [
+                {
+                    "currencyCode": "LKR",
+                    "estimatedInterventionLocal": Decimal("310000"),
+                    "confirmedContractedAmountLocal": Decimal("279000"),
+                    "directHcpBtuSpendLocal": Decimal("155000"),
+                    "overheadBtcSpendLocal": Decimal("62000"),
+                    "actualTotalSpendLocal": Decimal("217000"),
+                    "associationAmountLocal": Decimal("0"),
+                    "rowCount": 1,
+                    "missingFxCount": 0,
+                    "provisionalFxCount": 0,
+                }
+            ],
+            "page": page,
+            "pageSize": page_size,
+            "total": 0,
             "rows": [],
         },
     )
     monkeypatch.setattr(
         DoctorService,
         "roi",
-        lambda self, country, segment, quadrant, page, page_size: {
+        lambda self, country, roi_segment, quadrant, month_start, month_end, brand, speciality, doctor_class, include_out_of_scope, page, page_size: {
             "meta": _meta(),
             "page": page,
             "pageSize": page_size,
@@ -71,6 +88,7 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
                     "doctorClass": "A",
                     "activeStatus": "Active",
                     "engagementCount": 0,
+                    "firstEngagementDate": None,
                     "lastEngagementDate": None,
                     "directHcpBtuSpendUsd": Decimal("0"),
                     "overheadBtcSpendUsd": Decimal("0"),
@@ -85,9 +103,14 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
                     "quadrantY": Decimal("100"),
                     "quadrantLabel": "low effort / high reward",
                     "darkHorseFlag": True,
+                    "darkHorseUnengagedFlag": True,
+                    "highValueEngagedFlag": False,
                     "hasRcpa": True,
                     "hasMissingFx": False,
                     "hasProvisionalFx": False,
+                    "rcpaFirstMonth": "2025-04-01",
+                    "rcpaLastMonth": "2026-03-01",
+                    "rcpaMonthCount": 12,
                 }
             ],
         },
@@ -128,8 +151,18 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
             "interventionTypeCoverage": Decimal("1"),
             "unmatchedEventCount": 2,
             "derivedSnapshotCount": 1,
+            "serialMonthParseCount": 0,
+            "staticFxSeedDate": "2026-01-01",
+            "officialLkrRateToUsd": Decimal("0.0032258065"),
+            "actualAttendanceMissingPcodeCount": 0,
+            "unallocatedDoctorSpendLocal": Decimal("0"),
+            "unallocatedDoctorSpendUsd": Decimal("0"),
             "staleIngestion": False,
             "validationIssues": [],
+            "sourceFiles": [],
+            "unmatchedBySource": [],
+            "unmatchedRecords": [],
+            "fxQuality": [],
         },
     )
     monkeypatch.setattr(
@@ -153,6 +186,7 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
             "countries": [{"value": "LK", "label": "Sri Lanka"}],
             "months": [{"value": "2026-05", "label": "2026-05"}],
             "interventionTypes": [{"value": "CME", "label": "CME"}],
+            "brands": [],
             "specialities": [],
             "doctorClasses": [],
             "roiSegments": [{"value": "high_value_unengaged", "label": "high value unengaged"}],

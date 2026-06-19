@@ -31,6 +31,14 @@ class DataQualityRepository:
         rows = self.session.execute(
             text(
                 """
+                with latest_file_runs as (
+                    select distinct on (irf.source_file_id)
+                        irf.source_file_id,
+                        irf.ingestion_run_id
+                    from ingestion_run_files irf
+                    join ingestion_runs ir on ir.id = irf.ingestion_run_id
+                    order by irf.source_file_id, ir.started_at desc
+                )
                 select
                     ve.severity,
                     sf.original_filename as source_file,
@@ -41,10 +49,10 @@ class DataQualityRepository:
                     ve.error_code,
                     ve.message
                 from validation_errors ve
+                join latest_file_runs lfr
+                  on lfr.source_file_id = ve.source_file_id
+                 and lfr.ingestion_run_id = ve.ingestion_run_id
                 left join source_files sf on sf.id = ve.source_file_id
-                where ve.ingestion_run_id in (
-                    select id from ingestion_runs order by started_at desc limit 5
-                )
                 order by
                     case ve.severity when 'error' then 1 when 'warning' then 2 else 3 end,
                     sf.original_filename,
@@ -53,6 +61,105 @@ class DataQualityRepository:
                 """
             ),
             {"limit": limit},
+        ).mappings()
+        return [dict(row) for row in rows]
+
+    def source_file_quality(self) -> list[dict[str, Any]]:
+        rows = self.session.execute(
+            text(
+                """
+                select distinct on (sf.id)
+                    sf.original_filename as source_file,
+                    sf.source_type,
+                    irf.status,
+                    coalesce(irf.rows_seen, 0)::integer as rows_seen,
+                    coalesce(irf.rows_loaded, 0)::integer as rows_loaded,
+                    coalesce(irf.rows_skipped, 0)::integer as rows_skipped,
+                    coalesce(irf.warnings, 0)::integer as warning_count,
+                    coalesce(irf.errors, 0)::integer as error_count,
+                    sf.period_start::text,
+                    sf.period_end::text
+                from source_files sf
+                left join ingestion_run_files irf on irf.source_file_id = sf.id
+                left join ingestion_runs ir on ir.id = irf.ingestion_run_id
+                order by sf.id, ir.started_at desc nulls last, sf.original_filename
+                """
+            )
+        ).mappings()
+        return [dict(row) for row in rows]
+
+    def unmatched_by_source(self) -> list[dict[str, Any]]:
+        rows = self.session.execute(
+            text(
+                """
+                select
+                    source_type,
+                    coalesce(unmatched_reason_code, 'unknown') as reason_code,
+                    count(*)::integer as record_count
+                from mv_unmatched_events
+                where is_primary_phase4_scope
+                group by source_type, coalesce(unmatched_reason_code, 'unknown')
+                order by record_count desc, source_type, reason_code
+                """
+            )
+        ).mappings()
+        return [dict(row) for row in rows]
+
+    def unmatched_records(self, limit: int = 50) -> list[dict[str, Any]]:
+        rows = self.session.execute(
+            text(
+                """
+                select
+                    source_type,
+                    country_name as country,
+                    month_label as month,
+                    event_name,
+                    event_type,
+                    unmatched_reason_code as reason_code,
+                    unmatched_reason_detail as reason_detail,
+                    candidate_match,
+                    confidence
+                from mv_unmatched_events
+                where is_primary_phase4_scope
+                order by country_name, month_start_date, source_type, event_name
+                limit :limit
+                """
+            ),
+            {"limit": limit},
+        ).mappings()
+        return [dict(row) for row in rows]
+
+    def fx_quality(self) -> list[dict[str, Any]]:
+        rows = self.session.execute(
+            text(
+                """
+                select
+                    er.currency_code,
+                    er.fx_rate_status as rate_status,
+                    max(er.fx_rate_to_usd) as rate_to_usd,
+                    max(er.fx_rate_date)::text as rate_date,
+                    max(er.fx_rate_source) as source,
+                    count(*)::integer as row_count
+                from execution_requests er
+                group by er.currency_code, er.fx_rate_status
+                union all
+                select
+                    ex.currency_code,
+                    ex.rate_status,
+                    ex.rate_to_usd,
+                    ex.rate_date::text,
+                    ex.source,
+                    0::integer as row_count
+                from exchange_rates ex
+                where not exists (
+                    select 1
+                    from execution_requests er
+                    where er.currency_code = ex.currency_code
+                      and er.fx_rate_status = ex.rate_status
+                )
+                order by currency_code, rate_status
+                """
+            )
         ).mappings()
         return [dict(row) for row in rows]
 
@@ -105,6 +212,17 @@ class DataQualityRepository:
                 """
             )
         ).mappings()
+        brands = self.session.execute(
+            text(
+                """
+                select distinct brand_group as value, brand_group as label
+                from rcpa_doctor_brand_summary
+                where brand_group is not null and btrim(brand_group) <> ''
+                order by brand_group
+                limit 150
+                """
+            )
+        ).mappings()
         roi_segments = self.session.execute(
             text(
                 """
@@ -121,6 +239,7 @@ class DataQualityRepository:
             "intervention_types": [dict(row) for row in intervention_types],
             "specialities": [dict(row) for row in specialities],
             "doctor_classes": [dict(row) for row in doctor_classes],
+            "brands": [dict(row) for row in brands],
             "roi_segments": [dict(row) for row in roi_segments],
             "latest_ingestion_status": str(latest["status"]) if latest else "unknown",
         }

@@ -156,7 +156,8 @@ Currency:
 
 - country default currency is used.
 - Sri Lanka uses LKR and official company FX `1 USD = 310 LKR`.
-- non-LKR currencies remain local with missing FX status until company rates are provided.
+- non-LKR currencies use documented public market FX as `provisional` when no company rate is provided.
+- provisional public FX rates are decision-support estimates only and must be replaced with company finance rates before official reporting.
 
 ### Consolidation Doctor Fields To `request_doctors`
 
@@ -255,14 +256,24 @@ Financial source semantics:
 FX rules:
 
 - Sri Lanka LKR uses official company FX: `1 USD = 310 LKR`.
-- Non-LKR currencies keep local values when no company FX exists and are flagged as `missing`.
+- Non-LKR currencies use documented public market FX as `provisional` when no company FX exists.
 - `provisional` FX is allowed only when a documented non-official rate exists.
+- missing FX remains possible for unknown/unmapped currencies.
 
 Budget quality flags:
 
 - `plan_without_spend`: planned event has no matched consolidation spend.
 - `spend_without_plan`: consolidation spend has no matched planner row.
 - `btu_btc_reconciliation_status`: `reconciled`, `mismatch`, `missing_total_actual`, or `missing_btu_btc_split`.
+
+Budget aggregation rules:
+
+- planned budget is counted once per `plan_event_id` in summary totals;
+- matched requests are grouped under their matched `plan_event_id` before calculating summary unspent gap or overrun;
+- request-level rows are evidence rows and must not be summed as independent planned-budget gaps;
+- local money is grouped by `currency_code` and is never summed across currencies;
+- USD comparisons include rows with seeded official or provisional FX. LKR uses the official company rate `1 USD = 310 LKR`; NPR/MMK/OMR/AED/MYR use provisional public rates dated 2026-06-19 until company finance rates are supplied.
+- top-level local totals are null when more than one currency is present; consumers must use `local_totals_by_currency`.
 
 ## Phase 6 Doctor ROI
 
@@ -272,17 +283,20 @@ Join grain:
 
 - doctor identity is country-scoped by `(country_id, pcode_normalized)`;
 - actual attendance is read only from `request_doctors.attendance_type = 'actual'`;
-- request spend is allocated evenly across parsed actual-attendance Pcodes for that request;
-- RCPA prescription behavior comes from compact doctor-month summaries.
+- actual attendance is deduplicated to `(execution_request_id, country_id, pcode_normalized)` before spend allocation;
+- request spend is allocated evenly across parsed, deduplicated actual-attendance Pcodes for that request;
+- RCPA prescription behavior comes from compact doctor-month summaries and is treated as historical baseline evidence.
 
 ROI fields:
 
 - engagement count and last engagement date;
+- first engagement date;
 - direct HCP/BTU spend, overhead/BTC spend, and total ROI spend;
 - Cipla prescription quantity/value and competitor prescription quantity/value;
+- first and last RCPA months;
 - Cipla share by quantity;
 - spend per Cipla prescription;
-- deterministic `roi_segment`, `quadrant_label`, and `dark_horse_flag`.
+- deterministic `roi_segment`, `quadrant_label`, `dark_horse_flag`, `dark_horse_unengaged_flag`, and `high_value_engaged_flag`.
 
 Segment rules:
 
@@ -293,6 +307,14 @@ Segment rules:
 - `insufficient_data`: available data does not justify a stronger segment.
 
 Quadrants use country-level medians for spend and Cipla prescription quantity.
+
+Doctor ROI period rules:
+
+- engagement month filters apply to actual engagement evidence;
+- RCPA remains a baseline unless a later outcome-period model is added;
+- default Doctor ROI scope is Nepal and Sri Lanka unless a specific country is selected or all loaded markets are explicitly included;
+- brand filters identify doctors who have that brand in baseline RCPA; the displayed ROI totals remain all-brand doctor-level metrics until selected-brand ROI is modeled separately;
+- actual-attendance rows with missing/unparseable Pcodes are surfaced as unallocated doctor spend in Data Quality.
 
 ## Phase 7 Data Quality
 
@@ -314,3 +336,14 @@ It exposes:
 - intervention type coverage;
 - unmatched event count;
 - Sri Lanka May consolidation-derived snapshot count.
+- file-level latest run status and row counts;
+- unmatched records by source/reason;
+- FX seed state, including the official LKR company rate;
+- Excel serial month parse count where profiler output exposes it;
+- actual attendance rows missing Pcodes;
+- unallocated doctor spend local/USD.
+
+Current-state validation rules:
+
+- current validation counts are scoped to the latest ingestion run per source file;
+- older validation rows remain audit history but must not inflate current dashboard warnings after corrected reruns.

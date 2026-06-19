@@ -31,6 +31,52 @@ export function DataQuality() {
           <KpiCard label="Missing FX" value={data.missingFxCount} detail={`${data.provisionalFxCount} provisional`} />
           <KpiCard label="BTU/BTC issues" value={data.btuBtcReconciliationIssueCount} />
           <KpiCard label="Workflow coverage" value={`${Math.round(data.requestWorkflowCoverage * 100)}%`} detail={`Post ${Math.round(data.postWorkflowCoverage * 100)}%`} />
+          <KpiCard label="Missing actual Pcodes" value={data.actualAttendanceMissingPcodeCount} detail={`${data.unallocatedDoctorSpendUsd.toLocaleString()} USD unallocated`} />
+          <KpiCard label="LKR FX seed" value={data.officialLkrRateToUsd ? "Official" : "Missing"} detail={data.staticFxSeedDate ?? "No seed date"} />
+        </div>
+        <div className="grid gap-5 xl:grid-cols-2">
+          <SimpleTable
+            title="Source file participation"
+            detail="Latest run per file. Current validation counts should be interpreted against this scope."
+            headers={["File", "Type", "Status", "Loaded", "Skipped"]}
+            rows={data.sourceFiles.map((row) => [
+              row.sourceFile ?? "-",
+              row.sourceType ?? "-",
+              row.status ?? "-",
+              row.rowsLoaded.toLocaleString(),
+              row.rowsSkipped.toLocaleString(),
+            ])}
+          />
+          <SimpleTable
+            title="FX quality"
+            detail="LKR must use the company rate. Missing-FX currencies stay local-only."
+            headers={["Currency", "Status", "Rate", "Date", "Rows"]}
+            rows={data.fxQuality.map((row) => [
+              row.currencyCode,
+              row.rateStatus,
+              row.rateToUsd?.toString() ?? "-",
+              row.rateDate ?? "-",
+              row.rowCount.toLocaleString(),
+            ])}
+          />
+          <SimpleTable
+            title="Unmatched by source"
+            detail="Primary-scope reconciliation gaps grouped by source and reason."
+            headers={["Source", "Reason", "Records"]}
+            rows={data.unmatchedBySource.map((row) => [row.sourceType, row.reasonCode.replaceAll("_", " "), row.recordCount.toLocaleString()])}
+          />
+          <SimpleTable
+            title="Unmatched records"
+            detail="Sample of records that need review before treating KPIs as final."
+            headers={["Source", "Country", "Month", "Event", "Reason"]}
+            rows={data.unmatchedRecords.map((row) => [
+              row.sourceType,
+              row.country,
+              row.month,
+              row.eventName ?? "-",
+              (row.reasonCode ?? "unknown").replaceAll("_", " "),
+            ])}
+          />
         </div>
         <div className="dashboard-card overflow-hidden">
           <div className="border-b border-slate-200 p-4">
@@ -66,5 +112,34 @@ export function DataQuality() {
         </div>
       </div>
     </main>
+  );
+}
+
+function SimpleTable({ title, detail, headers, rows }: { title: string; detail: string; headers: string[]; rows: string[][] }) {
+  return (
+    <div className="dashboard-card overflow-hidden">
+      <div className="border-b border-slate-200 p-4">
+        <h2 className="font-semibold">{title}</h2>
+        <p className="text-sm text-slate-500">{detail}</p>
+      </div>
+      {rows.length ? (
+        <div className="max-h-96 overflow-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>{headers.map((header) => <th key={header} className="px-4 py-3">{header}</th>)}</tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {rows.map((row, index) => (
+                <tr key={`${title}-${index}`}>
+                  {row.map((cell, cellIndex) => <td key={`${title}-${index}-${cellIndex}`} className="max-w-[18rem] truncate px-4 py-3">{cell}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState title={`No ${title.toLowerCase()}`} detail="No rows were returned by the backend." />
+      )}
+    </div>
   );
 }

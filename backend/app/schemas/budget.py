@@ -30,22 +30,35 @@ class BudgetGapRow(ApiModel):
     scope_status: str | None = None
 
 
+class LocalCurrencyTotal(ApiModel):
+    currency_code: str
+    estimated_intervention_local: Decimal = Decimal("0")
+    confirmed_contracted_amount_local: Decimal = Decimal("0")
+    direct_hcp_btu_spend_local: Decimal = Decimal("0")
+    overhead_btc_spend_local: Decimal = Decimal("0")
+    actual_total_spend_local: Decimal = Decimal("0")
+    association_amount_local: Decimal = Decimal("0")
+    row_count: int = 0
+    missing_fx_count: int = 0
+    provisional_fx_count: int = 0
+
+
 class BudgetSummary(ApiModel):
     meta: ResponseMeta
     planned_budget_usd: Decimal = Decimal("0")
-    estimated_intervention_local: Decimal = Decimal("0")
+    estimated_intervention_local: Decimal | None = None
     estimated_intervention_usd: Decimal = Decimal("0")
-    confirmed_contracted_amount_local: Decimal = Decimal("0")
+    confirmed_contracted_amount_local: Decimal | None = None
     confirmed_contracted_amount_usd: Decimal = Decimal("0")
-    confirmed_vs_estimated_variance_local: Decimal = Decimal("0")
+    confirmed_vs_estimated_variance_local: Decimal | None = None
     confirmed_vs_estimated_variance_usd: Decimal = Decimal("0")
-    direct_hcp_btu_spend_local: Decimal = Decimal("0")
+    direct_hcp_btu_spend_local: Decimal | None = None
     direct_hcp_btu_spend_usd: Decimal = Decimal("0")
-    overhead_btc_spend_local: Decimal = Decimal("0")
+    overhead_btc_spend_local: Decimal | None = None
     overhead_btc_spend_usd: Decimal = Decimal("0")
-    actual_total_spend_local: Decimal = Decimal("0")
+    actual_total_spend_local: Decimal | None = None
     actual_total_spend_usd: Decimal = Decimal("0")
-    association_amount_local: Decimal = Decimal("0")
+    association_amount_local: Decimal | None = None
     unspent_gap_usd: Decimal = Decimal("0")
     overrun_amount_usd: Decimal = Decimal("0")
     plan_without_spend_count: int = 0
@@ -55,4 +68,8 @@ class BudgetSummary(ApiModel):
     provisional_fx_count: int = 0
     currency_codes: list[str] = Field(default_factory=list)
     fx_rate_statuses: list[str] = Field(default_factory=list)
+    local_totals_by_currency: list[LocalCurrencyTotal] = Field(default_factory=list)
+    page: int = 1
+    page_size: int = 100
+    total: int = 0
     rows: list[BudgetGapRow] = Field(default_factory=list)

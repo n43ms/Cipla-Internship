@@ -5,7 +5,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from backend.app.repositories.budget_repository import BudgetRepository
-from backend.app.schemas.budget import BudgetGapRow, BudgetSummary
+from backend.app.schemas.budget import BudgetGapRow, BudgetSummary, LocalCurrencyTotal
 from backend.app.services.dashboard_meta import build_meta
 from backend.app.services.filter_validation import validate_country_month_filters
 
@@ -20,9 +20,11 @@ class BudgetService:
         country: str | None = None,
         month: str | None = None,
         include_out_of_scope: bool = False,
+        page: int = 1,
+        page_size: int = 100,
     ) -> BudgetSummary:
         validate_country_month_filters(self.session, country=country, month=month)
-        data = self.repository.summary(country, month, include_out_of_scope)
+        data = self.repository.summary(country, month, include_out_of_scope, page, page_size)
         row = data["summary"]
         flags: list[str] = []
         limitations: list[str] = []
@@ -35,6 +37,10 @@ class BudgetService:
         if int(row.get("btu_btc_reconciliation_issue_count") or 0):
             flags.append("btu_btc_reconciliation_issue")
             limitations.append("Some BTU + BTC splits do not reconcile to total actual expense.")
+        if len(row.get("currency_codes") or []) > 1:
+            flags.append("mixed_local_currencies")
+            limitations.append("Local currency totals are grouped by currency; only seeded FX rows are comparable in USD.")
+        local_totals_are_mixed = len(row.get("currency_codes") or []) > 1
         if not include_out_of_scope:
             limitations.append("Budget rows default to the current Phase 4 analytical scope.")
         mapped_rows = [
@@ -70,19 +76,19 @@ class BudgetService:
                 limitations=limitations,
             ),
             planned_budget_usd=_decimal(row.get("planned_budget_usd")),
-            estimated_intervention_local=_decimal(row.get("estimated_intervention_local")),
+            estimated_intervention_local=None if local_totals_are_mixed else _decimal(row.get("estimated_intervention_local")),
             estimated_intervention_usd=_decimal(row.get("estimated_intervention_usd")),
-            confirmed_contracted_amount_local=_decimal(row.get("confirmed_contracted_amount_local")),
+            confirmed_contracted_amount_local=None if local_totals_are_mixed else _decimal(row.get("confirmed_contracted_amount_local")),
             confirmed_contracted_amount_usd=_decimal(row.get("confirmed_contracted_amount_usd")),
-            confirmed_vs_estimated_variance_local=_decimal(row.get("confirmed_vs_estimated_variance_local")),
+            confirmed_vs_estimated_variance_local=None if local_totals_are_mixed else _decimal(row.get("confirmed_vs_estimated_variance_local")),
             confirmed_vs_estimated_variance_usd=_decimal(row.get("confirmed_vs_estimated_variance_usd")),
-            direct_hcp_btu_spend_local=_decimal(row.get("direct_hcp_btu_spend_local")),
+            direct_hcp_btu_spend_local=None if local_totals_are_mixed else _decimal(row.get("direct_hcp_btu_spend_local")),
             direct_hcp_btu_spend_usd=_decimal(row.get("direct_hcp_btu_spend_usd")),
-            overhead_btc_spend_local=_decimal(row.get("overhead_btc_spend_local")),
+            overhead_btc_spend_local=None if local_totals_are_mixed else _decimal(row.get("overhead_btc_spend_local")),
             overhead_btc_spend_usd=_decimal(row.get("overhead_btc_spend_usd")),
-            actual_total_spend_local=_decimal(row.get("actual_total_spend_local")),
+            actual_total_spend_local=None if local_totals_are_mixed else _decimal(row.get("actual_total_spend_local")),
             actual_total_spend_usd=_decimal(row.get("actual_total_spend_usd")),
-            association_amount_local=_decimal(row.get("association_amount_local")),
+            association_amount_local=None if local_totals_are_mixed else _decimal(row.get("association_amount_local")),
             unspent_gap_usd=_decimal(row.get("unspent_gap_usd")),
             overrun_amount_usd=_decimal(row.get("overrun_amount_usd")),
             plan_without_spend_count=int(row.get("plan_without_spend_count") or 0),
@@ -92,6 +98,10 @@ class BudgetService:
             provisional_fx_count=int(row.get("provisional_fx_count") or 0),
             currency_codes=list(row.get("currency_codes") or []),
             fx_rate_statuses=list(row.get("fx_rate_statuses") or []),
+            local_totals_by_currency=[LocalCurrencyTotal(**item) for item in data["local_totals_by_currency"]],
+            page=page,
+            page_size=page_size,
+            total=int(data.get("total") or 0),
             rows=mapped_rows,
         )
 

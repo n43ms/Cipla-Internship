@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 from backend.app.repositories.data_quality_repository import DataQualityRepository
 from backend.app.schemas.data_quality import (
     DataQualitySummary,
+    FxQualityRow,
     IngestionLatestResponse,
+    SourceFileQualityRow,
+    UnmatchedQualityRow,
+    UnmatchedRecordRow,
     ValidationIssueRow,
 )
 from backend.app.schemas.filters import FilterOption, FiltersResponse
@@ -51,8 +55,18 @@ class DataQualityService:
             intervention_type_coverage=_decimal(row.get("intervention_type_coverage")),
             unmatched_event_count=int(row.get("unmatched_event_count") or 0),
             derived_snapshot_count=int(row.get("derived_snapshot_count") or 0),
+            serial_month_parse_count=int(row.get("serial_month_parse_count") or 0),
+            static_fx_seed_date=str(row.get("static_fx_seed_date")) if row.get("static_fx_seed_date") else None,
+            official_lkr_rate_to_usd=row.get("official_lkr_rate_to_usd"),
+            actual_attendance_missing_pcode_count=int(row.get("actual_attendance_missing_pcode_count") or 0),
+            unallocated_doctor_spend_local=_decimal(row.get("unallocated_doctor_spend_local")),
+            unallocated_doctor_spend_usd=_decimal(row.get("unallocated_doctor_spend_usd")),
             stale_ingestion=bool(row.get("stale_ingestion")),
             validation_issues=[ValidationIssueRow(**item) for item in self.repository.validation_issues()],
+            source_files=[SourceFileQualityRow(**item) for item in self.repository.source_file_quality()],
+            unmatched_by_source=[UnmatchedQualityRow(**item) for item in self.repository.unmatched_by_source()],
+            unmatched_records=[UnmatchedRecordRow(**item) for item in self.repository.unmatched_records()],
+            fx_quality=[FxQualityRow(**item) for item in self.repository.fx_quality()],
         )
 
     def latest_ingestion(self) -> IngestionLatestResponse:
@@ -76,6 +90,7 @@ class DataQualityService:
             countries=[FilterOption(**item) for item in row["countries"]],
             months=[FilterOption(**item) for item in row["months"]],
             intervention_types=[FilterOption(**item) for item in row["intervention_types"]],
+            brands=[FilterOption(**item) for item in row["brands"]],
             specialities=[FilterOption(**item) for item in row["specialities"]],
             doctor_classes=[FilterOption(**item) for item in row["doctor_classes"]],
             roi_segments=[FilterOption(**item) for item in row["roi_segments"]],
@@ -103,4 +118,6 @@ def _quality_flags(row: dict[str, object]) -> list[str]:
         flags.append("provisional_fx")
     if int(row.get("doctor_no_rcpa_count") or 0):
         flags.append("no_rcpa")
+    if int(row.get("actual_attendance_missing_pcode_count") or 0):
+        flags.append("unallocated_doctor_spend")
     return flags

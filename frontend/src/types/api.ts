@@ -27,19 +27,19 @@ export type IngestionSummary = {
 export type BudgetSummaryResponse = {
   meta: ResponseMeta;
   plannedBudgetUsd: number;
-  estimatedInterventionLocal: number;
+  estimatedInterventionLocal: number | null;
   estimatedInterventionUsd: number;
-  confirmedContractedAmountLocal: number;
+  confirmedContractedAmountLocal: number | null;
   confirmedContractedAmountUsd: number;
-  confirmedVsEstimatedVarianceLocal: number;
+  confirmedVsEstimatedVarianceLocal: number | null;
   confirmedVsEstimatedVarianceUsd: number;
-  directHcpBtuSpendLocal: number;
+  directHcpBtuSpendLocal: number | null;
   directHcpBtuSpendUsd: number;
-  overheadBtcSpendLocal: number;
+  overheadBtcSpendLocal: number | null;
   overheadBtcSpendUsd: number;
-  actualTotalSpendLocal: number;
+  actualTotalSpendLocal: number | null;
   actualTotalSpendUsd: number;
-  associationAmountLocal: number;
+  associationAmountLocal: number | null;
   unspentGapUsd: number;
   overrunAmountUsd: number;
   planWithoutSpendCount: number;
@@ -49,7 +49,24 @@ export type BudgetSummaryResponse = {
   provisionalFxCount: number;
   currencyCodes: string[];
   fxRateStatuses: string[];
+  localTotalsByCurrency: LocalCurrencyTotal[];
+  page: number;
+  pageSize: number;
+  total: number;
   rows: BudgetGapRow[];
+};
+
+export type LocalCurrencyTotal = {
+  currencyCode: string;
+  estimatedInterventionLocal: number;
+  confirmedContractedAmountLocal: number;
+  directHcpBtuSpendLocal: number;
+  overheadBtcSpendLocal: number;
+  actualTotalSpendLocal: number;
+  associationAmountLocal: number;
+  rowCount: number;
+  missingFxCount: number;
+  provisionalFxCount: number;
 };
 
 export type BudgetGapRow = {
@@ -220,6 +237,7 @@ export type DoctorRoiRow = {
   doctorClass: string | null;
   activeStatus: string | null;
   engagementCount: number;
+  firstEngagementDate: string | null;
   lastEngagementDate: string | null;
   directHcpBtuSpendUsd: number;
   overheadBtcSpendUsd: number;
@@ -234,9 +252,14 @@ export type DoctorRoiRow = {
   quadrantY: number;
   quadrantLabel: string;
   darkHorseFlag: boolean;
+  darkHorseUnengagedFlag: boolean;
+  highValueEngagedFlag: boolean;
   hasRcpa: boolean;
   hasMissingFx: boolean;
   hasProvisionalFx: boolean;
+  rcpaFirstMonth: string | null;
+  rcpaLastMonth: string | null;
+  rcpaMonthCount: number;
 };
 
 export type DoctorRoiResponse = {
@@ -284,6 +307,7 @@ export type FiltersResponse = {
   countries: FilterOption[];
   months: FilterOption[];
   interventionTypes: FilterOption[];
+  brands: FilterOption[];
   specialities: FilterOption[];
   doctorClasses: FilterOption[];
   roiSegments: FilterOption[];
@@ -327,6 +351,12 @@ export type DataQualityResponse = {
   interventionTypeCoverage: number;
   unmatchedEventCount: number;
   derivedSnapshotCount: number;
+  serialMonthParseCount: number;
+  staticFxSeedDate: string | null;
+  officialLkrRateToUsd: number | null;
+  actualAttendanceMissingPcodeCount: number;
+  unallocatedDoctorSpendLocal: number;
+  unallocatedDoctorSpendUsd: number;
   staleIngestion: boolean;
   validationIssues: Array<{
     severity: string;
@@ -337,5 +367,41 @@ export type DataQualityResponse = {
     fieldName: string | null;
     errorCode: string;
     message: string;
+  }>;
+  sourceFiles: Array<{
+    sourceFile: string | null;
+    sourceType: string | null;
+    status: string | null;
+    rowsSeen: number;
+    rowsLoaded: number;
+    rowsSkipped: number;
+    warningCount: number;
+    errorCount: number;
+    periodStart: string | null;
+    periodEnd: string | null;
+  }>;
+  unmatchedBySource: Array<{
+    sourceType: string;
+    reasonCode: string;
+    recordCount: number;
+  }>;
+  unmatchedRecords: Array<{
+    sourceType: string;
+    country: string;
+    month: string;
+    eventName: string | null;
+    eventType: string | null;
+    reasonCode: string | null;
+    reasonDetail: string | null;
+    candidateMatch: string | null;
+    confidence: number;
+  }>;
+  fxQuality: Array<{
+    currencyCode: string;
+    rateStatus: string;
+    rateToUsd: number | null;
+    rateDate: string | null;
+    source: string | null;
+    rowCount: number;
   }>;
 };
