@@ -389,10 +389,10 @@ function WorkflowPanel({ workflowData }: { workflowData: WorkflowSummaryResponse
         reportsApproved={workflowData?.reportsApproved ?? 0}
         reportsSentForCorrection={workflowData?.reportsSentForCorrection ?? 0}
       />
-      <div className="grid gap-4 md:grid-cols-2">
-        <WorkflowStatusTable title="Request approval" counts={workflowData?.requestApprovalCounts ?? {}} />
+      <div className="grid gap-4 md:grid-cols-1">
+       
         <WorkflowStatusTable title="Request confirmation" counts={workflowData?.requestConfirmationCounts ?? {}} />
-        <WorkflowStatusTable title="Post approval" counts={workflowData?.postApprovalCounts ?? {}} />
+        
         <WorkflowStatusTable title="Post confirmation" counts={workflowData?.postConfirmationCounts ?? {}} />
       </div>
       <div className="grid gap-3 md:grid-cols-2">
