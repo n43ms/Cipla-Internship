@@ -1,16 +1,17 @@
 import type { ResponseMeta } from "../../types/api";
+import { LoaderCircle } from "lucide-react";
 
 export function DataFreshnessBanner({ meta }: { meta?: ResponseMeta }) {
   if (!meta) return null;
   const hasWarnings = meta.dataQualityFlags.length > 0 || meta.limitations.length > 0;
   return (
-    <section className={`dashboard-card p-4 ${hasWarnings ? "border-amber-300 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
+    <section className={`dashboard-card p-4 ${hasWarnings ? "border-[#6d5c32]/45 bg-[#3b3218]/20" : "border-emerald-300/20 bg-emerald-300/[0.045]"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Data freshness</p>
-          <p className="text-sm text-slate-800">Latest ingestion status: <strong>{meta.latestIngestionStatus}</strong></p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Data freshness</p>
+          <p className="text-sm text-zinc-200">Latest ingestion status: <strong>{meta.latestIngestionStatus}</strong></p>
         </div>
-        <p className="text-xs text-slate-500">Generated {new Date(meta.generatedAt).toLocaleString()}</p>
+        <p className="text-xs text-zinc-500">Generated {new Date(meta.generatedAt).toLocaleString()}</p>
       </div>
       {hasWarnings ? <LimitationList limitations={[...meta.dataQualityFlags, ...meta.limitations]} /> : null}
     </section>
@@ -21,9 +22,9 @@ export function LimitationList({ limitations }: { limitations: string[] }) {
   const unique = Array.from(new Set(limitations)).filter(Boolean);
   if (!unique.length) return null;
   return (
-    <ul className="mt-3 grid gap-1 text-xs text-amber-900 sm:grid-cols-2">
+    <ul className="mt-3 grid grid-cols-1 gap-1 text-xs text-[#bbaa83] sm:grid-cols-2">
       {unique.map((item) => (
-        <li key={item} className="rounded-md bg-white/70 px-2 py-1">{humanize(item)}</li>
+        <li key={item} className="rounded-md border border-[#6d5c32]/35 bg-black/20 px-2 py-1">{humanize(item)}</li>
       ))}
     </ul>
   );
@@ -32,17 +33,31 @@ export function LimitationList({ limitations }: { limitations: string[] }) {
 export function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="dashboard-card p-6 text-center">
-      <p className="font-semibold text-slate-800">{title}</p>
-      <p className="mt-1 text-sm text-slate-500">{detail}</p>
+      <p className="font-semibold text-zinc-200">{title}</p>
+      <p className="mt-1 text-sm text-zinc-500">{detail}</p>
     </div>
   );
 }
 
 export function ErrorState({ title = "Dashboard data unavailable" }: { title?: string }) {
   return (
-    <div className="dashboard-card border-red-200 bg-red-50 p-6">
-      <p className="font-semibold text-red-900">{title}</p>
-      <p className="mt-1 text-sm text-red-700">The backend could not return this API. Check the server logs and migration state.</p>
+    <div className="dashboard-card border-red-400/30 bg-red-400/[0.07] p-6">
+      <p className="font-semibold text-red-200">{title}</p>
+      <p className="mt-1 text-sm text-red-300/80">The backend could not return this API. Check the server logs and migration state.</p>
+    </div>
+  );
+}
+
+export function LoadingState({ label = "Loading dashboard data", compact = false }: { label?: string; compact?: boolean }) {
+  return (
+    <div className={`flex w-full items-center justify-center ${compact ? "min-h-48" : "min-h-[55vh]"}`} role="status" aria-live="polite">
+      <div className="flex flex-col items-center gap-3 rounded-lg bg-zinc-950/40 px-6 py-5 shadow-xl shadow-black/15 backdrop-blur-sm">
+        <span className="relative flex h-10 w-10 items-center justify-center">
+          <span className="absolute inset-0 animate-ping rounded-full bg-accent/10" />
+          <LoaderCircle aria-hidden="true" className="relative h-12 w-12 animate-spin text-accent" strokeWidth={1.8} />
+        </span>
+        <p className="text-lg font-medium text-zinc-400">{label}</p>
+      </div>
     </div>
   );
 }
@@ -50,9 +65,9 @@ export function ErrorState({ title = "Dashboard data unavailable" }: { title?: s
 export function KpiCard({ label, value, detail }: { label: string; value: string | number; detail?: string }) {
   return (
     <div className="dashboard-card p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
-      {detail ? <p className="mt-1 text-xs text-slate-500">{detail}</p> : null}
+      <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-zinc-50">{value}</p>
+      {detail ? <p className="mt-1 text-xs text-zinc-500">{detail}</p> : null}
     </div>
   );
 }

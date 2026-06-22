@@ -13,6 +13,8 @@ export type DoctorRoiFilters = {
   includeOutOfScope?: boolean;
   page?: number;
   pageSize?: number;
+  sort?: string;
+  sortDirection?: "asc" | "desc";
 };
 
 export function getDoctorRoi(filters: DoctorRoiFilters = {}) {
@@ -28,6 +30,8 @@ export function getDoctorRoi(filters: DoctorRoiFilters = {}) {
   if (filters.includeOutOfScope) params.set("includeOutOfScope", "true");
   params.set("page", String(filters.page ?? 1));
   params.set("pageSize", String(filters.pageSize ?? 25));
+  if (filters.sort) params.set("sort", filters.sort);
+  if (filters.sortDirection) params.set("sortDirection", filters.sortDirection);
   return apiGet<DoctorRoiResponse>(`/api/doctors/roi?${params.toString()}`);
 }
 

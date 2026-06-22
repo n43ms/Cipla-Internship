@@ -9,6 +9,8 @@ export type WorkflowFilters = {
   page?: number;
   pageSize?: number;
   includeOutOfScope?: boolean;
+  sort?: string;
+  sortDirection?: "asc" | "desc";
 };
 
 export function getWorkflowSummary(filters: Pick<WorkflowFilters, "country" | "month" | "interventionType" | "includeOutOfScope"> = {}) {

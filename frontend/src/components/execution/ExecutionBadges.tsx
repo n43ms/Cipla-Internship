@@ -1,10 +1,10 @@
 type BadgeTone = "good" | "warn" | "muted" | "info";
 
 const toneClass: Record<BadgeTone, string> = {
-  good: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  warn: "border-amber-200 bg-amber-50 text-amber-700",
-  muted: "border-slate-200 bg-slate-50 text-slate-600",
-  info: "border-sky-200 bg-sky-50 text-sky-700",
+  good: "border-emerald-300/20 bg-emerald-300/[0.07] text-emerald-200/75",
+  warn: "border-amber-300/20 bg-amber-300/[0.07] text-amber-200/75",
+  muted: "border-zinc-700 bg-zinc-800/70 text-zinc-400",
+  info: "border-cyan-300/20 bg-cyan-300/[0.07] text-cyan-200/75",
 };
 
 export function StatusBadge({ value }: { value: string }) {

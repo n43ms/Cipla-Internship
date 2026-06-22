@@ -1,6 +1,22 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import type { InterventionMixRow } from "../../types/api";
+import { SortableHeader, useSortableRows } from "../common/SortableTable";
+
+const INTERVENTION_SORT_ACCESSORS = {
+  type: (row: InterventionMixRow) => `${row.interventionType} ${row.interventionSubType ?? ""}`,
+  requests: (row: InterventionMixRow) => row.requestCount,
+  matched: (row: InterventionMixRow) => row.matchedRequestCount,
+  approved: (row: InterventionMixRow) => row.approvedCount,
+  executedRequests: (row: InterventionMixRow) => row.executedRequestCount,
+  executedSnapshots: (row: InterventionMixRow) => row.executedSnapshotCount,
+  actionDueRequests: (row: InterventionMixRow) => row.actionDueRequestCount,
+  actionDueSnapshots: (row: InterventionMixRow) => row.actionDueSnapshotCount,
+  matchedWithoutExecution: (row: InterventionMixRow) => row.matchedWithoutExecutionCount,
+  pendingReport: (row: InterventionMixRow) => row.reportPendingCount,
+  actualSpend: (row: InterventionMixRow) => row.totalActualSpend,
+  fx: (row: InterventionMixRow) => row.fxRateStatus,
+};
 
 export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
   const data = rows.slice(0, 8).map((row) => ({
@@ -23,20 +39,20 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
       {data.length === 0 ? (
         <p className="text-sm text-muted">No intervention rows match the current filters.</p>
       ) : (
-        <div className="chart-frame h-[28rem] sm:h-96">
-          <ResponsiveContainer width="100%" height="100%" minWidth={320} minHeight={240}>
-            <BarChart data={data} layout="vertical" margin={{ left: 4, right: 20, top: 8, bottom: 44 }}>
+        <div className="chart-frame h-[34rem] sm:h-[30rem]">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={100}>
+            <BarChart data={data} layout="vertical" margin={{ left: 0, right: 16, top: 8, bottom: 84 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-              <YAxis type="category" dataKey="name" width={118} tick={{ fontSize: 11 }} />
-              <Tooltip labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullName ?? _label} />
+              <YAxis type="category" dataKey="name" width={106} tick={{ fontSize: 11 }} />
+              <Tooltip cursor={{ fill: "rgba(97, 199, 187, 0.075)" }} labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullName ?? _label} />
               <Legend wrapperStyle={{ bottom: 0, fontSize: 11, lineHeight: "18px" }} />
-              <Bar dataKey="requests" fill="#2563eb" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="matched" name="matched evidence" fill="#7c3aed" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="executedRequests" name="executed request links" fill="#0f766e" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="executedSnapshots" name="executed snapshots" fill="#16a34a" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="actionDueSnapshots" name="action-due snapshots" fill="#f59e0b" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="pending" name="pending report" fill="#dc2626" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="requests" fill="#68add4" radius={[0, 4, 4, 0]} animationDuration={800} />
+              <Bar dataKey="matched" name="matched evidence" fill="#9b8ac7" radius={[0, 4, 4, 0]} animationDuration={800} />
+              <Bar dataKey="executedRequests" name="executed request links" fill="#58baad" radius={[0, 4, 4, 0]} animationDuration={800} />
+              <Bar dataKey="executedSnapshots" name="executed snapshots" fill="#75bd83" radius={[0, 4, 4, 0]} animationDuration={800} />
+              <Bar dataKey="actionDueSnapshots" name="action-due snapshots" fill="#d0a85d" radius={[0, 4, 4, 0]} animationDuration={800} />
+              <Bar dataKey="pending" name="pending report" fill="#c77984" radius={[0, 4, 4, 0]} animationDuration={800} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -46,36 +62,37 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
 }
 
 export function InterventionMixTable({ rows }: { rows: InterventionMixRow[] }) {
+  const sorted = useSortableRows(rows, INTERVENTION_SORT_ACCESSORS);
   return (
     <div className="dashboard-card">
-      <div className="border-b border-slate-200 p-4">
+      <div className="border-b border-zinc-800 p-4">
         <h3 className="font-medium">Intervention mix</h3>
         <p className="mt-1 text-sm text-muted">Aggregated by intervention type/subtype for the selected scope.</p>
       </div>
       {rows.length === 0 ? (
         <p className="p-4 text-sm text-muted">No intervention rows match the current data.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
           <table className="w-full min-w-[1040px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-muted">
+            <thead className="table-head">
               <tr>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Requests</th>
-                <th className="px-4 py-3">Matched</th>
-                <th className="px-4 py-3">Approved</th>
-                <th className="px-4 py-3">Executed request links</th>
-                <th className="px-4 py-3">Executed snapshots</th>
-                <th className="px-4 py-3">Action-due request links</th>
-                <th className="px-4 py-3">Action-due snapshots</th>
-                <th className="px-4 py-3">Matched without execution</th>
-                <th className="px-4 py-3">Pending report</th>
-                <th className="px-4 py-3">Actual spend</th>
-                <th className="px-4 py-3">FX</th>
+                <SortableHeader column="type" label="Type" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="requests" label="Requests" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="matched" label="Matched" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="approved" label="Approved" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="executedRequests" label="Executed request links" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="executedSnapshots" label="Executed snapshots" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="actionDueRequests" label="Action-due request links" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="actionDueSnapshots" label="Action-due snapshots" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="matchedWithoutExecution" label="Matched without execution" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="pendingReport" label="Pending report" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="actualSpend" label="Actual spend" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="fx" label="FX" sort={sorted.sort} onSort={sorted.onSort} />
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={`${row.interventionType}-${row.interventionSubType ?? "all"}`} className="border-t border-slate-100">
+              {sorted.rows.map((row) => (
+                <tr key={`${row.interventionType}-${row.interventionSubType ?? "all"}`} className="table-row">
                   <td className="px-4 py-3">
                     <div className="font-medium">{row.interventionType}</div>
                     <div className="text-xs text-muted">{row.interventionSubType ?? "All subtypes"}</div>

@@ -7,6 +7,8 @@ export type ExecutionFilters = {
   page?: number;
   pageSize?: number;
   includeOutOfScope?: boolean;
+  sort?: string;
+  sortDirection?: "asc" | "desc";
 };
 
 export function getExecutionSummary(filters: Pick<ExecutionFilters, "country" | "month" | "includeOutOfScope"> = {}) {

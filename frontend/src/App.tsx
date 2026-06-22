@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
+import { Activity, DatabaseZap, Stethoscope, WalletCards, type LucideIcon } from "lucide-react";
 
-import { DataFreshnessBanner } from "./components/common/DataStateComponents";
+import { DataFreshnessBanner, LoadingState } from "./components/common/DataStateComponents";
 import { useDashboardMeta } from "./hooks/useDashboardMeta";
 const BudgetUtilization = lazy(() => import("./pages/BudgetUtilization").then((module) => ({ default: module.BudgetUtilization })));
 const DataQuality = lazy(() => import("./pages/DataQuality").then((module) => ({ default: module.DataQuality })));
@@ -9,36 +10,41 @@ const ExecutionMatrix = lazy(() => import("./pages/ExecutionMatrix").then((modul
 
 type PageKey = "execution" | "budget" | "doctors" | "quality";
 
-const PAGES: Array<{ key: PageKey; label: string }> = [
-  { key: "execution", label: "Execution" },
-  { key: "budget", label: "Budget" },
-  { key: "doctors", label: "Doctor ROI" },
-  { key: "quality", label: "Data Quality" },
+const PAGES: Array<{ key: PageKey; label: string; icon: LucideIcon }> = [
+  { key: "execution", label: "Execution", icon: Activity },
+  { key: "budget", label: "Budget", icon: WalletCards },
+  { key: "doctors", label: "Doctor ROI", icon: Stethoscope },
+  { key: "quality", label: "Data Quality", icon: DatabaseZap },
 ];
 
 export default function App() {
   const [page, setPage] = useState<PageKey>("execution");
   const meta = useDashboardMeta();
   return (
-    <div className="min-h-screen bg-slate-50">
-      <nav className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-950">Cipla Execution Intelligence</p>
-            <p className="text-xs text-slate-500">Planner, consolidation, RCPA, workflow, budget, ROI, and data-quality governance</p>
+    <div className="min-h-screen bg-surface text-ink">
+      <nav className="sticky top-0 z-40 border-b border-zinc-800 bg-zinc-950/90 px-4 py-3 shadow-lg shadow-black/10 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-zinc-50">Cipla Execution Intelligence</p>
+            <p className="text-xs text-zinc-500">Planner, consolidation, RCPA, workflow, budget, ROI, and data-quality governance</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {PAGES.map((item) => (
+          <div className="-mx-1 flex max-w-full gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:shrink-0 lg:px-0">
+            {PAGES.map((item) => {
+              const Icon = item.icon;
+              return (
               <button
                 key={item.key}
-                className={`soft-button rounded-md px-3 py-2 text-sm ${
-                  page === item.key ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"
+                className={`soft-button flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm ${
+                  page === item.key ? "border-accent/25 bg-accent/[0.07] text-[#abc8c3] shadow-[inset_0_-1px_0_rgba(106,174,165,0.35)]" : ""
                 }`}
                 onClick={() => setPage(item.key)}
+                aria-current={page === item.key ? "page" : undefined}
               >
+                <Icon aria-hidden="true" className="h-4 w-4" />
                 {item.label}
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       </nav>
@@ -47,7 +53,7 @@ export default function App() {
           <DataFreshnessBanner meta={meta.data.meta} />
         </div>
       ) : null}
-      <Suspense fallback={<main className="p-6 text-sm text-slate-500">Loading dashboard page</main>}>
+      <Suspense fallback={<main><LoadingState label="Loading dashboard" /></main>}>
         {page === "execution" ? <ExecutionMatrix /> : null}
         {page === "budget" ? <BudgetUtilization /> : null}
         {page === "doctors" ? <DoctorRoi /> : null}

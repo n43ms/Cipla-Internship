@@ -1,28 +1,40 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 import { getDataQuality } from "../api/filters";
-import { DataFreshnessBanner, EmptyState, ErrorState, KpiCard } from "../components/common/DataStateComponents";
+import { DataFreshnessBanner, EmptyState, ErrorState, KpiCard, LoadingState } from "../components/common/DataStateComponents";
+import { SortableHeader, useSortableRows, type SortValue } from "../components/common/SortableTable";
+import type { DataQualityResponse } from "../types/api";
+
+type ValidationIssue = DataQualityResponse["validationIssues"][number];
+
+const VALIDATION_SORT_ACCESSORS = {
+  severity: (row: ValidationIssue) => row.severity,
+  file: (row: ValidationIssue) => row.sourceFile,
+  code: (row: ValidationIssue) => row.errorCode,
+  message: (row: ValidationIssue) => row.message,
+};
 
 export function DataQuality() {
   const quality = useQuery({ queryKey: ["data-quality"], queryFn: getDataQuality });
 
-  if (quality.isLoading) return <main className="p-6 text-sm text-slate-500">Loading data quality</main>;
+  if (quality.isLoading) return <main><LoadingState label="Loading data quality" /></main>;
   if (quality.isError) return <main className="p-6"><ErrorState title="Data quality unavailable" /></main>;
   if (!quality.data) return null;
 
   const data = quality.data;
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6">
+    <main className="page-shell">
       <div className="mx-auto flex max-w-7xl flex-col gap-5">
         <header>
-          <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">Trust layer</p>
-          <h1 className="mt-1 text-2xl font-semibold text-slate-950">Data quality</h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-600">
+          <p className="eyebrow">Trust layer</p>
+          <h1 className="page-title">Data quality</h1>
+          <p className="page-copy">
             Shows freshness, row counts, validation issues, match coverage, Pcode coverage, RCPA coverage, FX quality, workflow coverage, and unmatched records before anyone acts on KPIs.
           </p>
         </header>
         <DataFreshnessBanner meta={data.meta} />
-        <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard label="Loaded files" value={`${data.loadedFileCount}/${data.sourceFileCount}`} detail={data.latestIngestion.status} />
           <KpiCard label="Rows loaded" value={data.rowsLoaded.toLocaleString()} detail={`${data.rowsSkipped.toLocaleString()} skipped`} />
           <KpiCard label="Match coverage" value={`${Math.round(data.matchCoverage * 100)}%`} detail={`${data.unmatchedEventCount} unmatched records`} />
@@ -34,7 +46,7 @@ export function DataQuality() {
           <KpiCard label="Missing actual Pcodes" value={data.actualAttendanceMissingPcodeCount} detail={`${data.unallocatedDoctorSpendUsd.toLocaleString()} USD unallocated`} />
           <KpiCard label="LKR FX seed" value={data.officialLkrRateToUsd ? "Official" : "Missing"} detail={data.staticFxSeedDate ?? "No seed date"} />
         </div>
-        <div className="grid gap-5 xl:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-2">
           <SimpleTable
             title="Source file participation"
             detail="Latest run per file. Current validation counts should be interpreted against this scope."
@@ -78,58 +90,32 @@ export function DataQuality() {
             ])}
           />
         </div>
-        <div className="dashboard-card overflow-hidden">
-          <div className="border-b border-slate-200 p-4">
-            <h2 className="font-semibold">Validation drilldown</h2>
-            <p className="text-sm text-slate-500">{data.validationErrorCount} errors and {data.validationWarningCount} warnings in recent ingestion history.</p>
-          </div>
-          {data.validationIssues.length ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Severity</th>
-                    <th className="px-4 py-3">File</th>
-                    <th className="px-4 py-3">Code</th>
-                    <th className="px-4 py-3">Message</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {data.validationIssues.map((issue, index) => (
-                    <tr key={`${issue.errorCode}-${index}`}>
-                      <td className="px-4 py-3">{issue.severity}</td>
-                      <td className="max-w-[18rem] truncate px-4 py-3">{issue.sourceFile ?? "-"}</td>
-                      <td className="px-4 py-3">{issue.errorCode}</td>
-                      <td className="px-4 py-3">{issue.message}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState title="No validation issues" detail="No recent validation issues were returned by the backend." />
-          )}
-        </div>
+        <ValidationTable data={data} />
       </div>
     </main>
   );
 }
 
 function SimpleTable({ title, detail, headers, rows }: { title: string; detail: string; headers: string[]; rows: string[][] }) {
+  const accessors = useMemo(
+    () => Object.fromEntries(headers.map((_, index) => [String(index), (row: string[]) => row[index] as SortValue])) as Record<string, (row: string[]) => SortValue>,
+    [headers],
+  );
+  const sorted = useSortableRows(rows, accessors);
   return (
     <div className="dashboard-card overflow-hidden">
-      <div className="border-b border-slate-200 p-4">
+      <div className="border-b border-zinc-800 p-4">
         <h2 className="font-semibold">{title}</h2>
-        <p className="text-sm text-slate-500">{detail}</p>
+        <p className="text-sm text-zinc-500">{detail}</p>
       </div>
       {rows.length ? (
-        <div className="max-h-96 overflow-auto">
+        <div className="table-scroll max-h-96 overflow-y-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>{headers.map((header) => <th key={header} className="px-4 py-3">{header}</th>)}</tr>
+            <thead className="table-head sticky top-0">
+              <tr>{headers.map((header, index) => <SortableHeader key={header} column={String(index)} label={header} sort={sorted.sort} onSort={sorted.onSort} />)}</tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {rows.map((row, index) => (
+            <tbody className="divide-y divide-zinc-800">
+              {sorted.rows.map((row, index) => (
                 <tr key={`${title}-${index}`}>
                   {row.map((cell, cellIndex) => <td key={`${title}-${index}-${cellIndex}`} className="max-w-[18rem] truncate px-4 py-3">{cell}</td>)}
                 </tr>
@@ -139,6 +125,44 @@ function SimpleTable({ title, detail, headers, rows }: { title: string; detail: 
         </div>
       ) : (
         <EmptyState title={`No ${title.toLowerCase()}`} detail="No rows were returned by the backend." />
+      )}
+    </div>
+  );
+}
+
+function ValidationTable({ data }: { data: DataQualityResponse }) {
+  const sorted = useSortableRows(data.validationIssues, VALIDATION_SORT_ACCESSORS);
+  return (
+    <div className="dashboard-card overflow-hidden">
+      <div className="border-b border-zinc-800 p-4">
+        <h2 className="font-semibold">Validation drilldown</h2>
+        <p className="text-sm text-zinc-500">{data.validationErrorCount} errors and {data.validationWarningCount} warnings in recent ingestion history.</p>
+      </div>
+      {data.validationIssues.length ? (
+        <div className="table-scroll">
+          <table className="min-w-full text-left text-sm">
+            <thead className="table-head">
+              <tr>
+                <SortableHeader column="severity" label="Severity" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="file" label="File" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="code" label="Code" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="message" label="Message" sort={sorted.sort} onSort={sorted.onSort} />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {sorted.rows.map((issue, index) => (
+                <tr key={`${issue.errorCode}-${index}`}>
+                  <td className="px-4 py-3">{issue.severity}</td>
+                  <td className="max-w-[18rem] truncate px-4 py-3">{issue.sourceFile ?? "-"}</td>
+                  <td className="px-4 py-3">{issue.errorCode}</td>
+                  <td className="px-4 py-3">{issue.message}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState title="No validation issues" detail="No recent validation issues were returned by the backend." />
       )}
     </div>
   );
