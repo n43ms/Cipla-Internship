@@ -93,12 +93,12 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
       <section className="relative mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.65fr)]">
         <div className="max-w-4xl animate-page-enter">
           <CiplaLogoPlaceholder size="lg" />
-          <p className="mt-8 text-lg font-semibold uppercase tracking-[0.32em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Execution intelligence platform</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent  sm:text-2xl lg:text-4xl">
+          <p className="mt-8  font-semibold uppercase tracking-[0.05em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent sm:text-2xl lg:text-4xl">Execution intelligence platform</p>
+          <h1 className="mt-4 text-[17px] font-semibold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent  ">
             One command center for planning, execution, budget control, workflow proof, and doctor ROI.
           </h1>
           <p className="mt-5 max-w-3xl text-base leading-7 bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">
-            This software turns messy planner, consolidation, RCPA, execution, and workflow Excel data into a governed dashboard with auditable matching, budget utilization, intervention mix, doctor opportunity scoring, and data-quality checks.
+            Organize planner, consolidation, RCPA, execution, and workflow Excel data into a governed dashboard with auditable matching, budget utilization, intervention mix, doctor opportunity scoring, and data-quality checks.
           </p>
           <div className="mt-7 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
             <EntryFeature icon={<ShieldCheck className="h-4 w-4" />} title="Auditable data" detail="Tracks source files, validation warnings, scope rules, and match coverage." />
@@ -134,8 +134,8 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
             </div>
             <div className="mt-6 rounded-lg border border-white/[0.08] bg-black/20 p-4">
               <p className="text-xs uppercase tracking-wide text-zinc-500">Built for</p>
-              <p className="mt-2 text-lg font-semibold text-zinc-50">Cipla EMEU execution governance</p>
-              <p className="mt-1 text-sm text-zinc-500">Fast reviews. Clean audit trail. Practical decisions from messy field data.</p>
+              <p className="mt-2 text-lg font-semibold bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Cipla EMEU execution governance</p>
+              <p className="mt-1 text-sm bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Fast reviews. Clean audit trail. Practical decisions from raw field data.</p>
             </div>
           </div>
         </aside>
