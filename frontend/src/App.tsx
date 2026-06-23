@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, type ReactNode } from "react";
-import { Activity, ArrowRight, DatabaseZap, ShieldCheck, Sparkles, Stethoscope, WalletCards, type LucideIcon } from "lucide-react";
+import { Activity, ArrowRight, DatabaseZap, LogOut, ShieldCheck, Sparkles, Stethoscope, WalletCards, type LucideIcon } from "lucide-react";
 
 import { DataFreshnessBanner, LoadingState } from "./components/common/DataStateComponents";
 import { useDashboardMeta } from "./hooks/useDashboardMeta";
@@ -29,6 +29,12 @@ export default function App() {
     window.setTimeout(() => setEntered(true), 560);
   }
 
+  function returnToEntry() {
+    setPage("execution");
+    setEntryExiting(false);
+    setEntered(false);
+  }
+
   if (!entered) {
     return <EntryScreen exiting={entryExiting} onEnter={enterApp} />;
   }
@@ -37,36 +43,53 @@ export default function App() {
     <div className="min-h-screen animate-page-enter bg-surface text-ink">
       <nav className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#07090a]/88 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
+          <button
+            
+            onClick={returnToEntry}
+            className="group -ml-2 flex min-w-0 items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-all duration-500 ease-out"
+            aria-label="Return to loading screen"
+            title="Return to loading screen"
+          >
             <CiplaLogoPlaceholder size="sm" />
-            <div className="min-w-0">
+            <div className="min-w-0 ml-5">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate text-lg font-semibold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Cipla Execution Intelligence</p>
-                <span className="rounded-full border border-accent/20 bg-accent/[0.07] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-accent">
-                  Governance cockpit
-                </span>
+                <p className="truncate text-lg font-semibold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent transition-all duration-500 ">Cipla Execution Intelligence</p>
+                
               </div>
               <p className="text-xs bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Planner, consolidation, RCPA, workflow, budget, ROI, and data-quality governance</p>
               <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Engineered by Aditya Nema</p>
             </div>
-          </div>
-          <div className="-mx-1 flex max-w-full gap-2 overflow-x-auto px-3 p-1 lg:mx-0 lg:shrink-0">
-            {PAGES.map((item) => {
-              const Icon = item.icon;
-              return (
-              <button
-                key={item.key}
-                className={`soft-button flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm ${
-                  page === item.key ? "border-accent/25 bg-accent/[0.07] text-[#abc8c3] shadow-[inset_0_-1px_0_rgba(106,174,165,0.35)]" : ""
-                }`}
-                onClick={() => setPage(item.key)}
-                aria-current={page === item.key ? "page" : undefined}
-              >
-                <Icon aria-hidden="true" className="h-4 w-4" />
-                {item.label}
-              </button>
-              );
-            })}
+          </button>
+          <div className="-mx-1 flex max-w-full items-center gap-2 overflow-x-auto px-3 p-1 lg:mx-0 lg:shrink-0">
+            <div className="flex shrink-0 gap-2">
+              {PAGES.map((item) => {
+                const Icon = item.icon;
+                return (
+                <button
+                  key={item.key}
+                  className={`soft-button flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm ${
+                    page === item.key ? "border-accent/25 bg-accent/[0.07] text-[#abc8c3] shadow-[inset_0_-1px_0_rgba(106,174,165,0.35)]" : ""
+                  }`}
+                  onClick={() => setPage(item.key)}
+                  aria-current={page === item.key ? "page" : undefined}
+                >
+                  <Icon aria-hidden="true" className="h-4 w-4" />
+                  {item.label}
+                </button>
+                );
+              })}
+            </div>
+            <div className="h-8 w-px shrink-0 bg-white/[0.08]" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={returnToEntry}
+              className="soft-button flex shrink-0 items-center gap-2 rounded-md border-red-300/10 px-3 py-2 text-sm text-red-300/90 hover:border-red-300/25 hover:bg-red-400/[0.2] hover:text-red-50"
+              aria-label="Exit to loading screen"
+              title="Exit to loading screen"
+            >
+              <LogOut aria-hidden="true" className="h-4 w-4" />
+              Exit
+            </button>
           </div>
         </div>
       </nav>
@@ -92,8 +115,9 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-accent/[0.08] to-transparent" />
       <section className="relative mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.65fr)]">
         <div className="max-w-4xl animate-page-enter">
-          <CiplaLogoPlaceholder size="lg" />
-          <p className="mt-8  font-semibold uppercase tracking-[0.05em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent sm:text-2xl lg:text-4xl">Execution intelligence platform</p>
+          <div className="hover:scale-y-[1.025] hover:opacity-90 transition-all duration-300"><CiplaLogoPlaceholder size="lg"/></div>
+          
+          <p className=" mt-8  font-semibold uppercase tracking-[0.05em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent sm:text-2xl lg:text-4xl">Execution intelligence platform</p>
           <h1 className="mt-4 text-[17px] font-semibold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent  ">
             One command center for planning, execution, budget control, workflow proof, and doctor ROI.
           </h1>
@@ -110,7 +134,7 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
               type="button"
               onClick={onEnter}
               disabled={exiting}
-              className="group inline-flex items-center gap-3 rounded-lg border border-accent/30 bg-accent/[0.13] px-5 py-3 text-sm font-semibold text-zinc-50 shadow-[0_18px_46px_rgba(97,199,187,0.12)] transition-all duration-500 ease-out hover:-translate-y-0.5 hover:border-accent/55 hover:bg-accent/[0.18] hover:shadow-[0_24px_56px_rgba(97,199,187,0.18)] focus:outline-none focus:ring-2 focus:ring-accent/30 active:translate-y-0"
+              className="animate-pulse group inline-flex items-center gap-3 rounded-lg border border-accent/30 bg-accent/[0.13] px-5 py-3 text-sm font-semibold text-zinc-50 shadow-[0_18px_46px_rgba(97,199,187,0.12)] transition-all duration-500 ease-out hover:-translate-y-0.5 hover:border-accent/55 hover:bg-accent/[0.18] hover:shadow-[0_24px_56px_rgba(97,199,187,0.18)] focus:outline-none focus:ring-2 focus:ring-accent/30 active:translate-y-0"
             >
               Click to continue
               <ArrowRight className="h-4 w-4 transition-transform duration-500 group-hover:translate-x-1" />

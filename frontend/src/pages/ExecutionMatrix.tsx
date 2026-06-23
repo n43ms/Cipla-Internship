@@ -104,7 +104,7 @@ export function ExecutionMatrix() {
   }
 
   if (isError) {
-    return <PageState title="Execution governance unavailable" body="The backend could not return one or more Phase 4 APIs." />;
+    return <PageState title="Execution governance unavailable" body="The backend could not return one or more Phase 4 APIs. Please ensure the backend is up and running." />;
   }
 
   const summaryData = summary.data;

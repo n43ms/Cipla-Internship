@@ -66,7 +66,7 @@ body {
   }
 
   .dashboard-card:hover {
-    @apply border-[#373b3d] shadow-glow;
+    @apply border-[#373b3d] shadow-glow scale-[1.007] transition-all duration-700;
   }
 
   .chart-frame {
