@@ -102,6 +102,8 @@ class ExecutionService:
         page: int,
         page_size: int,
         include_out_of_scope: bool = False,
+        sort: str = "eventName",
+        sort_direction: str = "asc",
     ) -> EventListResponse:
         validate_country_month_filters(self.session, country=country, month=month)
         filters = _filters(
@@ -110,8 +112,10 @@ class ExecutionService:
             page=page,
             pageSize=page_size,
             includeOutOfScope=include_out_of_scope,
+            sort=sort,
+            sortDirection=sort_direction,
         )
-        total, rows = self.repository.event_rows(country, month, page, page_size, include_out_of_scope)
+        total, rows = self.repository.event_rows(country, month, page, page_size, include_out_of_scope, sort, sort_direction)
         mapped = [
             ExecutionEventRow(
                 source_type=str(row.get("source_type") or "unknown"),

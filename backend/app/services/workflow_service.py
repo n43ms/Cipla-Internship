@@ -93,6 +93,8 @@ class WorkflowService:
         page: int,
         page_size: int,
         include_out_of_scope: bool = False,
+        sort: str = "reqId",
+        sort_direction: str = "asc",
     ) -> WorkflowRequestsResponse:
         validate_country_month_filters(self.session, country=country, month=month)
         validate_workflow_status(workflow_status)
@@ -104,6 +106,8 @@ class WorkflowService:
             page=page,
             pageSize=page_size,
             includeOutOfScope=include_out_of_scope,
+            sort=sort,
+            sortDirection=sort_direction,
         )
         total, rows = self.repository.request_rows(
             country,
@@ -113,6 +117,8 @@ class WorkflowService:
             page,
             page_size,
             include_out_of_scope,
+            sort,
+            sort_direction,
         )
         return WorkflowRequestsResponse(
             meta=build_meta(

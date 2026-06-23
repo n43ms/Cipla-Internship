@@ -90,21 +90,21 @@ export function DoctorRoi() {
           <EmptyState title="No doctor ROI rows" detail="Doctor ROI needs actual attendance Pcodes or RCPA summary rows." />
         )}
       </div>
-      <SidePanel open={Boolean(selected)} onClose={() => setSelected(null)} widthClass="max-w-lg">
+      <SidePanel open={Boolean(selected)} onClose={() => setSelected(null)} widthClass="sm:max-w-xl">
         {selected ? <>
           <button className="soft-button rounded-md border border-zinc-800 px-3 py-1 text-sm" onClick={() => setSelected(null)}>Close</button>
-          <h2 className="mt-4 text-xl font-semibold">{selected.doctorName ?? selected.pcodeNormalized}</h2>
-          <p className="text-sm text-zinc-500">{selected.countryCode} - {selected.roiSegment.replaceAll("_", " ")}</p>
+          <h2 className="mt-4 break-words text-xl font-semibold">{selected.doctorName ?? selected.pcodeNormalized}</h2>
+          <p className="break-words text-sm text-zinc-500">{selected.countryCode} - {selected.roiSegment.replaceAll("_", " ")}</p>
           <p className="mt-2 text-xs text-zinc-500">
             RCPA baseline: {formatDate(selected.rcpaFirstMonth)} to {formatDate(selected.rcpaLastMonth)}
           </p>
           {detail.isLoading ? <LoadingState label="Loading doctor detail" compact /> : null}
           {detail.data ? (
-            <div className="mt-5 grid gap-4 text-sm">
+            <div className="mt-5 grid min-w-0 gap-4 text-sm">
               <section>
                 <h3 className="font-semibold">Engagement history</h3>
                 {detail.data.engagementHistory.length ? detail.data.engagementHistory.map((item, index) => (
-                  <p key={`${item.requestId}-${index}`} className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-2">
+                  <p key={`${item.requestId}-${index}`} className="mt-2 break-words rounded-md border border-zinc-800 bg-zinc-900 p-2">
                     {item.month}: {item.interventionName ?? "Activity"} - {item.fxRateStatus ?? "fx unknown"}
                   </p>
                 )) : <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-2 text-zinc-500">No actual engagement rows for this doctor.</p>}
@@ -112,15 +112,15 @@ export function DoctorRoi() {
               <section>
                 <h3 className="font-semibold">Prescription trend</h3>
                 {detail.data.prescriptionTrend.length ? detail.data.prescriptionTrend.map((item) => (
-                  <p key={item.month} className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-2">
+                  <p key={item.month} className="mt-2 break-words rounded-md border border-zinc-800 bg-zinc-900 p-2">
                     {item.month}: Cipla {item.ciplaPrescriptionQty.toLocaleString()} / Total {item.totalPrescriptionQty.toLocaleString()}
                   </p>
                 )) : <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-2 text-zinc-500">No RCPA trend rows available.</p>}
               </section>
               <section>
                 <h3 className="font-semibold">Brand mix</h3>
-                {detail.data.brandMix.length ? detail.data.brandMix.map((item) => (
-                  <p key={`${item.brandGroup}-${item.ownOrCompetitor}`} className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-2">
+                {detail.data.brandMix.length ? detail.data.brandMix.map((item, index) => (
+                  <p key={`${item.brandGroup}-${item.ownOrCompetitor}-${index}`} className="mt-2 break-words rounded-md border border-zinc-800 bg-zinc-900 p-2">
                     {item.brandGroup} ({item.ownOrCompetitor}): {item.prescriptionQty.toLocaleString()} qty / {item.prescriptionValueLocal.toLocaleString()} local value
                   </p>
                 )) : <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-2 text-zinc-500">No brand mix rows available for this doctor.</p>}

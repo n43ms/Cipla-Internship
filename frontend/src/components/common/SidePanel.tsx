@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 type SidePanelProps = {
   open: boolean;
@@ -43,9 +44,9 @@ export function SidePanel({ open, onClose, children, widthClass = "max-w-xl" }: 
 
   if (!mounted) return null;
 
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex justify-end bg-black/55 backdrop-blur-[2px] transition-all duration-[380ms] ease-out ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+      className={`fixed inset-0 z-50 flex items-stretch justify-end overflow-hidden bg-black/55 backdrop-blur-[2px] transition-all duration-[380ms] ease-out ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}
       role="dialog"
       aria-modal="true"
       onMouseDown={(event) => {
@@ -53,10 +54,11 @@ export function SidePanel({ open, onClose, children, widthClass = "max-w-xl" }: 
       }}
     >
       <aside
-        className={`h-full w-full ${widthClass} overflow-y-auto border-l border-[#292d2f] bg-[#111315] p-5 shadow-2xl shadow-black/50 transition-transform duration-[380ms] ease-out ${visible ? "translate-x-0" : "translate-x-full"}`}
+        className={`h-dvh w-full min-w-0 max-w-[calc(100vw-1rem)] ${widthClass} overflow-y-auto overflow-x-hidden border-l border-[#292d2f] bg-[#111315] p-4 shadow-2xl shadow-black/50 outline-none transition-transform duration-[380ms] ease-out will-change-transform sm:p-5 ${visible ? "translate-x-0" : "translate-x-full"}`}
       >
         {retainedChildren.current}
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }

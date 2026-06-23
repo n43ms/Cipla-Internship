@@ -38,7 +38,9 @@ def execution_events(
     month: str | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 25,
+    sort: str = "eventName",
+    sort_direction: Annotated[str, Query(alias="sortDirection", pattern="^(asc|desc)$")] = "asc",
     include_out_of_scope: Annotated[bool, Query(alias="includeOutOfScope")] = False,
     session: Session = SESSION_DEPENDENCY,
 ) -> EventListResponse:
-    return ExecutionService(session).events(country, month, page, page_size, include_out_of_scope)
+    return ExecutionService(session).events(country, month, page, page_size, include_out_of_scope, sort, sort_direction)

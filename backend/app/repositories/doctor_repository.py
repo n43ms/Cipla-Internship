@@ -228,8 +228,12 @@ def _doctor_order_by(sort: str, direction: str) -> str:
     direction_sql = "asc" if direction.lower() == "asc" else "desc"
     columns = {
         "darkHorse": "dark_horse_flag desc, cipla_prescription_qty desc, total_roi_spend_usd asc, doctor_name nulls last, pcode_normalized",
+        "doctorName": f"doctor_name {direction_sql} nulls last, pcode_normalized",
+        "roiSegment": f"roi_segment {direction_sql}, doctor_name nulls last, pcode_normalized",
+        "quadrantLabel": f"quadrant_label {direction_sql}, doctor_name nulls last, pcode_normalized",
         "ciplaPrescriptionQty": f"cipla_prescription_qty {direction_sql}, doctor_name nulls last, pcode_normalized",
         "totalRoiSpendUsd": f"total_roi_spend_usd {direction_sql}, doctor_name nulls last, pcode_normalized",
+        "rcpaLastMonth": f"rcpa_last_month {direction_sql} nulls last, doctor_name nulls last, pcode_normalized",
         "spendPerCiplaPrescriptionUsd": f"spend_per_cipla_prescription_usd {direction_sql} nulls last, doctor_name nulls last, pcode_normalized",
         "lastEngagementDate": f"last_engagement_date {direction_sql} nulls last, doctor_name nulls last, pcode_normalized",
         "engagementCount": f"engagement_count {direction_sql}, doctor_name nulls last, pcode_normalized",

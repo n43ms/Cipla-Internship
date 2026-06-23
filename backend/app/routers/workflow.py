@@ -32,6 +32,8 @@ def workflow_requests(
     workflow_status: Annotated[str | None, Query(alias="workflowStatus")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 25,
+    sort: str = "reqId",
+    sort_direction: Annotated[str, Query(alias="sortDirection", pattern="^(asc|desc)$")] = "asc",
     include_out_of_scope: Annotated[bool, Query(alias="includeOutOfScope")] = False,
     session: Session = SESSION_DEPENDENCY,
 ) -> WorkflowRequestsResponse:
@@ -43,4 +45,6 @@ def workflow_requests(
         page,
         page_size,
         include_out_of_scope,
+        sort,
+        sort_direction,
     )

@@ -190,8 +190,11 @@ class ExecutionRepository:
         page: int,
         page_size: int,
         include_out_of_scope: bool = False,
+        sort: str = "eventName",
+        sort_direction: str = "asc",
     ) -> tuple[int, list[dict[str, Any]]]:
         limit, offset = pagination(page, page_size)
+        order_by = _execution_order_by(sort, sort_direction)
         params = {
             "country": country,
             "month": month,
@@ -223,7 +226,7 @@ class ExecutionRepository:
         ).scalar_one()
         rows = self.session.execute(
             text(
-                """
+                f"""
                 select *
                 from mv_execution_event_matrix
                 where (
@@ -239,15 +242,25 @@ class ExecutionRepository:
                     cast(:include_out_of_scope as boolean)
                     or is_primary_phase4_scope
                   )
-                order by
-                    month_start_date desc,
-                    country_name,
-                    match_status,
-                    confidence desc,
-                    event_name
+                order by {order_by}
                 limit :limit offset :offset
                 """
             ),
             params,
         ).mappings()
         return int(total), [dict(row) for row in rows]
+
+
+def _execution_order_by(sort: str, direction: str) -> str:
+    direction_sql = "asc" if direction.lower() == "asc" else "desc"
+    nulls = "nulls first" if direction_sql == "asc" else "nulls last"
+    columns = {
+        "eventName": f"event_name {direction_sql} {nulls}, country_name, month_start_date desc",
+        "sourceType": f"source_type {direction_sql} {nulls}, event_name, month_start_date desc",
+        "matchStatus": f"match_status {direction_sql} {nulls}, confidence desc, event_name",
+        "unmatchedReasonCode": f"unmatched_reason_code {direction_sql} {nulls}, scope_status {direction_sql} {nulls}, event_name",
+        "plannedHcps": f"coalesce(planned_hcps, 0) {direction_sql}, event_name",
+        "executionStatus": f"execution_status {direction_sql} {nulls}, snapshot_source {direction_sql} {nulls}, event_name",
+        "confidence": f"coalesce(confidence, 0) {direction_sql}, event_name",
+    }
+    return columns.get(sort, columns["eventName"])

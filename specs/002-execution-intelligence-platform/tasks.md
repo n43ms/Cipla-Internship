@@ -298,7 +298,7 @@
 - [ ] T177 [P] [US6] Implement AI request and response schemas in `backend/app/schemas/ai.py`
 - [ ] T178 [US6] Implement `/api/ai/query` route in `backend/app/routers/ai.py`
 - [ ] T179 [P] [US6] Implement frontend AI API client in `frontend/src/api/ai.ts`
-- [ ] T180 [P] [US6] Implement AI Assistant panel, suggested prompts, supporting metrics display, limitation display, confidence badge, and grounded answer layout in `frontend/src/components/ai/AiAssistantPanel.tsx`
+- [ ] T180 [P] [US6] Implement AI Assistant panel, suggested prompts, supporting metrics display, limitation display, confidence badge, and grounded answer layout in `frontend/src/components/ai/AiAssistantPanel.tsx`z
 - [ ] T181 [US6] Integrate AI Assistant panel into dashboard layout with current page context and active filters in `frontend/src/App.tsx`
 
 **Checkpoint**: US6 is complete when the assistant cannot invent metrics and every answer is tied to deterministic backend context.

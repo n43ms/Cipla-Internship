@@ -257,6 +257,7 @@ def _budget_order_by(sort: str, direction: str) -> str:
     direction_sql = "asc" if direction.lower() == "asc" else "desc"
     columns = {
         "priority": "spend_without_plan desc, plan_without_spend desc, coalesce(unspent_gap_usd, 0) desc, coalesce(overrun_amount_usd, 0) desc, coalesce(actual_total_expense_usd, 0) desc, event_name",
+        "eventName": f"event_name {direction_sql} nulls last, country_name, month_start_date desc",
         "unspentGapUsd": f"coalesce(unspent_gap_usd, 0) {direction_sql}, event_name",
         "overrunAmountUsd": f"coalesce(overrun_amount_usd, 0) {direction_sql}, event_name",
         "actualSpendUsd": f"coalesce(actual_total_expense_usd, 0) {direction_sql}, event_name",

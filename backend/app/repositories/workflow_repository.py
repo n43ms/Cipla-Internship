@@ -48,8 +48,11 @@ class WorkflowRepository:
         page: int,
         page_size: int,
         include_out_of_scope: bool = False,
+        sort: str = "reqId",
+        sort_direction: str = "asc",
     ) -> tuple[int, list[dict[str, Any]]]:
         limit, offset = pagination(page, page_size)
+        order_by = _workflow_order_by(sort, sort_direction)
         params = {
             "country": country,
             "month": month,
@@ -79,10 +82,27 @@ class WorkflowRepository:
                 select *
                 from mv_workflow_governance
                 where {where}
-                order by month_start_date desc, country_name, source_row_number
+                order by {order_by}
                 limit :limit offset :offset
                 """
             ),
             params,
         ).mappings()
         return int(total), [dict(row) for row in rows]
+
+
+def _workflow_order_by(sort: str, direction: str) -> str:
+    direction_sql = "asc" if direction.lower() == "asc" else "desc"
+    nulls = "nulls first" if direction_sql == "asc" else "nulls last"
+    columns = {
+        "reqId": f"req_id {direction_sql} {nulls}, source_row_number",
+        "repName": f"rep_name {direction_sql} {nulls}, req_id, source_row_number",
+        "interventionType": f"intervention_type {direction_sql} {nulls}, req_id, source_row_number",
+        "requestApprovalStatus": f"request_approval_status {direction_sql} {nulls}, req_id, source_row_number",
+        "requestConfirmationStatus": f"request_confirmation_status {direction_sql} {nulls}, req_id, source_row_number",
+        "postConfirmationStatus": f"post_confirmation_status {direction_sql} {nulls}, post_approval_status {direction_sql} {nulls}, req_id",
+        "expenseConfirmedDate": f"expense_confirmed_date {direction_sql} {nulls}, expense_submitted_date {direction_sql} {nulls}, req_id",
+        "scopeStatus": f"scope_status {direction_sql} {nulls}, country_name, month_start_date desc, req_id",
+        "currentOwnerStage": f"current_owner_stage {direction_sql} {nulls}, req_id, source_row_number",
+    }
+    return columns.get(sort, columns["reqId"])
