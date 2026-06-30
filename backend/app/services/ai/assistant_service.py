@@ -11,9 +11,9 @@ from backend.app.repositories.ai_repository import AiRepository
 from backend.app.schemas.ai import AiQueryRequest, AiQueryResponse
 from backend.app.services.ai.answer_policy import (
     confidence_for_context,
+    dashboard_pointers_for_topics,
     deterministic_answer,
     route_question,
-    supporting_metrics_from_context,
     unsupported_response,
 )
 from backend.app.services.ai.context_builder import build_compact_context, context_scope
@@ -87,7 +87,10 @@ class AssistantService:
             )
             response_payload = {
                 "answer": result.answer,
-                "supportingMetrics": supporting_metrics_from_context(provider_context),
+                "dashboardPointers": dashboard_pointers_for_topics(
+                    decision.topics,
+                    provider_context,
+                ),
                 "limitations": list(
                     dict.fromkeys(str(item) for item in context.get("limitations", []))
                 ),

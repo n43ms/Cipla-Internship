@@ -175,14 +175,20 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
         ) : null}
       </div>
       <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-200">{answer.answer}</p>
-      {answer.supportingMetrics.length ? (
+      {answer.dashboardPointers.length ? (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Supporting metrics</h3>
-          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {answer.supportingMetrics.slice(0, 8).map((metric) => (
-              <div key={`${metric.source}-${metric.label}`} className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
-                <p className="text-xs text-zinc-500">{metric.label}</p>
-                <p className="mt-1 text-sm font-semibold text-zinc-100">{String(metric.value ?? "-")}</p>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Where to verify this</h3>
+          <div className="mt-2 grid grid-cols-1 gap-2">
+            {answer.dashboardPointers.slice(0, 10).map((pointer) => (
+              <div key={`${pointer.page}-${pointer.section}-${pointer.detail}`} className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-accent/20 bg-accent/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-accent">
+                    {pointer.page}
+                  </span>
+                  <p className="text-xs font-semibold text-zinc-200">{pointer.section}</p>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-zinc-400">{pointer.detail}</p>
+                <p className="mt-2 text-[0.68rem] leading-5 text-zinc-600">{pointer.reason}</p>
               </div>
             ))}
           </div>

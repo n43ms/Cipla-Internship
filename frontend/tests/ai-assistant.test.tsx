@@ -11,7 +11,7 @@ describe("AI assistant", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders a Gemini-backed grounded answer with metrics and limitations", async () => {
+  it("renders a Gemini-backed grounded answer with dashboard pointers and limitations", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
       const url = String(input);
       if (url.includes("/api/data-quality")) return ok(dataQuality());
@@ -42,7 +42,9 @@ describe("AI assistant", () => {
 
     await waitFor(() => expect(screen.getByText("Execution risk is concentrated in pending reports.")).toBeInTheDocument());
     expect(screen.getByText(/gemini-test/i)).toBeInTheDocument();
-    expect(screen.getByText("execution: weak or unmatched events")).toBeInTheDocument();
+    expect(screen.getByText("Where to verify this")).toBeInTheDocument();
+    expect(screen.getByText("Execution event matrix table")).toBeInTheDocument();
+    expect(screen.queryByText("execution: weak or unmatched events")).not.toBeInTheDocument();
     expect(screen.getByText("RCPA is historical baseline.")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalled();
   });
@@ -78,7 +80,14 @@ describe("AI assistant", () => {
 function aiResponse({ fallbackUsed, providerUsed }: { fallbackUsed: boolean; providerUsed: string }) {
   return {
     answer: "Execution risk is concentrated in pending reports.",
-    supportingMetrics: [{ label: "execution: weak or unmatched events", value: 4, source: "execution" }],
+    dashboardPointers: [
+      {
+        page: "Execution",
+        section: "Execution event matrix table",
+        detail: "Sort/filter the event rows by match status, execution status, unmatched reason, country, and month.",
+        reason: "Specific event-level questions need row evidence, not just summary cards.",
+      },
+    ],
     limitations: ["RCPA is historical baseline."],
     confidence: "medium",
     providerUsed,

@@ -13,10 +13,11 @@ class AiQueryRequest(ApiModel):
     filters: dict[str, Any] = Field(default_factory=dict)
 
 
-class SupportingMetric(ApiModel):
-    label: str
-    value: str | int | float | bool | None
-    source: str
+class DashboardPointer(ApiModel):
+    page: str
+    section: str
+    detail: str
+    reason: str
 
 
 class AiContextScope(ApiModel):
@@ -29,7 +30,7 @@ class AiContextScope(ApiModel):
 
 class AiQueryResponse(ApiModel):
     answer: str
-    supporting_metrics: list[SupportingMetric] = Field(default_factory=list)
+    dashboard_pointers: list[DashboardPointer] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
     confidence: Literal["high", "medium", "low"]
     provider_used: str

@@ -1,5 +1,6 @@
 from backend.app.services.ai.answer_policy import (
     confidence_for_context,
+    dashboard_pointers_for_topics,
     deterministic_answer,
     route_question,
 )
@@ -48,3 +49,13 @@ def test_deterministic_fallback_mentions_key_risk_metrics() -> None:
     assert "7 weak/unmatched" in response["answer"]
     assert response["confidence"] == "medium"
     assert response["limitations"][0].startswith("Gemini was not used")
+    assert response["dashboardPointers"]
+    assert any(pointer["page"] == "Data Quality" for pointer in response["dashboardPointers"])
+
+
+def test_dashboard_pointers_follow_query_topics() -> None:
+    pointers = dashboard_pointers_for_topics(["budget", "doctor"], {})
+
+    assert any(pointer["page"] == "Budget" for pointer in pointers)
+    assert any(pointer["page"] == "Doctor ROI" for pointer in pointers)
+    assert all("value" not in pointer for pointer in pointers)

@@ -433,10 +433,11 @@ export type AiQueryRequest = {
   filters?: Record<string, unknown>;
 };
 
-export type AiSupportingMetric = {
-  label: string;
-  value: string | number | boolean | null;
-  source: string;
+export type AiDashboardPointer = {
+  page: string;
+  section: string;
+  detail: string;
+  reason: string;
 };
 
 export type AiContextScope = {
@@ -449,7 +450,7 @@ export type AiContextScope = {
 
 export type AiQueryResponse = {
   answer: string;
-  supportingMetrics: AiSupportingMetric[];
+  dashboardPointers: AiDashboardPointer[];
   limitations: string[];
   confidence: "high" | "medium" | "low";
   providerUsed: string;

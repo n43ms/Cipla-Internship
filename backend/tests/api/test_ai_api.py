@@ -72,7 +72,9 @@ def test_ai_query_gemini_success_logs_detailed_question_when_redaction_disabled(
     assert body["providerUsed"] == "gemini"
     assert body["fallbackUsed"] is False
     assert body["redactionApplied"] is False
-    assert body["supportingMetrics"]
+    assert body["dashboardPointers"]
+    assert "supportingMetrics" not in body
+    assert any(pointer["page"] == "Execution" for pointer in body["dashboardPointers"])
     assert body["contextScope"]["filters"] == {"country": "LK", "month": "2026-05"}
     assert logs[0]["question_redacted"] == "What is execution risk for Pcode 123456?"
 
@@ -109,6 +111,10 @@ def test_ai_query_falls_back_when_gemini_provider_fails(
     assert body["fallbackUsed"] is True
     assert "Gemini was not used" in body["limitations"][0]
     assert body["confidence"] in {"medium", "high", "low"}
+    assert any(pointer["page"] == "Budget" for pointer in body["dashboardPointers"])
+    assert any(
+        pointer["section"] == "Workflow status cards" for pointer in body["dashboardPointers"]
+    )
 
 
 def test_ai_query_refuses_unsupported_question(monkeypatch) -> None:
@@ -124,6 +130,7 @@ def test_ai_query_refuses_unsupported_question(monkeypatch) -> None:
     assert body["fallbackUsed"] is True
     assert body["confidence"] == "low"
     assert "only answer" in body["answer"]
+    assert body["dashboardPointers"] == []
 
 
 def _client() -> TestClient:
