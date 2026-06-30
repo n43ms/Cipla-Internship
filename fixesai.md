@@ -4,3 +4,4 @@
 4) smarter querying with guides
 5) less limitations but less token burning as well
 6) verify agentic ai status, add the descripton of the agentic ai to the dashboard, and highlight agentic ai even in the grounded ai panel
+7) screen goes black when querying ai
