@@ -23,7 +23,7 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         BudgetService,
         "summary",
-        lambda self, country=None, month=None, include_out_of_scope=False, page=1, page_size=100: {
+        lambda self, country=None, month=None, include_out_of_scope=False, page=1, page_size=100, sort="priority", sort_direction="desc": {
             "meta": _meta(),
             "plannedBudgetUsd": Decimal("1000"),
             "estimatedInterventionLocal": Decimal("310000"),
@@ -64,6 +64,8 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
             ],
             "page": page,
             "pageSize": page_size,
+            "sort": sort,
+            "sortDirection": sort_direction,
             "total": 0,
             "rows": [],
         },
@@ -71,11 +73,19 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         DoctorService,
         "roi",
-        lambda self, country, roi_segment, quadrant, month_start, month_end, brand, speciality, doctor_class, include_out_of_scope, page, page_size: {
+        lambda self, country, roi_segment, quadrant, month_start, month_end, brand, speciality, doctor_class, include_out_of_scope, page, page_size, sort="darkHorse", sort_direction="desc": {
             "meta": _meta(),
             "page": page,
             "pageSize": page_size,
+            "sort": sort,
+            "sortDirection": sort_direction,
             "total": 1,
+            "darkHorseCount": 1,
+            "noRcpaCount": 0,
+            "missingFxCount": 0,
+            "provisionalFxCount": 0,
+            "brandFilterMode": None,
+            "periodFilterMode": "engagement_period",
             "quadrantCounts": {"low effort / high reward": 1},
             "segmentCounts": {"high_value_unengaged": 1},
             "rows": [
@@ -197,7 +207,7 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
     app = create_app()
     app.dependency_overrides[get_session] = fake_session
     with TestClient(app) as client:
-        assert client.get("/api/budget/summary").json()["confirmedContractedAmountUsd"] == "900"
+        assert client.get("/api/budget/summary").json()["confirmedContractedAmountUsd"] == 900.0
         assert client.get("/api/doctors/roi?pageSize=5").json()["rows"][0]["darkHorseFlag"] is True
         assert client.get("/api/data-quality").json()["loadedFileCount"] == 8
         assert client.get("/api/filters").json()["latestIngestionStatus"] == "completed"

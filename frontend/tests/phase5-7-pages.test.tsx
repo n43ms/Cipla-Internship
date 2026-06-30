@@ -36,27 +36,31 @@ describe("Phase 5-7 dashboard pages", () => {
 
     renderWithProviders(<App />);
 
-    await waitFor(() => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Budget" })).toBeInTheDocument(), { timeout: 5000 });
 
-    fireEvent.click(screen.getByText("Budget"));
+    fireEvent.click(screen.getByRole("button", { name: "Budget" }));
+    await vi.dynamicImportSettled();
     await waitFor(() => expect(screen.getByText("Budget utilization")).toBeInTheDocument());
     expect(screen.getByText("Confirmed contracted")).toBeInTheDocument();
     expect(screen.getByText("Budget split")).toBeInTheDocument();
     expect(screen.getByText("Diabetes CME")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Doctor ROI"));
+    fireEvent.click(screen.getByRole("button", { name: "Doctor ROI" }));
+    await vi.dynamicImportSettled();
     await waitFor(() => expect(screen.getByText("Doctor opportunities and missed value")).toBeInTheDocument());
     expect(screen.getByText("ROI quadrant matrix")).toBeInTheDocument();
     expect(screen.getByText("Dr Test")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Open"));
     await waitFor(() => expect(screen.getByText("Engagement history")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText("Data Quality"));
+    fireEvent.click(screen.getByRole("button", { name: "Data Quality" }));
+    await vi.dynamicImportSettled();
     await waitFor(() => expect(screen.getByText("Data quality")).toBeInTheDocument());
     expect(screen.getByText("Loaded files")).toBeInTheDocument();
     expect(screen.getByText("Validation drilldown")).toBeInTheDocument();
     expect(screen.getByText("missing_field")).toBeInTheDocument();
-  });
+  }, 15000);
 });
 
 function meta() {

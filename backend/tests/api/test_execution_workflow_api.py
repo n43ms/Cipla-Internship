@@ -50,7 +50,7 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         ExecutionService,
         "events",
-        lambda self, country, month, page, page_size, include_out_of_scope=False: {
+        lambda self, country, month, page, page_size, include_out_of_scope=False, sort="eventName", sort_direction="asc": {
             "meta": _meta(),
             "page": page,
             "pageSize": page_size,
@@ -109,7 +109,7 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         WorkflowService,
         "requests",
-        lambda self, country, month, intervention_type, workflow_status, page, page_size, include_out_of_scope=False: {
+        lambda self, country, month, intervention_type, workflow_status, page, page_size, include_out_of_scope=False, sort="reqId", sort_direction="asc": {
             "meta": _meta(),
             "page": page,
             "pageSize": page_size,
