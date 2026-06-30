@@ -1,4 +1,4 @@
-﻿# Tasks: Cipla EMEU Execution Intelligence Platform
+# Tasks: Cipla EMEU Execution Intelligence Platform
 
 **Input**: Design documents from `specs/002-execution-intelligence-platform/` and product architecture from `finalplan.md`
 
@@ -275,33 +275,35 @@
 
 ## Phase 8: User Story 6 - Ask Grounded Business Questions (Priority: P6)
 
-**Goal**: Add a backend-mediated AI assistant that summarizes deterministic dashboard facts, cites supporting metrics, includes limitations, redacts stored questions, and refuses unsupported questions.
+**Goal**: Add a backend-mediated Gemini assistant that uses Gemini API as the primary chat provider, summarizes only compact deterministic dashboard context, cites supporting metrics, includes limitations, redacts stored questions, and automatically falls back to deterministic safe mode when Gemini is unavailable, rate-limited, quota-exhausted, timed out, or returns an invalid response.
 
-**Independent Test**: Ask questions about execution risk, workflow bottlenecks, budget gaps, BTU/BTC spend, doctor ROI, intervention mix, data quality, and unsupported facts; verify answers are grounded in structured service context and logs store only redacted questions.
+**Feasibility Decision**: Gemini free tier is acceptable for moderate demo/internal usage if requests are small. Do not send large tables, raw workbook rows, unrestricted doctor lists, or full database result sets. The backend must enforce a compact context budget before every provider call so free credits are not consumed by oversized prompts.
+
+**Independent Test**: Ask questions about execution risk, workflow bottlenecks, budget gaps, BTU/BTC spend, doctor ROI, intervention mix, data quality, and unsupported facts; verify answers are grounded in structured service context, Gemini receives only compact summaries, deterministic fallback works on quota/rate-limit/provider failures, and logs store only redacted questions.
 
 ### Tests for User Story 6
 
-- [ ] T166 [P] [US6] Add unit tests for AI question redaction of Pcodes, monetary values, and likely doctor names in `backend/tests/ai/test_redaction.py`
-- [ ] T167 [P] [US6] Add unit tests for AI context builder using execution, workflow, intervention, budget, doctor, and data-quality service outputs in `backend/tests/ai/test_context_builder.py`
-- [ ] T168 [P] [US6] Add tests for unsupported-question refusal, stale-data limitation propagation, and missing-data confidence downgrades in `backend/tests/ai/test_answer_policy.py`
-- [ ] T169 [P] [US6] Add API contract tests for `/api/ai/query` grounded answers, unsupported questions, limitations, confidence, and `redactionApplied` in `backend/tests/api/test_ai_api.py`
-- [ ] T170 [P] [US6] Add frontend tests for AI panel loading, grounded answer, unsupported answer, limitation display, confidence display, and error states in `frontend/tests/ai-assistant.test.tsx`
+- [ ] T166 [P] [US6] Add unit tests for AI redaction of Pcodes, monetary values, likely doctor names, and raw source snippets before logging or provider calls in `backend/tests/ai/test_redaction.py`
+- [ ] T167 [P] [US6] Add unit tests for compact AI context building from execution, workflow, intervention, budget, doctor, and data-quality service outputs, including top-N caps, no raw row dumps, and context token/character budget enforcement in `backend/tests/ai/test_context_builder.py`
+- [ ] T168 [P] [US6] Add tests for supported-topic routing, unsupported-question refusal, stale-data limitation propagation, missing-data confidence downgrades, and deterministic fallback answer quality in `backend/tests/ai/test_answer_policy.py`
+- [ ] T169 [P] [US6] Add API contract tests for `/api/ai/query` covering Gemini success, Gemini timeout, Gemini quota/rate-limit fallback, malformed Gemini response fallback, unsupported questions, limitations, confidence, `providerUsed`, `fallbackUsed`, and `redactionApplied` in `backend/tests/api/test_ai_api.py`
+- [ ] T170 [P] [US6] Add frontend tests for AI panel loading, Gemini-backed answer, fallback answer notice, unsupported answer, limitation display, confidence display, supporting metrics display, and error states in `frontend/tests/ai-assistant.test.tsx`
 
 ### Implementation for User Story 6
 
-- [ ] T171 [P] [US6] Implement AI provider protocol, null provider, test provider, and environment-based provider selection in `backend/app/services/ai/provider.py`
-- [ ] T172 [P] [US6] Implement AI redaction utility for `question_redacted` with Pcode, amount, and likely doctor-name masking in `backend/app/services/ai/redaction.py`
-- [ ] T173 [US6] Implement deterministic AI context builder using execution, workflow, intervention, budget, doctor, and data-quality services in `backend/app/services/ai/context_builder.py`
-- [ ] T174 [US6] Implement AI answer policy for supported topics, unsupported-topic refusal, source limitation propagation, and confidence assignment in `backend/app/services/ai/answer_policy.py`
-- [ ] T175 [US6] Implement AI answer orchestration with provider-neutral model selection, compact structured context, timeout handling, and no raw workbook rows in `backend/app/services/ai/assistant_service.py`
-- [ ] T176 [US6] Implement AI query log repository with sanitized payload persistence and error metadata in `backend/app/repositories/ai_repository.py`
-- [ ] T177 [P] [US6] Implement AI request and response schemas in `backend/app/schemas/ai.py`
-- [ ] T178 [US6] Implement `/api/ai/query` route in `backend/app/routers/ai.py`
+- [ ] T171 [P] [US6] Implement AI provider protocol with `GeminiProvider` as primary, `DeterministicProvider` as fallback, `NullProvider` for disabled mode, `TestProvider` for tests, and environment-based provider chain selection in `backend/app/services/ai/provider.py`
+- [ ] T172 [P] [US6] Implement AI redaction utility for provider-bound context and `question_redacted`, masking Pcodes, monetary amounts, likely doctor-name spans, and any raw source excerpts in `backend/app/services/ai/redaction.py`
+- [ ] T173 [US6] Implement compact AI context builder using execution, workflow, intervention, budget, doctor, and data-quality services with explicit summary grains, top-N limits, source limitations, confidence inputs, and max context size controls in `backend/app/services/ai/context_builder.py`
+- [ ] T174 [US6] Implement AI answer policy for supported topics, unsupported-topic refusal, mandatory limitation propagation, confidence assignment, and allowed metric citation rules in `backend/app/services/ai/answer_policy.py`
+- [ ] T175 [US6] Implement Gemini prompt/response orchestration and deterministic fallback in `backend/app/services/ai/assistant_service.py`, including strict system prompt, compact structured context, no raw workbook rows, provider timeout, quota/rate-limit/error fallback, response validation, and normalized answer shape
+- [ ] T176 [US6] Implement AI query log repository with sanitized question, compact context summary, provider metadata, fallback metadata, latency, confidence, limitations, and error metadata persistence in `backend/app/repositories/ai_repository.py`
+- [ ] T177 [P] [US6] Implement AI request and response schemas including `answer`, `supportingMetrics`, `limitations`, `confidence`, `providerUsed`, `modelUsed`, `fallbackUsed`, `redactionApplied`, and `contextScope` in `backend/app/schemas/ai.py`
+- [ ] T178 [US6] Implement `/api/ai/query` route with backend-only Gemini key access, active filter/page context handling, safe exception mapping, and no frontend/provider secret leakage in `backend/app/routers/ai.py`
 - [ ] T179 [P] [US6] Implement frontend AI API client in `frontend/src/api/ai.ts`
-- [ ] T180 [P] [US6] Implement AI Assistant panel, suggested prompts, supporting metrics display, limitation display, confidence badge, and grounded answer layout in `frontend/src/components/ai/AiAssistantPanel.tsx`z
+- [ ] T180 [P] [US6] Implement AI Assistant panel with suggested prompts, Gemini/fallback status, supporting metrics display, limitation display, confidence badge, grounded answer layout, loading state, and error state in `frontend/src/components/ai/AiAssistantPanel.tsx`
 - [ ] T181 [US6] Integrate AI Assistant panel into dashboard layout with current page context and active filters in `frontend/src/App.tsx`
 
-**Checkpoint**: US6 is complete when the assistant cannot invent metrics and every answer is tied to deterministic backend context.
+**Checkpoint**: US6 is complete when Gemini is the primary assistant, deterministic fallback preserves functionality when free credits or provider calls fail, every answer is tied to compact deterministic backend context, and no large table/raw workbook payload is sent to the provider.
 
 ---
 
@@ -414,7 +416,7 @@ T157, T161, and T162 can run in parallel while T155-T160 are implemented.
 
 ```text
 T166-T170 can be written in parallel.
-T171, T172, T177, T179, and T180 can run in parallel before final AI orchestration.
+T171, T172, T177, T179, and T180 can run in parallel before final AI orchestration; T175 must wire Gemini primary plus deterministic fallback after context and policy behavior are defined.
 ```
 
 ### Cross-Cutting Parallel Work
@@ -451,8 +453,8 @@ T182, T184, T185, T191, T192, T193, and T194 can run in parallel after the relev
 ### AI Increment
 
 1. Add US6 only after deterministic APIs are stable.
-2. Keep provider choice behind `AIProvider`.
-3. Validate unsupported-question refusal, limitation propagation, and redacted logging before enabling real provider calls.
+2. Use Gemini as the primary `AIProvider` and deterministic safe mode as the fallback provider for missing key, quota exhaustion, rate limits, timeouts, provider errors, or invalid responses.
+3. Validate compact-context limits, unsupported-question refusal, limitation propagation, redacted provider calls, redacted logging, and deterministic fallback before enabling Gemini in demo mode.
 
 ### Deployment Increment
 
