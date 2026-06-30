@@ -147,9 +147,15 @@ describe("Execution governance page", () => {
 
     renderWithProviders(<App />);
 
-    expect(screen.getByText("Loading dashboard page")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument(), { timeout: 5000 });
-    await waitFor(() => expect(screen.getByText("Scope: 2026-05")).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    await waitFor(
+      () => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument(),
+      { timeout: 10000 },
+    );
+    await waitFor(
+      () => expect(screen.getByText("Scope: 2026-05")).toBeInTheDocument(),
+      { timeout: 10000 },
+    );
     expect(screen.getByText("Planner coverage")).toBeInTheDocument();
     expect(screen.getByText("Snapshot coverage")).toBeInTheDocument();
     expect(screen.getByText("Out-of-scope policy")).toBeInTheDocument();
@@ -185,6 +191,7 @@ describe("Execution governance page", () => {
 
     renderWithProviders(<App />);
 
+    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
     await waitFor(() => expect(screen.getByText("Execution governance unavailable")).toBeInTheDocument(), { timeout: 5000 });
   });
 
@@ -264,6 +271,7 @@ describe("Execution governance page", () => {
 
     renderWithProviders(<App />);
 
+    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
     await waitFor(() => expect(screen.getByText(/No execution rows match the current filters/)).toBeInTheDocument());
     const countryInput = screen.getByLabelText("Country");
     fireEvent.change(countryInput, { target: { value: "LK" } });

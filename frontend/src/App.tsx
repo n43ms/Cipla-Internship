@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, type ReactNode } from "react";
 import { Activity, ArrowRight, DatabaseZap, LogOut, ShieldCheck, Sparkles, Stethoscope, WalletCards, type LucideIcon } from "lucide-react";
 
+import { AiAssistantPanel } from "./components/ai/AiAssistantPanel";
 import { DataFreshnessBanner, LoadingState } from "./components/common/DataStateComponents";
 import { useDashboardMeta } from "./hooks/useDashboardMeta";
 const BudgetUtilization = lazy(() => import("./pages/BudgetUtilization").then((module) => ({ default: module.BudgetUtilization })));
@@ -9,6 +10,7 @@ const DoctorRoi = lazy(() => import("./pages/DoctorRoi").then((module) => ({ def
 const ExecutionMatrix = lazy(() => import("./pages/ExecutionMatrix").then((module) => ({ default: module.ExecutionMatrix })));
 
 type PageKey = "execution" | "budget" | "doctors" | "quality";
+type AiContext = { pageContext: string; filters: Record<string, unknown> };
 
 const PAGES: Array<{ key: PageKey; label: string; icon: LucideIcon }> = [
   { key: "execution", label: "Execution", icon: Activity },
@@ -21,6 +23,7 @@ export default function App() {
   const [page, setPage] = useState<PageKey>("execution");
   const [entered, setEntered] = useState(false);
   const [entryExiting, setEntryExiting] = useState(false);
+  const [aiContext, setAiContext] = useState<AiContext>({ pageContext: "execution", filters: {} });
   const meta = useDashboardMeta();
 
   function enterApp() {
@@ -40,71 +43,72 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen animate-page-enter bg-surface text-ink">
-      <nav className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#07090a]/88 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <button
-            
-            onClick={returnToEntry}
-            className="group -ml-2 flex min-w-0 items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-all duration-500 ease-out"
-            aria-label="Return to loading screen"
-            title="Return to loading screen"
-          >
-            <CiplaLogoPlaceholder size="sm" />
-            <div className="min-w-0 ml-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate text-lg font-semibold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent transition-all duration-500 ">Cipla Execution Intelligence</p>
-                
-              </div>
-              <p className="text-xs bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Planner, consolidation, RCPA, workflow, budget, ROI, and data-quality governance</p>
-              <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Engineered by Aditya Nema</p>
-            </div>
-          </button>
-          <div className="-mx-1 flex max-w-full items-center gap-2 overflow-x-auto px-3 p-1 lg:mx-0 lg:shrink-0">
-            <div className="flex shrink-0 gap-2">
-              {PAGES.map((item) => {
-                const Icon = item.icon;
-                return (
-                <button
-                  key={item.key}
-                  className={`soft-button flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm ${
-                    page === item.key ? "border-accent/25 bg-accent/[0.07] text-[#abc8c3] shadow-[inset_0_-1px_0_rgba(106,174,165,0.35)]" : ""
-                  }`}
-                  onClick={() => setPage(item.key)}
-                  aria-current={page === item.key ? "page" : undefined}
-                >
-                  <Icon aria-hidden="true" className="h-4 w-4" />
-                  {item.label}
-                </button>
-                );
-              })}
-            </div>
-            <div className="h-8 w-px shrink-0 bg-white/[0.08]" aria-hidden="true" />
+    <>
+      <div className="min-h-screen animate-page-enter bg-surface text-ink">
+        <nav className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#07090a]/88 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
+          <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <button
-              type="button"
               onClick={returnToEntry}
-              className="soft-button flex shrink-0 items-center gap-2 rounded-md border-red-300/10 px-3 py-2 text-sm text-red-300/90 hover:border-red-300/25 hover:bg-red-400/[0.2] hover:text-red-50"
-              aria-label="Exit to loading screen"
-              title="Exit to loading screen"
+              className="group -ml-2 flex min-w-0 items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-all duration-500 ease-out"
+              aria-label="Return to loading screen"
+              title="Return to loading screen"
             >
-              <LogOut aria-hidden="true" className="h-4 w-4" />
-              Exit
+              <CiplaLogoPlaceholder size="sm" />
+              <div className="min-w-0 ml-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate text-lg font-semibold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent transition-all duration-500 ">Cipla Execution Intelligence</p>
+                </div>
+                <p className="text-xs bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Planner, consolidation, RCPA, workflow, budget, ROI, and data-quality governance</p>
+                <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Engineered by Aditya Nema</p>
+              </div>
             </button>
+            <div className="-mx-1 flex max-w-full items-center gap-2 overflow-x-auto px-3 p-1 lg:mx-0 lg:shrink-0">
+              <div className="flex shrink-0 gap-2">
+                {PAGES.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.key}
+                      className={`soft-button flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm ${
+                        page === item.key ? "border-accent/25 bg-accent/[0.07] text-[#abc8c3] shadow-[inset_0_-1px_0_rgba(106,174,165,0.35)]" : ""
+                      }`}
+                      onClick={() => setPage(item.key)}
+                      aria-current={page === item.key ? "page" : undefined}
+                    >
+                      <Icon aria-hidden="true" className="h-4 w-4" />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="h-8 w-px shrink-0 bg-white/[0.08]" aria-hidden="true" />
+              <button
+                type="button"
+                onClick={returnToEntry}
+                className="soft-button flex shrink-0 items-center gap-2 rounded-md border-red-300/10 px-3 py-2 text-sm text-red-300/90 hover:border-red-300/25 hover:bg-red-400/[0.2] hover:text-red-50"
+                aria-label="Exit to loading screen"
+                title="Exit to loading screen"
+              >
+                <LogOut aria-hidden="true" className="h-4 w-4" />
+                Exit
+              </button>
+            </div>
           </div>
-        </div>
-      </nav>
-      {meta.data && page !== "quality" ? (
-        <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
-          <DataFreshnessBanner meta={meta.data.meta} />
-        </div>
-      ) : null}
-      <Suspense fallback={<main><LoadingState label="Loading dashboard" /></main>}>
-        {page === "execution" ? <ExecutionMatrix /> : null}
-        {page === "budget" ? <BudgetUtilization /> : null}
-        {page === "doctors" ? <DoctorRoi /> : null}
-        {page === "quality" ? <DataQuality /> : null}
-      </Suspense>
-    </div>
+        </nav>
+        {meta.data && page !== "quality" ? (
+          <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
+            <DataFreshnessBanner meta={meta.data.meta} />
+          </div>
+        ) : null}
+        <Suspense fallback={<main><LoadingState label="Loading dashboard" /></main>}>
+          {page === "execution" ? <ExecutionMatrix onAiContextChange={setAiContext} /> : null}
+          {page === "budget" ? <BudgetUtilization onAiContextChange={setAiContext} /> : null}
+          {page === "doctors" ? <DoctorRoi onAiContextChange={setAiContext} /> : null}
+          {page === "quality" ? <DataQuality onAiContextChange={setAiContext} /> : null}
+        </Suspense>
+      </div>
+      <AiAssistantPanel context={aiContext} />
+    </>
   );
 }
 

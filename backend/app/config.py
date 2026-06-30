@@ -23,7 +23,15 @@ class Settings(BaseSettings):
     data_freshness_max_age_days: int = Field(default=14, alias="DATA_FRESHNESS_MAX_AGE_DAYS")
     ai_provider: str = Field(default="null", alias="AI_PROVIDER")
     ai_api_key: str = Field(default="", alias="AI_API_KEY")
-    ai_model: str = Field(default="", alias="AI_MODEL")
+    ai_model: str = Field(default="gemini-2.5-flash-lite", alias="AI_MODEL")
+    ai_model_fallbacks: str = Field(
+        default="gemini-flash-lite-latest,gemini-2.0-flash-lite,gemini-2.0-flash-lite-001,gemini-2.0-flash",
+        alias="AI_MODEL_FALLBACKS",
+    )
+    ai_context_max_chars: int = Field(default=24000, alias="AI_CONTEXT_MAX_CHARS")
+    ai_context_row_limit: int = Field(default=40, alias="AI_CONTEXT_ROW_LIMIT")
+    ai_redaction_enabled: bool = Field(default=False, alias="AI_REDACTION_ENABLED")
+    ai_timeout_seconds: float = Field(default=12.0, alias="AI_TIMEOUT_SECONDS")
 
     @property
     def cors_origin_list(self) -> list[str]:

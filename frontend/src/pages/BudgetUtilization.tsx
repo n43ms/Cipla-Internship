@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { getBudgetSummary } from "../api/budget";
 import { getFilters } from "../api/filters";
@@ -8,16 +8,21 @@ import { DataFreshnessBanner, EmptyState, ErrorState, LoadingState } from "../co
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { nextSort, type SortState } from "../components/common/SortableTable";
 
-export function BudgetUtilization() {
+export function BudgetUtilization({ onAiContextChange }: { onAiContextChange?: (context: { pageContext: string; filters: Record<string, unknown> }) => void }) {
   const [country, setCountry] = useState("");
   const [month, setMonth] = useState("");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState<BudgetGapSortKey>>({ key: "unspentGapUsd", direction: "desc" });
   const filters = useQuery({ queryKey: ["filters"], queryFn: getFilters });
+  const aiFilters = useMemo(() => ({ country: country || undefined, month: month || undefined }), [country, month]);
   const budget = useQuery({
     queryKey: ["budget-summary", country, month, page, sort],
     queryFn: () => getBudgetSummary({ country, month, page, pageSize: 25, sort: sort.key, sortDirection: sort.direction }),
   });
+
+  useEffect(() => {
+    onAiContextChange?.({ pageContext: "budget", filters: aiFilters });
+  }, [aiFilters, onAiContextChange]);
 
   if (budget.isLoading) return <main><LoadingState label="Loading budget utilization" /></main>;
   if (budget.isError) return <main className="p-6"><ErrorState title="Budget utilization unavailable" /></main>;

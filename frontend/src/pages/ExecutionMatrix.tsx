@@ -27,7 +27,7 @@ type Filters = {
   includeOutOfScope: boolean;
 };
 
-export function ExecutionMatrix() {
+export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (context: { pageContext: string; filters: Record<string, unknown> }) => void }) {
   const [filters, setFilters] = useState<Filters>({ country: "", month: "", includeOutOfScope: false });
   const [page, setPage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<ExecutionEventRow | null>(null);
@@ -75,6 +75,10 @@ export function ExecutionMatrix() {
     queryKey: ["intervention-mix", activeFilters],
     queryFn: () => getInterventionMix(activeFilters),
   });
+
+  useEffect(() => {
+    onAiContextChange?.({ pageContext: "execution", filters: activeFilters });
+  }, [activeFilters, onAiContextChange]);
 
   useEffect(() => {
     if (hasAppliedInitialScope || filters.month || !filterOptions.data?.recommendedMonth?.value) {

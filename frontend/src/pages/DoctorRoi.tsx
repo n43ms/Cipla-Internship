@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { getDoctorDetail, getDoctorRoi } from "../api/doctors";
@@ -10,7 +10,7 @@ import { DoctorRoiCards, DoctorRoiTable, DoctorScatter, QuadrantMatrix, type Doc
 import { nextSort, type SortState } from "../components/common/SortableTable";
 import type { DoctorRoiRow } from "../types/api";
 
-export function DoctorRoi() {
+export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context: { pageContext: string; filters: Record<string, unknown> }) => void }) {
   const [selected, setSelected] = useState<DoctorRoiRow | null>(null);
   const [country, setCountry] = useState("");
   const [monthStart, setMonthStart] = useState("");
@@ -24,10 +24,26 @@ export function DoctorRoi() {
   const [sort, setSort] = useState<SortState<DoctorRoiSortKey>>({ key: "ciplaPrescriptionQty", direction: "desc" });
 
   const filters = useQuery({ queryKey: ["filters"], queryFn: getFilters });
+  const aiFilters = useMemo(
+    () => ({
+      country: country || undefined,
+      month: monthEnd || monthStart || undefined,
+      brand: brand || undefined,
+      speciality: speciality || undefined,
+      doctorClass: doctorClass || undefined,
+      roiSegment: roiSegment || undefined,
+      includeOutOfScope: includeOutOfScope || undefined,
+    }),
+    [brand, country, doctorClass, includeOutOfScope, monthEnd, monthStart, roiSegment, speciality],
+  );
   const roi = useQuery({
     queryKey: ["doctor-roi", country, monthStart, monthEnd, brand, speciality, doctorClass, roiSegment, includeOutOfScope, page, sort],
     queryFn: () => getDoctorRoi({ country, monthStart, monthEnd, brand, speciality, doctorClass, roiSegment, includeOutOfScope, page, pageSize: 50, sort: sort.key, sortDirection: sort.direction }),
   });
+
+  useEffect(() => {
+    onAiContextChange?.({ pageContext: "doctor_roi", filters: aiFilters });
+  }, [aiFilters, onAiContextChange]);
   const detail = useQuery({
     queryKey: ["doctor-detail", selected?.countryCode, selected?.pcodeNormalized],
     queryFn: () => getDoctorDetail(selected!.countryCode, selected!.pcodeNormalized),

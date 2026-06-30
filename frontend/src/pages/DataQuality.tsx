@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { getDataQuality } from "../api/filters";
 import { DataFreshnessBanner, EmptyState, ErrorState, KpiCard, LoadingState } from "../components/common/DataStateComponents";
@@ -15,8 +15,12 @@ const VALIDATION_SORT_ACCESSORS = {
   message: (row: ValidationIssue) => row.message,
 };
 
-export function DataQuality() {
+export function DataQuality({ onAiContextChange }: { onAiContextChange?: (context: { pageContext: string; filters: Record<string, unknown> }) => void }) {
   const quality = useQuery({ queryKey: ["data-quality"], queryFn: getDataQuality });
+
+  useEffect(() => {
+    onAiContextChange?.({ pageContext: "data_quality", filters: {} });
+  }, [onAiContextChange]);
 
   if (quality.isLoading) return <main><LoadingState label="Loading data quality" /></main>;
   if (quality.isError) return <main className="p-6"><ErrorState title="Data quality unavailable" /></main>;

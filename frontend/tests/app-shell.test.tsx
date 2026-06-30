@@ -8,6 +8,7 @@ describe("App shell", () => {
   it("renders the execution governance shell", () => {
     renderWithProviders(<App />);
 
-    expect(screen.getByText("Loading dashboard page")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /click to continue/i })).toBeInTheDocument();
+    expect(screen.getByText("Execution intelligence platform")).toBeInTheDocument();
   });
 });

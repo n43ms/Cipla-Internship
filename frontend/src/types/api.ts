@@ -426,3 +426,35 @@ export type UnmatchedRecordsResponse = {
   total: number;
   rows: DataQualityResponse["unmatchedRecords"];
 };
+
+export type AiQueryRequest = {
+  question: string;
+  pageContext?: string | null;
+  filters?: Record<string, unknown>;
+};
+
+export type AiSupportingMetric = {
+  label: string;
+  value: string | number | boolean | null;
+  source: string;
+};
+
+export type AiContextScope = {
+  pageContext: string;
+  filters: Record<string, unknown>;
+  topN: number;
+  maxCharacters: number;
+  sections: string[];
+};
+
+export type AiQueryResponse = {
+  answer: string;
+  supportingMetrics: AiSupportingMetric[];
+  limitations: string[];
+  confidence: "high" | "medium" | "low";
+  providerUsed: string;
+  modelUsed: string | null;
+  fallbackUsed: boolean;
+  redactionApplied: boolean;
+  contextScope: AiContextScope;
+};
