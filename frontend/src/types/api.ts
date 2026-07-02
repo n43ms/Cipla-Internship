@@ -440,6 +440,18 @@ export type AiDashboardPointer = {
   reason: string;
 };
 
+export type AiEvidenceRef = {
+  section: string;
+  label: string;
+  value?: string | number | boolean | null;
+  sourcePath?: string | null;
+};
+
+export type AiAgentStep = {
+  step: string;
+  status: "completed" | "fallback";
+};
+
 export type AiContextScope = {
   pageContext: string;
   filters: Record<string, unknown>;
@@ -450,6 +462,9 @@ export type AiContextScope = {
 
 export type AiQueryResponse = {
   answer: string;
+  answerMarkdown: string | null;
+  evidenceRefs: AiEvidenceRef[];
+  agentSteps: AiAgentStep[];
   dashboardPointers: AiDashboardPointer[];
   limitations: string[];
   confidence: "high" | "medium" | "low";

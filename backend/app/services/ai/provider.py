@@ -196,7 +196,8 @@ def _gemini_payload(*, question: str, context_text: str, system_prompt: str) -> 
         "generationConfig": {
             "temperature": 0.2,
             "topP": 0.9,
-            "maxOutputTokens": 700,
+            "maxOutputTokens": 950,
+            "responseMimeType": "application/json",
         },
     }
 

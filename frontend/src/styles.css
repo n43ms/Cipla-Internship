@@ -245,6 +245,47 @@ body {
   transition: opacity 520ms ease;
 }
 
+.ai-markdown {
+  overflow-wrap: anywhere;
+}
+
+.ai-markdown > * + * {
+  margin-top: 0.75rem;
+}
+
+.ai-markdown ul,
+.ai-markdown ol {
+  padding-left: 1.25rem;
+}
+
+.ai-markdown ul {
+  list-style: disc;
+}
+
+.ai-markdown ol {
+  list-style: decimal;
+}
+
+.ai-markdown strong {
+  color: #f4f4f5;
+  font-weight: 700;
+}
+
+.ai-markdown a {
+  color: #7dd3fc;
+  text-decoration: underline;
+  text-decoration-color: rgba(125, 211, 252, 0.45);
+}
+
+.ai-markdown code {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.08rem 0.28rem;
+  color: #bae6fd;
+  font-size: 0.86em;
+}
+
 @media (min-width: 1024px) {
   .ai-drawer-backdrop {
     display: none;

@@ -40,8 +40,12 @@ describe("AI assistant", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    await waitFor(() => expect(screen.getByText("Execution risk is concentrated in pending reports.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Review weak matches first.")).toBeInTheDocument());
+    expect(screen.queryByText(/\*\*Execution risk\*\*/i)).not.toBeInTheDocument();
     expect(screen.getByText(/gemini-test/i)).toBeInTheDocument();
+    expect(screen.getByText("Evidence used")).toBeInTheDocument();
+    expect(screen.getByText("Weak/unmatched execution rows")).toBeInTheDocument();
+    expect(screen.getByText("Grounded assistant workflow")).toBeInTheDocument();
     expect(screen.getByText("Where to verify this")).toBeInTheDocument();
     expect(screen.getByText("Execution event matrix table")).toBeInTheDocument();
     expect(screen.queryByText("execution: weak or unmatched events")).not.toBeInTheDocument();
@@ -73,13 +77,92 @@ describe("AI assistant", () => {
     fireEvent.click(screen.getByRole("button", { name: "Where is execution risk highest?" }));
 
     await waitFor(() => expect(screen.getByText("Safe fallback")).toBeInTheDocument());
-    expect(screen.getByText("Execution risk is concentrated in pending reports.")).toBeInTheDocument();
+    expect(screen.getByText("Review weak matches first.")).toBeInTheDocument();
+  });
+
+  it("does not crash when backend still returns old supportingMetrics shape", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes("/api/data-quality")) return ok(dataQuality());
+      if (url.includes("/api/filters")) return ok(filters());
+      if (url.includes("/api/execution/filter-options")) return ok({ countries: [], months: [], recommendedMonth: null });
+      if (url.includes("/api/execution/summary")) return ok(executionSummary());
+      if (url.includes("/api/execution/events")) return ok({ meta: meta(), page: 1, pageSize: 25, total: 0, rows: [] });
+      if (url.includes("/api/workflow/summary")) return ok(workflowSummary());
+      if (url.includes("/api/workflow/requests")) return ok({ meta: meta(), page: 1, pageSize: 8, total: 0, rows: [] });
+      if (url.includes("/api/interventions/mix")) return ok({ meta: meta(), rows: [] });
+      if (url.includes("/api/ai/query")) {
+        return ok({
+          answer: "Old backend response still answered.",
+          supportingMetrics: [{ label: "execution: weak or unmatched events", value: 4, source: "execution" }],
+          confidence: "medium",
+          providerUsed: "gemini",
+          modelUsed: "old-model",
+          fallbackUsed: false,
+          redactionApplied: false,
+          contextScope: { pageContext: "execution", filters: {}, topN: 5, maxCharacters: 9000, sections: [] },
+        });
+      }
+      return ok({});
+    });
+
+    renderWithProviders(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /open grounded ai/i })).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: /open grounded ai/i }));
+    await waitFor(() => expect(screen.getByText("Ask the dashboard")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Where is execution risk highest?" }));
+
+    await waitFor(() => expect(screen.getByText("Old backend response still answered.")).toBeInTheDocument());
+    expect(screen.getByText("Restart backend if dashboard pointers are missing repeatedly.")).toBeInTheDocument();
+    expect(screen.queryByText("execution: weak or unmatched events")).not.toBeInTheDocument();
+  });
+
+  it("shows a contained warning for malformed AI responses", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes("/api/data-quality")) return ok(dataQuality());
+      if (url.includes("/api/filters")) return ok(filters());
+      if (url.includes("/api/execution/filter-options")) return ok({ countries: [], months: [], recommendedMonth: null });
+      if (url.includes("/api/execution/summary")) return ok(executionSummary());
+      if (url.includes("/api/execution/events")) return ok({ meta: meta(), page: 1, pageSize: 25, total: 0, rows: [] });
+      if (url.includes("/api/workflow/summary")) return ok(workflowSummary());
+      if (url.includes("/api/workflow/requests")) return ok({ meta: meta(), page: 1, pageSize: 8, total: 0, rows: [] });
+      if (url.includes("/api/interventions/mix")) return ok({ meta: meta(), rows: [] });
+      if (url.includes("/api/ai/query")) return ok({ providerUsed: "gemini" });
+      return ok({});
+    });
+
+    renderWithProviders(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /open grounded ai/i })).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: /open grounded ai/i }));
+    await waitFor(() => expect(screen.getByText("Ask the dashboard")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Where is execution risk highest?" }));
+
+    await waitFor(() => expect(screen.getByText(/AI response was incomplete/i)).toBeInTheDocument());
+    expect(screen.getByText(/Restart the backend/i)).toBeInTheDocument();
   });
 });
 
 function aiResponse({ fallbackUsed, providerUsed }: { fallbackUsed: boolean; providerUsed: string }) {
   return {
     answer: "Execution risk is concentrated in pending reports.",
+    answerMarkdown: "**Execution risk** is concentrated in pending reports.\n\n- Review weak matches first.\n- Then verify pending reports.",
+    evidenceRefs: [
+      {
+        section: "execution",
+        label: "Weak/unmatched execution rows",
+        value: 4,
+        sourcePath: "execution.weakOrUnmatchedEvents",
+      },
+    ],
+    agentSteps: [
+      { step: "Planned query topics: execution.", status: "completed" },
+      { step: "Retrieved bounded structured dashboard evidence before using the model.", status: "completed" },
+    ],
     dashboardPointers: [
       {
         page: "Execution",

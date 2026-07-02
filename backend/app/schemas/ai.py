@@ -20,6 +20,18 @@ class DashboardPointer(ApiModel):
     reason: str
 
 
+class AiEvidenceRef(ApiModel):
+    section: str
+    label: str
+    value: str | int | float | bool | None = None
+    source_path: str | None = None
+
+
+class AiAgentStep(ApiModel):
+    step: str
+    status: Literal["completed", "fallback"]
+
+
 class AiContextScope(ApiModel):
     page_context: str
     filters: dict[str, Any] = Field(default_factory=dict)
@@ -30,6 +42,9 @@ class AiContextScope(ApiModel):
 
 class AiQueryResponse(ApiModel):
     answer: str
+    answer_markdown: str | None = None
+    evidence_refs: list[AiEvidenceRef] = Field(default_factory=list)
+    agent_steps: list[AiAgentStep] = Field(default_factory=list)
     dashboard_pointers: list[DashboardPointer] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
     confidence: Literal["high", "medium", "low"]

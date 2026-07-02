@@ -59,7 +59,9 @@ class DoctorRepository:
             and (
                 cast(:month_end as text) is null
                 or first_engagement_date is null
-                or first_engagement_date < (to_date(cast(:month_end as text), 'YYYY-MM') + interval '1 month')
+                or first_engagement_date < (
+                    to_date(cast(:month_end as text), 'YYYY-MM') + interval '1 month'
+                )
             )
             and (
                 cast(:speciality as text) is null
@@ -86,7 +88,12 @@ class DoctorRepository:
                 )
             )
         """
-        total = int(self.session.execute(text(f"select count(*) from mv_doctor_roi {where}"), params).scalar_one())
+        total = int(
+            self.session.execute(
+                text(f"select count(*) from mv_doctor_roi {where}"),
+                params,
+            ).scalar_one()
+        )
         rows = self.session.execute(
             text(
                 f"""
@@ -158,6 +165,59 @@ class DoctorRepository:
         ).mappings().first()
         return dict(row) if row else None
 
+    def search_doctors(
+        self,
+        *,
+        country: str | None,
+        search: str,
+        limit: int = 5,
+    ) -> list[dict[str, Any]]:
+        normalized = search.strip()
+        if not normalized:
+            return []
+        rows = self.session.execute(
+            text(
+                """
+                select *
+                from mv_doctor_roi
+                where (
+                    cast(:country as text) is null
+                    or lower(country_code) = lower(cast(:country as text))
+                    or lower(country_name) = lower(cast(:country as text))
+                )
+                and (
+                    lower(pcode_normalized) = lower(cast(:search as text))
+                    or lower(coalesce(doctor_name, '')) = lower(cast(:search as text))
+                    or lower(coalesce(doctor_name, ''))
+                        like '%' || lower(cast(:search as text)) || '%'
+                    or (
+                        doctor_name is not null
+                        and btrim(doctor_name) <> ''
+                        and lower(cast(:search as text)) like '%' || lower(doctor_name) || '%'
+                    )
+                )
+                order by
+                    case
+                        when lower(pcode_normalized) = lower(cast(:search as text)) then 0
+                        else 1
+                    end,
+                    case
+                        when lower(coalesce(doctor_name, '')) = lower(cast(:search as text))
+                        then 0
+                        else 1
+                    end,
+                    has_rcpa desc,
+                    engagement_count desc,
+                    cipla_prescription_qty desc,
+                    doctor_name nulls last,
+                    pcode_normalized
+                limit :limit
+                """
+            ),
+            {"country": country, "search": normalized, "limit": max(1, min(limit, 10))},
+        ).mappings()
+        return [dict(row) for row in rows]
+
     def engagement_history(self, country_code: str, pcode: str) -> list[dict[str, Any]]:
         rows = self.session.execute(
             text(
@@ -227,15 +287,37 @@ class DoctorRepository:
 def _doctor_order_by(sort: str, direction: str) -> str:
     direction_sql = "asc" if direction.lower() == "asc" else "desc"
     columns = {
-        "darkHorse": "dark_horse_flag desc, cipla_prescription_qty desc, total_roi_spend_usd asc, doctor_name nulls last, pcode_normalized",
+        "darkHorse": (
+            "dark_horse_flag desc, cipla_prescription_qty desc, total_roi_spend_usd asc, "
+            "doctor_name nulls last, pcode_normalized"
+        ),
         "doctorName": f"doctor_name {direction_sql} nulls last, pcode_normalized",
         "roiSegment": f"roi_segment {direction_sql}, doctor_name nulls last, pcode_normalized",
-        "quadrantLabel": f"quadrant_label {direction_sql}, doctor_name nulls last, pcode_normalized",
-        "ciplaPrescriptionQty": f"cipla_prescription_qty {direction_sql}, doctor_name nulls last, pcode_normalized",
-        "totalRoiSpendUsd": f"total_roi_spend_usd {direction_sql}, doctor_name nulls last, pcode_normalized",
-        "rcpaLastMonth": f"rcpa_last_month {direction_sql} nulls last, doctor_name nulls last, pcode_normalized",
-        "spendPerCiplaPrescriptionUsd": f"spend_per_cipla_prescription_usd {direction_sql} nulls last, doctor_name nulls last, pcode_normalized",
-        "lastEngagementDate": f"last_engagement_date {direction_sql} nulls last, doctor_name nulls last, pcode_normalized",
-        "engagementCount": f"engagement_count {direction_sql}, doctor_name nulls last, pcode_normalized",
+        "quadrantLabel": (
+            f"quadrant_label {direction_sql}, doctor_name nulls last, pcode_normalized"
+        ),
+        "ciplaPrescriptionQty": (
+            f"cipla_prescription_qty {direction_sql}, doctor_name nulls last, "
+            "pcode_normalized"
+        ),
+        "totalRoiSpendUsd": (
+            f"total_roi_spend_usd {direction_sql}, doctor_name nulls last, "
+            "pcode_normalized"
+        ),
+        "rcpaLastMonth": (
+            f"rcpa_last_month {direction_sql} nulls last, doctor_name nulls last, "
+            "pcode_normalized"
+        ),
+        "spendPerCiplaPrescriptionUsd": (
+            f"spend_per_cipla_prescription_usd {direction_sql} nulls last, "
+            "doctor_name nulls last, pcode_normalized"
+        ),
+        "lastEngagementDate": (
+            f"last_engagement_date {direction_sql} nulls last, doctor_name nulls last, "
+            "pcode_normalized"
+        ),
+        "engagementCount": (
+            f"engagement_count {direction_sql}, doctor_name nulls last, pcode_normalized"
+        ),
     }
     return columns.get(sort, columns["darkHorse"])

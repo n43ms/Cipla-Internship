@@ -4,14 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-SUPPORTED_TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "execution": ("execution", "planned", "matched", "action due", "action-due", "event", "hcp"),
-    "workflow": ("workflow", "approval", "confirmation", "pending", "report", "bottleneck"),
-    "intervention": ("intervention", "mix", "type", "program", "cme", "conference"),
-    "budget": ("budget", "spend", "expense", "btu", "btc", "fx", "variance", "cost"),
-    "doctor": ("doctor", "hcp", "roi", "rcpa", "prescription", "dark horse", "quadrant"),
-    "quality": ("quality", "data", "validation", "coverage", "unmatched", "freshness", "missing"),
-}
+from backend.app.services.ai.query_planner import TOPIC_KEYWORDS as SUPPORTED_TOPIC_KEYWORDS
 
 
 @dataclass(frozen=True)
@@ -113,6 +106,13 @@ def deterministic_answer(
     )
     return {
         "answer": answer,
+        "answerMarkdown": answer,
+        "evidenceRefs": evidence_refs_for_context(context),
+        "agentSteps": [
+            {"step": "Planned query topics from the question.", "status": "completed"},
+            {"step": "Retrieved bounded dashboard evidence.", "status": "completed"},
+            {"step": "Used deterministic fallback because Gemini was unavailable.", "status": "fallback"},
+        ],
         "dashboardPointers": pointers,
         "limitations": limitations,
         "confidence": confidence_for_context(context),
@@ -120,6 +120,65 @@ def deterministic_answer(
         "modelUsed": "rules",
         "fallbackUsed": True,
     }
+
+
+def evidence_refs_for_context(context: dict[str, Any]) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    for section, rows_key, label_key in (
+        ("execution.eventRows", "eventRows", "eventName"),
+        ("workflow.requestRows", "requestRows", "reqId"),
+        ("budget.topGapRows", "topGapRows", "eventName"),
+        ("doctorRoi.topDoctorOpportunityRows", "topDoctorOpportunityRows", "doctorName"),
+        ("interventions.topRows", "topRows", "interventionType"),
+    ):
+        parent_name = section.split(".")[0]
+        parent = context.get(parent_name)
+        if not isinstance(parent, dict):
+            continue
+        rows = parent.get(rows_key)
+        if not isinstance(rows, list):
+            continue
+        for index, row in enumerate(rows[:4]):
+            if not isinstance(row, dict):
+                continue
+            label = row.get(label_key) or row.get("pcodeNormalized") or row.get("country") or section
+            refs.append(
+                {
+                    "section": parent_name,
+                    "label": str(label),
+                    "value": _compact_ref_value(row),
+                    "sourcePath": f"{section}[{index}]",
+                }
+            )
+    quality = context.get("dataQuality")
+    if isinstance(quality, dict):
+        for key in ("matchCoverage", "pcodeCoverage", "rcpaCoverage", "validationWarningCount"):
+            if key in quality:
+                refs.append(
+                    {
+                        "section": "dataQuality",
+                        "label": key,
+                        "value": quality.get(key),
+                        "sourcePath": f"dataQuality.{key}",
+                    }
+                )
+    return refs[:12]
+
+
+def _compact_ref_value(row: dict[str, Any]) -> str | int | float | bool | None:
+    for key in (
+        "pcodeNormalized",
+        "matchStatus",
+        "executionStatus",
+        "requestApprovalStatus",
+        "unspentGapUsd",
+        "totalRoiSpendUsd",
+        "requestCount",
+    ):
+        value = row.get(key)
+        if value not in (None, ""):
+            return value
+    return None
 
 
 _GENERAL_POINTERS = [

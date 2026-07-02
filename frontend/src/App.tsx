@@ -60,6 +60,7 @@ export default function App() {
                 </div>
                 <p className="text-xs bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Planner, consolidation, RCPA, workflow, budget, ROI, and data-quality governance</p>
                 <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Engineered by Aditya Nema</p>
+                <p className="mt-1 text-[0.68rem] text-cyan-200/75">Grounded AI: query planning, structured evidence retrieval, Gemini synthesis, backend validation.</p>
               </div>
             </button>
             <div className="-mx-1 flex max-w-full items-center gap-2 overflow-x-auto px-3 p-1 lg:mx-0 lg:shrink-0">

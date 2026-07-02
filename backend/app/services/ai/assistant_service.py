@@ -18,15 +18,37 @@ from backend.app.services.ai.answer_policy import (
 )
 from backend.app.services.ai.context_builder import build_compact_context, context_scope
 from backend.app.services.ai.provider import AIProviderError, build_primary_provider
+from backend.app.services.ai.query_planner import plan_query
 from backend.app.services.ai.redaction import redact_payload, redact_text
+from backend.app.services.ai.response_contract import (
+    AiResponseContractError,
+    parse_structured_answer,
+)
 
 SYSTEM_PROMPT = """
 You are the Cipla EMEU Execution Intelligence assistant.
 Answer only from the bounded structured dashboard context supplied by the backend.
 Do not invent source files, rows, doctors, currencies, fields, formulas, or conclusions.
-Use concise business language. Mention limitations when the context includes them.
+Use specific names, Pcodes, request IDs, event names, currencies, and amounts when present.
+Use concise business language. Mention only limitations that directly affect the answer.
 If the context cannot support the question, say so directly.
 Never ask for raw workbook rows or secrets.
+Return only valid JSON with this exact shape:
+{
+  "markdownAnswer": "Markdown answer with bullets or bold where useful.",
+  "evidenceRefs": [
+    {
+      "section": "doctorRoi",
+      "label": "Dr Example / 12345",
+      "value": "optional",
+      "sourcePath": "doctorRoi.topDoctorOpportunityRows[0]"
+    }
+  ],
+  "assumptions": [],
+  "limitations": [],
+  "confidence": "high|medium|low"
+}
+Each evidenceRefs.sourcePath must exist in the supplied context JSON.
 """
 
 
@@ -45,6 +67,11 @@ class AssistantService:
             question_changed = False
 
         decision = route_question(provider_question)
+        query_plan = plan_query(
+            provider_question,
+            page_context=request.page_context,
+            default_row_limit=self.settings.ai_context_row_limit,
+        )
         context = build_compact_context(
             self.session,
             question=provider_question,
@@ -52,6 +79,7 @@ class AssistantService:
             filters=request.filters,
             max_chars=self.settings.ai_context_max_chars,
             row_limit=self.settings.ai_context_row_limit,
+            query_plan=query_plan,
         )
         context_scope_payload = context_scope(context)
         if self.settings.ai_redaction_enabled:
@@ -85,26 +113,46 @@ class AssistantService:
                 context=json.dumps(provider_context, sort_keys=True, default=str),
                 system_prompt=SYSTEM_PROMPT,
             )
+            structured = parse_structured_answer(result.answer, provider_context)
             response_payload = {
-                "answer": result.answer,
+                "answer": structured["answer"],
+                "answerMarkdown": structured["answerMarkdown"],
+                "evidenceRefs": structured["evidenceRefs"],
+                "agentSteps": _agent_steps(
+                    model_step="completed",
+                    provider=f"{result.provider}/{result.model}",
+                    topics=decision.topics,
+                ),
                 "dashboardPointers": dashboard_pointers_for_topics(
                     decision.topics,
                     provider_context,
                 ),
                 "limitations": list(
-                    dict.fromkeys(str(item) for item in context.get("limitations", []))
+                    dict.fromkeys(
+                        [
+                            *(str(item) for item in structured["limitations"]),
+                            *(str(item) for item in context.get("limitations", [])),
+                        ]
+                    )
                 ),
-                "confidence": confidence_for_context(provider_context),
+                "confidence": structured.get("confidence")
+                or confidence_for_context(provider_context),
                 "providerUsed": result.provider,
                 "modelUsed": result.model,
                 "fallbackUsed": False,
                 "redactionApplied": redaction_applied,
                 "contextScope": context_scope_payload,
             }
-        except AIProviderError as exc:
-            error_code = exc.code
-            error_message = exc.message
-            fallback = deterministic_answer(provider_question, provider_context, reason=exc.message)
+        except (AIProviderError, AiResponseContractError) as exc:
+            error_code = (
+                exc.code if isinstance(exc, AIProviderError) else "invalid_ai_response_contract"
+            )
+            error_message = exc.message if isinstance(exc, AIProviderError) else str(exc)
+            fallback = deterministic_answer(
+                provider_question,
+                provider_context,
+                reason=error_message,
+            )
             response_payload = fallback | {
                 "redactionApplied": redaction_applied,
                 "contextScope": context_scope_payload,
@@ -164,3 +212,27 @@ def _elapsed_ms(started: float) -> int:
 
 def _string_or_none(value: Any) -> str | None:
     return str(value) if value not in (None, "") else None
+
+
+def _agent_steps(*, model_step: str, provider: str, topics: list[str]) -> list[dict[str, str]]:
+    return [
+        {
+            "step": (
+                f"Planned query topics: "
+                f"{', '.join(topics) if topics else 'general dashboard'}."
+            ),
+            "status": "completed",
+        },
+        {
+            "step": "Retrieved bounded structured dashboard evidence before using the model.",
+            "status": "completed",
+        },
+        {
+            "step": f"Asked {provider} to synthesize a JSON answer from retrieved evidence.",
+            "status": model_step,
+        },
+        {
+            "step": "Validated evidence references before returning the answer.",
+            "status": "completed" if model_step == "completed" else "fallback",
+        },
+    ]

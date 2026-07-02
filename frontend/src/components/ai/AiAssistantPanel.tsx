@@ -12,6 +12,8 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { queryAi } from "../../api/ai";
 import type { AiQueryResponse } from "../../types/api";
@@ -84,7 +86,7 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
                 </div>
                 <h2 className="mt-2 text-lg font-semibold text-zinc-100">Ask the dashboard</h2>
                 <p className="mt-1 text-xs leading-5 text-zinc-500">
-                  Gemini answers from bounded dashboard context with specific rows, names, currencies, and IDs when available. Safe mode remains available if Gemini fails.
+                  Grounded assistant: plans the query, retrieves structured dashboard evidence, asks Gemini to explain it, then validates the answer against available data.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -161,6 +163,12 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
 }
 
 function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
+  const dashboardPointers = answer.dashboardPointers ?? [];
+  const limitations = answer.limitations ?? [];
+  const evidenceRefs = answer.evidenceRefs ?? [];
+  const agentSteps = answer.agentSteps ?? [];
+  const answerMarkdown = answer.answerMarkdown ?? answer.answer;
+  const hasUsableAnswer = typeof answerMarkdown === "string" && answerMarkdown.trim().length > 0;
   return (
     <div className="space-y-4 rounded-xl border border-white/[0.08] bg-[#101315] p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -174,12 +182,59 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
           </span>
         ) : null}
       </div>
-      <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-200">{answer.answer}</p>
-      {answer.dashboardPointers.length ? (
+      {hasUsableAnswer ? (
+        <div className="ai-markdown text-sm leading-6 text-zinc-200">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{answerMarkdown}</ReactMarkdown>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-red-400/20 bg-red-400/[0.08] p-3 text-sm text-red-100">
+          AI response was incomplete. Restart the backend if dashboard pointers are missing repeatedly.
+        </div>
+      )}
+      {evidenceRefs.length ? (
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Evidence used</h3>
+          <div className="mt-2 grid grid-cols-1 gap-2">
+            {evidenceRefs.slice(0, 8).map((ref, index) => (
+              <div key={`${ref.section}-${ref.label}-${index}`} className="rounded-lg border border-emerald-300/10 bg-emerald-300/[0.045] p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.07] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-emerald-200">
+                    {ref.section}
+                  </span>
+                  <p className="text-xs font-semibold text-zinc-100">{ref.label}</p>
+                </div>
+                {ref.value !== null && ref.value !== undefined ? (
+                  <p className="mt-2 text-xs text-zinc-300">Value: {String(ref.value)}</p>
+                ) : null}
+                {ref.sourcePath ? <p className="mt-1 text-[0.68rem] text-zinc-600">{ref.sourcePath}</p> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {agentSteps.length ? (
+        <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.055] p-3">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-cyan-100">
+            <ShieldCheck className="h-4 w-4" />
+            Grounded assistant workflow
+          </div>
+          <ol className="mt-2 space-y-1 text-xs leading-5 text-cyan-100/75">
+            {agentSteps.map((step) => (
+              <li key={step.step} className="flex gap-2">
+                <span className={step.status === "fallback" ? "text-amber-200" : "text-emerald-200"}>
+                  {step.status === "fallback" ? "Fallback" : "Done"}
+                </span>
+                <span>{step.step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+      {dashboardPointers.length ? (
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Where to verify this</h3>
           <div className="mt-2 grid grid-cols-1 gap-2">
-            {answer.dashboardPointers.slice(0, 10).map((pointer) => (
+            {dashboardPointers.slice(0, 10).map((pointer) => (
               <div key={`${pointer.page}-${pointer.section}-${pointer.detail}`} className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-accent/20 bg-accent/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-accent">
@@ -194,14 +249,19 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
           </div>
         </div>
       ) : null}
-      {answer.limitations.length ? (
+      {!dashboardPointers.length && hasUsableAnswer ? (
+        <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.06] p-3 text-xs leading-5 text-cyan-100/80">
+          Restart backend if dashboard pointers are missing repeatedly.
+        </div>
+      ) : null}
+      {limitations.length ? (
         <div className="rounded-lg border border-amber-300/20 bg-amber-300/[0.07] p-3 text-xs text-amber-100/80">
           <div className="flex items-center gap-2 font-semibold">
             <AlertTriangle className="h-4 w-4" />
             Limitations
           </div>
           <ul className="mt-2 list-disc space-y-1 pl-5">
-            {answer.limitations.slice(0, 5).map((limitation) => (
+            {limitations.slice(0, 5).map((limitation) => (
               <li key={limitation}>{limitation}</li>
             ))}
           </ul>

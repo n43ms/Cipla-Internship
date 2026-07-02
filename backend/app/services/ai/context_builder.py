@@ -6,6 +6,8 @@ from typing import Any
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
+from backend.app.repositories.doctor_repository import DoctorRepository
+from backend.app.services.ai.query_planner import QueryPlan
 from backend.app.services.budget_service import BudgetService
 from backend.app.services.data_quality_service import DataQualityService
 from backend.app.services.doctor_service import DoctorService
@@ -27,98 +29,154 @@ def build_compact_context(
     filters: dict[str, Any] | None = None,
     max_chars: int = DEFAULT_MAX_CONTEXT_CHARS,
     row_limit: int = DEFAULT_ROW_LIMIT,
+    query_plan: QueryPlan | None = None,
 ) -> dict[str, Any]:
     """Build a detailed but bounded AI context from existing dashboard services."""
 
     safe_filters = _normalize_filters(filters or {})
     effective_row_limit = _bounded_row_limit(row_limit)
+    detail_row_limit = _bounded_row_limit(
+        query_plan.detail_limit if query_plan else effective_row_limit
+    )
+    broad_row_limit = _bounded_row_limit(
+        query_plan.broad_limit if query_plan else effective_row_limit
+    )
+    sections = (
+        query_plan.sections
+        if query_plan
+        else {"execution", "workflow", "interventions", "budget", "doctorRoi", "dataQuality"}
+    )
     country = _string_or_none(safe_filters.get("country"))
     month = _string_or_none(safe_filters.get("month"))
     include_out_of_scope = bool(
         safe_filters.get("includeOutOfScope") or safe_filters.get("include_out_of_scope")
     )
 
-    execution_service = ExecutionService(session)
-    workflow_service = WorkflowService(session)
-    execution = _dump(execution_service.summary(country, month, include_out_of_scope))
-    execution_events = _dump(
-        execution_service.events(
-            country=country,
-            month=month,
-            page=1,
-            page_size=effective_row_limit,
-            include_out_of_scope=include_out_of_scope,
+    execution: dict[str, Any] = {}
+    execution_events: dict[str, Any] = {}
+    workflow: dict[str, Any] = {}
+    workflow_requests: dict[str, Any] = {}
+    interventions: dict[str, Any] = {}
+    budget: dict[str, Any] = {}
+    doctor: dict[str, Any] = {}
+    quality: dict[str, Any] = {}
+    doctor_details: list[dict[str, Any]] = []
+
+    if "execution" in sections:
+        execution_service = ExecutionService(session)
+        execution = _dump(execution_service.summary(country, month, include_out_of_scope))
+        execution_events = _dump(
+            execution_service.events(
+                country=country,
+                month=month,
+                page=1,
+                page_size=detail_row_limit,
+                include_out_of_scope=include_out_of_scope,
+            )
         )
-    )
-    workflow = _dump(workflow_service.summary(country, month, None, include_out_of_scope))
-    workflow_requests = _dump(
-        workflow_service.requests(
-            country=country,
-            month=month,
-            intervention_type=None,
-            workflow_status=None,
-            page=1,
-            page_size=effective_row_limit,
-            include_out_of_scope=include_out_of_scope,
+    if "workflow" in sections:
+        workflow_service = WorkflowService(session)
+        workflow = _dump(workflow_service.summary(country, month, None, include_out_of_scope))
+        workflow_requests = _dump(
+            workflow_service.requests(
+                country=country,
+                month=month,
+                intervention_type=None,
+                workflow_status=None,
+                page=1,
+                page_size=detail_row_limit,
+                include_out_of_scope=include_out_of_scope,
+            )
         )
-    )
-    interventions = _dump(InterventionService(session).mix(country, month, include_out_of_scope))
-    budget = _dump(
-        BudgetService(session).summary(
-            country=country,
-            month=month,
-            include_out_of_scope=include_out_of_scope,
-            page=1,
-            page_size=effective_row_limit,
+    if "interventions" in sections:
+        interventions = _dump(
+            InterventionService(session).mix(country, month, include_out_of_scope)
         )
-    )
-    doctor = _dump(
-        DoctorService(session).roi(
-            country=country,
-            roi_segment=_string_or_none(safe_filters.get("roiSegment")),
-            quadrant=None,
-            month_start=month,
-            month_end=month,
-            brand=_string_or_none(safe_filters.get("brand")),
-            speciality=_string_or_none(safe_filters.get("speciality")),
-            doctor_class=_string_or_none(safe_filters.get("doctorClass")),
-            include_out_of_scope=include_out_of_scope,
-            page=1,
-            page_size=effective_row_limit,
+    if "budget" in sections:
+        budget = _dump(
+            BudgetService(session).summary(
+                country=country,
+                month=month,
+                include_out_of_scope=include_out_of_scope,
+                page=1,
+                page_size=detail_row_limit,
+            )
         )
-    )
-    quality = _dump(DataQualityService(session).summary())
+    if "doctorRoi" in sections:
+        doctor = _dump(
+            DoctorService(session).roi(
+                country=country,
+                roi_segment=_string_or_none(safe_filters.get("roiSegment")),
+                quadrant=None,
+                month_start=month,
+                month_end=month,
+                brand=_string_or_none(safe_filters.get("brand")),
+                speciality=_string_or_none(safe_filters.get("speciality")),
+                doctor_class=_string_or_none(safe_filters.get("doctorClass")),
+                include_out_of_scope=include_out_of_scope,
+                page=1,
+                page_size=detail_row_limit,
+            )
+        )
+        if query_plan and query_plan.doctor_search_terms:
+            doctor_details = _doctor_detail_evidence(
+                session,
+                country=country,
+                terms=query_plan.doctor_search_terms,
+            )
+    if "dataQuality" in sections:
+        quality = _dump(DataQualityService(session).summary())
 
     context = {
         "question": question,
         "questionTopicHint": page_context or "dashboard",
         "filters": safe_filters,
-        "execution": _pick(
-            execution,
-            [
-                "plannedEvents",
-                "matchedEvents",
-                "weakOrUnmatchedEvents",
-                "executedEvents",
-                "actionDueEvents",
-                "plannedEventsWithExecutedEvidence",
-                "plannedEventsWithActionDueEvidence",
-                "executedSnapshotCount",
-                "actionDueSnapshotCount",
-                "plannedHcps",
-                "engagedHcps",
-                "matchedEngagedHcps",
-                "rawEngagedHcps",
-                "matchCoverage",
-                "eventExecutionRate",
-                "hcpExecutionRate",
-                "snapshotSourceCounts",
-                "primaryScope",
-                "scopeStatuses",
-                "scopeReasons",
-            ],
-        )
-        | {
+        "contextPolicy": {
+            "rawWorkbookRowsIncluded": False,
+            "fullTablesIncluded": False,
+            "rowLimit": detail_row_limit,
+            "broadRowLimit": broad_row_limit,
+            "topN": detail_row_limit,
+            "maxCharacters": max_chars,
+            "specificNamesAmountsPcodesAndCurrenciesIncluded": True,
+            "detailStrategy": (
+                "query_planned_bounded_service_rows_plus_summaries"
+                if query_plan
+                else "bounded_service_rows_plus_summaries"
+            ),
+            "queryTopics": query_plan.topics if query_plan else [],
+            "requestedSections": sorted(sections),
+            "doctorSearchTerms": query_plan.doctor_search_terms if query_plan else [],
+        },
+    }
+    if execution:
+        context["execution"] = (
+            _pick(
+                execution,
+                [
+                    "plannedEvents",
+                    "matchedEvents",
+                    "weakOrUnmatchedEvents",
+                    "executedEvents",
+                    "actionDueEvents",
+                    "plannedEventsWithExecutedEvidence",
+                    "plannedEventsWithActionDueEvidence",
+                    "executedSnapshotCount",
+                    "actionDueSnapshotCount",
+                    "plannedHcps",
+                    "engagedHcps",
+                    "matchedEngagedHcps",
+                    "rawEngagedHcps",
+                    "matchCoverage",
+                    "eventExecutionRate",
+                    "hcpExecutionRate",
+                    "snapshotSourceCounts",
+                    "primaryScope",
+                    "scopeStatuses",
+                    "scopeReasons",
+                ],
+            )
+            | {
             "eventRows": _top_rows(
                 execution_events.get("rows", []),
                 [
@@ -143,30 +201,33 @@ def build_compact_context(
                     "matchGrain",
                     "sourceReferences",
                 ],
-                effective_row_limit,
+                detail_row_limit,
             ),
             "eventRowTotal": execution_events.get("total"),
-        },
-        "workflow": _pick(
-            workflow,
-            [
-                "pendingRequestCount",
-                "pendingReportCount",
-                "reportsSentForCorrection",
-                "reportsApproved",
-                "expenseSubmittedCoverage",
-                "expenseConfirmedCoverage",
-                "requestApprovalCounts",
-                "requestConfirmationCounts",
-                "postApprovalCounts",
-                "postConfirmationCounts",
-                "ownerStageCounts",
-                "primaryScope",
-                "scopeStatuses",
-                "scopeReasons",
-            ],
+            }
         )
-        | {
+    if workflow:
+        context["workflow"] = (
+            _pick(
+                workflow,
+                [
+                    "pendingRequestCount",
+                    "pendingReportCount",
+                    "reportsSentForCorrection",
+                    "reportsApproved",
+                    "expenseSubmittedCoverage",
+                    "expenseConfirmedCoverage",
+                    "requestApprovalCounts",
+                    "requestConfirmationCounts",
+                    "postApprovalCounts",
+                    "postConfirmationCounts",
+                    "ownerStageCounts",
+                    "primaryScope",
+                    "scopeStatuses",
+                    "scopeReasons",
+                ],
+            )
+            | {
             "requestRows": _top_rows(
                 workflow_requests.get("rows", []),
                 [
@@ -186,11 +247,13 @@ def build_compact_context(
                     "scopeStatus",
                     "scopeReason",
                 ],
-                effective_row_limit,
+                detail_row_limit,
             ),
             "requestRowTotal": workflow_requests.get("total"),
-        },
-        "interventions": {
+            }
+        )
+    if interventions:
+        context["interventions"] = {
             "topRows": _top_rows(
                 interventions.get("rows", []),
                 [
@@ -213,39 +276,41 @@ def build_compact_context(
                     "totalActualSpend",
                     "fxRateStatus",
                 ],
-                effective_row_limit,
+                detail_row_limit,
             )
-        },
-        "budget": _pick(
-            budget,
-            [
-                "plannedBudgetUsd",
-                "estimatedInterventionLocal",
-                "estimatedInterventionUsd",
-                "confirmedContractedAmountLocal",
-                "confirmedContractedAmountUsd",
-                "confirmedVsEstimatedVarianceLocal",
-                "confirmedVsEstimatedVarianceUsd",
-                "directHcpBtuSpendLocal",
-                "directHcpBtuSpendUsd",
-                "overheadBtcSpendLocal",
-                "overheadBtcSpendUsd",
-                "actualTotalSpendLocal",
-                "actualTotalSpendUsd",
-                "associationAmountLocal",
-                "unspentGapUsd",
-                "overrunAmountUsd",
-                "planWithoutSpendCount",
-                "spendWithoutPlanCount",
-                "missingFxCount",
-                "provisionalFxCount",
-                "btuBtcReconciliationIssueCount",
-                "currencyCodes",
-                "fxRateStatuses",
-                "localTotalsByCurrency",
-            ],
-        )
-        | {
+        }
+    if budget:
+        context["budget"] = (
+            _pick(
+                budget,
+                [
+                    "plannedBudgetUsd",
+                    "estimatedInterventionLocal",
+                    "estimatedInterventionUsd",
+                    "confirmedContractedAmountLocal",
+                    "confirmedContractedAmountUsd",
+                    "confirmedVsEstimatedVarianceLocal",
+                    "confirmedVsEstimatedVarianceUsd",
+                    "directHcpBtuSpendLocal",
+                    "directHcpBtuSpendUsd",
+                    "overheadBtcSpendLocal",
+                    "overheadBtcSpendUsd",
+                    "actualTotalSpendLocal",
+                    "actualTotalSpendUsd",
+                    "associationAmountLocal",
+                    "unspentGapUsd",
+                    "overrunAmountUsd",
+                    "planWithoutSpendCount",
+                    "spendWithoutPlanCount",
+                    "missingFxCount",
+                    "provisionalFxCount",
+                    "btuBtcReconciliationIssueCount",
+                    "currencyCodes",
+                    "fxRateStatuses",
+                    "localTotalsByCurrency",
+                ],
+            )
+            | {
             "topGapRows": _top_rows(
                 budget.get("rows", []),
                 [
@@ -271,59 +336,68 @@ def build_compact_context(
                     "rowKind",
                     "scopeStatus",
                 ],
-                effective_row_limit,
+                detail_row_limit,
             ),
             "gapRowTotal": budget.get("total"),
-        },
-        "doctorRoi": _pick(
-            doctor,
-            [
-                "total",
-                "darkHorseCount",
-                "noRcpaCount",
-                "missingFxCount",
-                "provisionalFxCount",
-                "quadrantCounts",
-                "segmentCounts",
-                "brandFilterMode",
-                "periodFilterMode",
-            ],
+            }
         )
-        | {
-            "topDoctorOpportunityRows": _doctor_rows(doctor.get("rows", []), effective_row_limit),
-        },
-        "dataQuality": _pick(
-            quality,
-            [
-                "loadedFileCount",
-                "sourceFileCount",
-                "rowsLoaded",
-                "rowsSkipped",
-                "validationErrorCount",
-                "validationWarningCount",
-                "matchCoverage",
-                "pcodeCoverage",
-                "rcpaCoverage",
-                "missingFxCount",
-                "provisionalFxCount",
-                "unmatchedEventCount",
-                "staleIngestion",
-                "officialLkrRateToUsd",
-            ],
+    if doctor:
+        context["doctorRoi"] = (
+            _pick(
+                doctor,
+                [
+                    "total",
+                    "darkHorseCount",
+                    "noRcpaCount",
+                    "missingFxCount",
+                    "provisionalFxCount",
+                    "quadrantCounts",
+                    "segmentCounts",
+                    "brandFilterMode",
+                    "periodFilterMode",
+                ],
+            )
+            | {
+            "topDoctorOpportunityRows": _doctor_rows(doctor.get("rows", []), detail_row_limit),
+            "matchedDoctorDetails": doctor_details,
+            }
         )
-        | {
+    if quality:
+        context["dataQuality"] = (
+            _pick(
+                quality,
+                [
+                    "loadedFileCount",
+                    "sourceFileCount",
+                    "rowsLoaded",
+                    "rowsSkipped",
+                    "validationErrorCount",
+                    "validationWarningCount",
+                    "matchCoverage",
+                    "pcodeCoverage",
+                    "rcpaCoverage",
+                    "missingFxCount",
+                    "provisionalFxCount",
+                    "unmatchedEventCount",
+                    "staleIngestion",
+                    "officialLkrRateToUsd",
+                ],
+            )
+            | {
             "unmatchedBySource": _top_rows(
                 quality.get("unmatchedBySource", []),
                 ["sourceType", "reasonCode", "recordCount"],
-                effective_row_limit,
+                broad_row_limit,
             ),
             "fxQuality": _top_rows(
                 quality.get("fxQuality", []),
                 ["currencyCode", "rateStatus", "rateToUsd", "source", "rowCount"],
-                effective_row_limit,
+                broad_row_limit,
             ),
-        },
-        "limitations": _collect_limitations(
+            }
+        )
+    context["limitations"] = _topic_limitations(
+        _collect_limitations(
             execution,
             execution_events,
             workflow,
@@ -333,7 +407,9 @@ def build_compact_context(
             doctor,
             quality,
         ),
-        "dataQualityFlags": _collect_flags(
+        query_plan.topics if query_plan else [],
+    )
+    context["dataQualityFlags"] = _collect_flags(
             execution,
             execution_events,
             workflow,
@@ -342,17 +418,7 @@ def build_compact_context(
             budget,
             doctor,
             quality,
-        ),
-        "contextPolicy": {
-            "rawWorkbookRowsIncluded": False,
-            "fullTablesIncluded": False,
-            "rowLimit": effective_row_limit,
-            "topN": effective_row_limit,
-            "maxCharacters": max_chars,
-            "specificNamesAmountsPcodesAndCurrenciesIncluded": True,
-            "detailStrategy": "bounded_service_rows_plus_summaries",
-        },
-    }
+        )
     return _fit_context(context, max_chars=max_chars)
 
 
@@ -466,8 +532,130 @@ def _doctor_rows(rows: Any, limit: int = DEFAULT_ROW_LIMIT) -> list[dict[str, An
     return result
 
 
+def _doctor_detail_evidence(
+    session: Session,
+    *,
+    country: str | None,
+    terms: list[str],
+) -> list[dict[str, Any]]:
+    repository = DoctorRepository(session)
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for term in terms[:4]:
+        for row in repository.search_doctors(country=country, search=term, limit=3):
+            country_code = str(row.get("country_code") or "")
+            pcode = str(row.get("pcode_normalized") or "")
+            if not country_code or not pcode or (country_code.lower(), pcode) in seen:
+                continue
+            seen.add((country_code.lower(), pcode))
+            result.append(
+                {
+                    "matchedTerm": term,
+                    "profile": _doctor_profile_evidence(row),
+                    "engagementHistory": _top_rows(
+                        _dump(repository.engagement_history(country_code, pcode)),
+                        [
+                            "request_id",
+                            "intervention_name",
+                            "intervention_type",
+                            "month",
+                            "actual_intervention_date",
+                            "total_roi_spend_usd",
+                            "fx_rate_status",
+                        ],
+                        8,
+                    ),
+                    "prescriptionTrend": _top_rows(
+                        _dump(repository.prescription_trend(country_code, pcode))[-12:],
+                        [
+                            "month",
+                            "cipla_prescription_qty",
+                            "competitor_prescription_qty",
+                            "total_prescription_qty",
+                        ],
+                        12,
+                    ),
+                    "brandMix": _top_rows(
+                        _dump(repository.brand_mix(country_code, pcode)),
+                        [
+                            "brand_group",
+                            "own_or_competitor",
+                            "prescription_qty",
+                            "prescription_value_local",
+                        ],
+                        8,
+                    ),
+                }
+            )
+    return result[:5]
+
+
+def _doctor_profile_evidence(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "countryCode": row.get("country_code"),
+        "countryName": row.get("country_name"),
+        "pcodeNormalized": row.get("pcode_normalized"),
+        "doctorName": row.get("doctor_name"),
+        "speciality": row.get("speciality"),
+        "doctorClass": row.get("doctor_class"),
+        "activeStatus": row.get("active_status"),
+        "engagementCount": row.get("engagement_count"),
+        "firstEngagementDate": row.get("first_engagement_date"),
+        "lastEngagementDate": row.get("last_engagement_date"),
+        "directHcpBtuSpendUsd": row.get("direct_hcp_btu_spend_usd"),
+        "overheadBtcSpendUsd": row.get("overhead_btc_spend_usd"),
+        "totalRoiSpendUsd": row.get("total_roi_spend_usd"),
+        "ciplaPrescriptionQty": row.get("cipla_prescription_qty"),
+        "competitorPrescriptionQty": row.get("competitor_prescription_qty"),
+        "totalPrescriptionQty": row.get("total_prescription_qty"),
+        "ciplaShareQty": row.get("cipla_share_qty"),
+        "spendPerCiplaPrescriptionUsd": row.get("spend_per_cipla_prescription_usd"),
+        "roiSegment": row.get("roi_segment"),
+        "quadrantLabel": row.get("quadrant_label"),
+        "darkHorseFlag": row.get("dark_horse_flag"),
+        "darkHorseUnengagedFlag": row.get("dark_horse_unengaged_flag"),
+        "highValueEngagedFlag": row.get("high_value_engaged_flag"),
+        "hasRcpa": row.get("has_rcpa"),
+        "hasMissingFx": row.get("has_missing_fx"),
+        "hasProvisionalFx": row.get("has_provisional_fx"),
+        "rcpaFirstMonth": row.get("rcpa_first_month"),
+        "rcpaLastMonth": row.get("rcpa_last_month"),
+        "rcpaMonthCount": row.get("rcpa_month_count"),
+    }
+
+
 def _bounded_row_limit(row_limit: int) -> int:
     return max(5, min(int(row_limit or DEFAULT_ROW_LIMIT), MAX_ROW_LIMIT))
+
+
+def _topic_limitations(limitations: list[str], topics: list[str]) -> list[str]:
+    if not topics:
+        return limitations[:8]
+    keywords_by_topic = {
+        "execution": ("execution", "match", "planner", "snapshot", "scope", "event"),
+        "workflow": ("workflow", "approval", "confirmation", "report", "request"),
+        "intervention": ("intervention", "program", "type", "request", "report"),
+        "budget": ("budget", "spend", "expense", "fx", "currency", "btu", "btc", "amount"),
+        "doctor": ("doctor", "hcp", "pcode", "rcpa", "prescription", "roi", "fx", "spend"),
+        "quality": (
+            "quality",
+            "validation",
+            "ingestion",
+            "source",
+            "coverage",
+            "missing",
+            "unmatched",
+        ),
+    }
+    selected_keywords: set[str] = set()
+    for topic in topics:
+        selected_keywords.update(keywords_by_topic.get(topic, ()))
+    filtered = [
+        limitation
+        for limitation in limitations
+        if any(keyword in limitation.lower() for keyword in selected_keywords)
+    ]
+    return (filtered or limitations[:3])[:6]
 
 
 def _collect_limitations(*payloads: dict[str, Any]) -> list[str]:
@@ -494,24 +682,33 @@ def _fit_context(context: dict[str, Any], max_chars: int) -> dict[str, Any]:
         return context
 
     trimmed = dict(context)
-    trimmed["execution"] = dict(context.get("execution", {})) | {
-        "eventRows": context.get("execution", {}).get("eventRows", [])[:TRIMMED_ROW_LIMIT]
-    }
-    trimmed["workflow"] = dict(context.get("workflow", {})) | {
-        "requestRows": context.get("workflow", {}).get("requestRows", [])[:TRIMMED_ROW_LIMIT]
-    }
-    trimmed["budget"] = dict(context.get("budget", {})) | {
-        "topGapRows": context.get("budget", {}).get("topGapRows", [])[:TRIMMED_ROW_LIMIT]
-    }
-    trimmed["doctorRoi"] = dict(context.get("doctorRoi", {})) | {
-        "topDoctorOpportunityRows": context.get("doctorRoi", {}).get(
-            "topDoctorOpportunityRows",
-            [],
-        )[:TRIMMED_ROW_LIMIT]
-    }
-    trimmed["interventions"] = {
-        "topRows": context.get("interventions", {}).get("topRows", [])[:TRIMMED_ROW_LIMIT]
-    }
+    if "execution" in context:
+        trimmed["execution"] = dict(context.get("execution", {})) | {
+            "eventRows": context.get("execution", {}).get("eventRows", [])[:TRIMMED_ROW_LIMIT]
+        }
+    if "workflow" in context:
+        trimmed["workflow"] = dict(context.get("workflow", {})) | {
+            "requestRows": context.get("workflow", {}).get("requestRows", [])[:TRIMMED_ROW_LIMIT]
+        }
+    if "budget" in context:
+        trimmed["budget"] = dict(context.get("budget", {})) | {
+            "topGapRows": context.get("budget", {}).get("topGapRows", [])[:TRIMMED_ROW_LIMIT]
+        }
+    if "doctorRoi" in context:
+        trimmed["doctorRoi"] = dict(context.get("doctorRoi", {})) | {
+            "topDoctorOpportunityRows": context.get("doctorRoi", {}).get(
+                "topDoctorOpportunityRows",
+                [],
+            )[:TRIMMED_ROW_LIMIT],
+            "matchedDoctorDetails": context.get("doctorRoi", {}).get(
+                "matchedDoctorDetails",
+                [],
+            )[:2],
+        }
+    if "interventions" in context:
+        trimmed["interventions"] = {
+            "topRows": context.get("interventions", {}).get("topRows", [])[:TRIMMED_ROW_LIMIT]
+        }
     trimmed["limitations"] = context.get("limitations", [])[:8]
     trimmed["contextPolicy"] = dict(context.get("contextPolicy", {})) | {
         "truncated": True,
@@ -539,10 +736,15 @@ def _fit_context(context: dict[str, Any], max_chars: int) -> dict[str, Any]:
             "contextPolicy",
         }
     }
-    compact["execution"].pop("eventRows", None)
-    compact["workflow"].pop("requestRows", None)
-    compact["budget"].pop("topGapRows", None)
-    compact["doctorRoi"].pop("topDoctorOpportunityRows", None)
+    if "execution" in compact:
+        compact["execution"].pop("eventRows", None)
+    if "workflow" in compact:
+        compact["workflow"].pop("requestRows", None)
+    if "budget" in compact:
+        compact["budget"].pop("topGapRows", None)
+    if "doctorRoi" in compact:
+        compact["doctorRoi"].pop("topDoctorOpportunityRows", None)
+        compact["doctorRoi"].pop("matchedDoctorDetails", None)
     compact["contextPolicy"] = dict(compact["contextPolicy"]) | {
         "truncatedToSummariesOnly": True
     }

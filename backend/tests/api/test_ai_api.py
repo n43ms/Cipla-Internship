@@ -1,3 +1,4 @@
+import json
 from collections.abc import Iterator
 
 import pytest
@@ -27,8 +28,26 @@ class SuccessProvider:
     def generate(self, *, question: str, context: str, system_prompt: str) -> ProviderResult:
         assert "raw workbook" not in context.lower()
         assert "123456" in question
+        assert "markdownAnswer" in system_prompt
         return ProviderResult(
-            answer="Execution risk is concentrated in weak matches and pending reports.",
+            answer=json.dumps(
+                {
+                    "markdownAnswer": (
+                        "**Execution risk** is concentrated in weak matches and pending reports."
+                    ),
+                    "evidenceRefs": [
+                        {
+                            "section": "execution",
+                            "label": "Weak matches",
+                            "value": 4,
+                            "sourcePath": "execution.weakOrUnmatchedEvents",
+                        }
+                    ],
+                    "assumptions": [],
+                    "limitations": [],
+                    "confidence": "medium",
+                }
+            ),
             provider="gemini",
             model="gemini-test",
         )
@@ -71,12 +90,46 @@ def test_ai_query_gemini_success_logs_detailed_question_when_redaction_disabled(
     body = response.json()
     assert body["providerUsed"] == "gemini"
     assert body["fallbackUsed"] is False
+    assert body["answerMarkdown"].startswith("**Execution risk**")
+    assert body["evidenceRefs"][0]["sourcePath"] == "execution.weakOrUnmatchedEvents"
+    assert body["agentSteps"]
     assert body["redactionApplied"] is False
     assert body["dashboardPointers"]
     assert "supportingMetrics" not in body
     assert any(pointer["page"] == "Execution" for pointer in body["dashboardPointers"])
     assert body["contextScope"]["filters"] == {"country": "LK", "month": "2026-05"}
     assert logs[0]["question_redacted"] == "What is execution risk for Pcode 123456?"
+
+
+def test_ai_query_falls_back_on_malformed_gemini_json(monkeypatch) -> None:
+    _patch_context(monkeypatch)
+    _patch_logging(monkeypatch)
+
+    class MalformedProvider:
+        def generate(self, *, question: str, context: str, system_prompt: str) -> ProviderResult:
+            return ProviderResult(
+                answer="This is not JSON, so it cannot be contract-validated.",
+                provider="gemini",
+                model="gemini-test",
+            )
+
+    monkeypatch.setattr(
+        "backend.app.services.ai.assistant_service.build_primary_provider",
+        lambda settings: MalformedProvider(),
+    )
+
+    with _client() as client:
+        response = client.post(
+            "/api/ai/query",
+            json={"question": "Which doctor ROI signals need attention?"},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["providerUsed"] == "deterministic"
+    assert body["fallbackUsed"] is True
+    assert "not valid JSON" in body["limitations"][0]
+    assert body["evidenceRefs"]
 
 
 @pytest.mark.parametrize(
@@ -140,9 +193,16 @@ def _client() -> TestClient:
 
 
 def _patch_context(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "backend.app.services.ai.assistant_service.build_compact_context",
-        lambda session, question, page_context=None, filters=None, max_chars=9000, row_limit=40: {
+    def fake_context(
+        session,
+        question,
+        page_context=None,
+        filters=None,
+        max_chars=9000,
+        row_limit=40,
+        query_plan=None,
+    ):
+        return {
             "questionTopicHint": page_context or "dashboard",
             "filters": filters or {},
             "execution": {"weakOrUnmatchedEvents": 4, "matchedEvents": 10},
@@ -153,7 +213,11 @@ def _patch_context(monkeypatch) -> None:
             "limitations": ["RCPA is a historical baseline."],
             "dataQualityFlags": ["weak_match_coverage"],
             "contextPolicy": {"topN": 5, "maxCharacters": max_chars},
-        },
+        }
+
+    monkeypatch.setattr(
+        "backend.app.services.ai.assistant_service.build_compact_context",
+        fake_context,
     )
 
 
