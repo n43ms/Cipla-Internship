@@ -36,11 +36,12 @@
 - [x] Event reconciliation and weak/unmatched record behavior are covered
 - [x] Execution, budget, doctor ROI, data quality, and AI experiences are covered
 - [x] Known architecture corrections are explicitly documented
+- [x] Transcript-driven governance additions are covered: confirmed/contracted financial mapping, BTU/BTC split, provisional FX, workflow governance, intervention mix, and ROI quadrant/dark-horse logic
 
 ## Notes
 
 - The specification intentionally names business entities such as ingestion runs,
-  plan events, execution requests, event matches, and RCPA prescriptions because
+  plan events, execution requests, event matches, and RCPA summaries because
   they are part of the required product language and data accountability model.
 - The detailed implementation architecture, technical contracts, and runnable
   validation guide should be produced next with `/speckit-plan`.

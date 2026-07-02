@@ -10,7 +10,7 @@ This guide proves the planned system works as a real data product before UI poli
 - Real source workbooks placed locally under `data/raw/`
 - `.env` configured from `.env.example`
 - Alembic configured with `sqlalchemy.url` resolved from `DATABASE_URL`
-- Static FX seed file available under `database/seeds/exchange_rates_static.sql` or equivalent migration seed
+- Static FX seed file available under `database/seeds/exchange_rates_static.sql` or equivalent migration seed; LKR must be seeded as official company FX at `1 USD = 310 LKR`, while temporary manual rates for other currencies must be marked `provisional`
 
 Required environment variables:
 
@@ -74,7 +74,7 @@ alembic upgrade head
 Expected outcome:
 
 - reference tables exist,
-- static exchange-rate seeds exist for supported currencies with a documented representative `rate_date`,
+- static exchange-rate seeds include official LKR at `1 USD = 310 LKR` with documented `rate_date`, `source = company`, and `rate_status = official`,
 - canonical tables exist,
 - reconciliation tables exist,
 - materialized views compile.
@@ -93,6 +93,7 @@ Expected outcome:
 - Nepal planner marks `Yearly Planner FY27 v2` as canonical,
 - Sri Lanka planner marks `YP FY27` as canonical,
 - consolidation uses `Working`,
+- consolidation profile detects transcript-critical fields: `ESTIMATED INTERVENTION`, `APPROVE/CONFIRMED TOTAL INTERVENTION`, `TOTAL ACTUAL EXPENSES FOR INTERVENTION`, `ACTUAL EXPENSE AGAINST BTU`, `TOTAL ACTUAL BTC EXPENSE`, `INTERVENTION TYPE`, request pending columns, post/report pending columns, and Level 1-6 approval columns,
 - May execution reports missing Sri Lanka country tab as a limitation.
 
 ## 5. Ingest, Reconcile, and Refresh
@@ -110,9 +111,14 @@ Expected outcome:
 - valid rows are loaded,
 - invalid rows are listed with validation reasons,
 - RCPA rows are aggregated before database write,
-- repeated ingestion of the same RCPA file updates the same aggregate rows instead of duplicating them,
+- compact RCPA summaries are written to Supabase while detailed SKU-level aggregate extracts are written to `data/processed/`,
+- repeated ingestion of the same RCPA file updates or replaces the same summary rows instead of duplicating them,
 - event matches include matched, weak, and unmatched records,
 - Sri Lanka May execution evidence is derived from consolidation records and marked `derived_from_consolidation`,
+- budget outputs separate estimated/FMV-like value, confirmed/contracted value, direct HCP/BTU spend, overhead/BTC spend, and total actual spend,
+- workflow governance outputs request approval, request confirmation, report approval, and report confirmation states,
+- intervention mix outputs are grouped by source `INTERVENTION TYPE` and `INTERVENTION SUB TYPE`,
+- doctor ROI outputs include quadrant labels and dark-horse flags when RCPA/spend data is sufficient,
 - KPI views return rows.
 
 ## 6. Run Backend
@@ -128,13 +134,19 @@ curl http://localhost:8000/api/health
 curl http://localhost:8000/api/filters
 curl http://localhost:8000/api/ingestion/latest
 curl "http://localhost:8000/api/execution/summary?country=Nepal&month=2026-05"
+curl http://localhost:8000/api/budget/summary
+curl "http://localhost:8000/api/doctors/roi?pageSize=10"
+curl http://localhost:8000/api/data-quality
 ```
 
 Expected outcome:
 
 - health returns `ok`,
 - filters include countries and months,
-- KPI responses include ingestion metadata and limitations.
+- KPI responses include ingestion metadata and limitations,
+- budget responses separate planned, confirmed, BTU, BTC, actual, unspent, overrun, and FX quality,
+- doctor ROI responses include country-scoped Pcode rows, ROI segments, quadrant labels, dark-horse flags, and no-RCPA coverage,
+- data-quality responses expose freshness, validation, match coverage, Pcode coverage, RCPA coverage, FX quality, workflow coverage, intervention coverage, and unmatched counts.
 
 ## 7. Run Frontend
 
@@ -145,10 +157,13 @@ npm run dev --prefix frontend
 Expected outcome:
 
 - executive overview renders,
-- global filters load from API,
+- navigation exposes Execution, Budget, Doctor ROI, and Data Quality pages,
+- global freshness and warning banners load from API,
 - stale/weak/missing-data warnings are visible when applicable,
 - execution matrix drills into event-level records,
-- budget and doctor ROI pages handle missing FX or no-RCPA states.
+- budget page handles missing FX, provisional FX, unmatched spend, and BTU/BTC reconciliation states,
+- doctor ROI page handles no-RCPA states, deterministic segments, dark-horse rows, and doctor drilldowns,
+- data-quality page drills into validation and coverage signals.
 
 ## 8. Test Suite
 
@@ -170,6 +185,8 @@ Each workbook fixture should contain three to five rows. Required fixture cases:
 - May execution with no Sri Lanka tab,
 - consolidation row with multiple expected/actual doctors and Pcodes,
 - currency rows with present and missing FX.
+- budget rows where estimated differs from confirmed and BTU + BTC reconcile to total actual expense.
+- workflow rows with request approved, rejected, sent for correction, pending with owner, report draft, report approved, and report sent for correction statuses.
 
 ```bash
 pytest ingestion/tests backend/tests
@@ -186,8 +203,14 @@ Required coverage:
 - missing Sri Lanka May execution derivation from consolidation,
 - consolidation multi-doctor parsing,
 - static FX seed and missing-FX behavior,
+- official LKR company FX at `1 USD = 310 LKR` plus provisional FX labeling for non-official rates,
+- confirmed-vs-estimated variance,
+- BTU/BTC spend split and reconciliation warning behavior,
+- workflow governance status mapping,
+- intervention-type grouping,
+- ROI quadrant and dark-horse classification,
 - AI question redaction,
-- RCPA aggregate idempotency conflict target,
+- RCPA summary idempotency conflict targets,
 - event reconciliation,
 - KPI view query contracts,
 - frontend loading/error/empty/data-quality states.

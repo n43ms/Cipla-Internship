@@ -32,9 +32,39 @@
 
 ## Decision: Static Exchange-Rate Seeds for MVP
 
-**Rationale**: Currency normalization is needed for cross-country comparison, but live FX integration is not necessary for the MVP. A static seed file with one representative rate per supported currency keeps monetary logic explicit and testable while still showing missing-FX warnings when rates are absent.
+**Rationale**: Currency normalization is needed for cross-country comparison, but live FX integration is not necessary for the MVP. The LKR seed must use the company-approved rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`, `source = company`, `rate_status = official`). Other currencies may use documented provisional seeds or remain missing until company-approved rates are supplied.
 
 **Alternatives considered**: Live FX API integration was rejected as a deployment and reliability distraction. Ignoring FX entirely was rejected because it would make cross-country money charts misleading.
+
+## Decision: Official Company LKR FX Rate
+
+**Rationale**: The user has now provided the company-approved Sri Lanka exchange rate. LKR conversion must use `1 USD = 310 LKR` everywhere, stored as `rate_to_usd = 1/310`, `source = company`, and `rate_status = official`. This removes ambiguity for Sri Lanka while preserving stable business reporting.
+
+**Alternatives considered**: Keeping LKR provisional was rejected because an official company rate is now available. Live internet rates remain rejected because they create moving business numbers. Other currencies may remain provisional or missing until company-approved rates are supplied.
+
+## Decision: Confirmed + BTU/BTC Financial Mapping
+
+**Rationale**: The consolidation workbook contains enough fields to support the transcript's financial ask. `APPROVE/CONFIRMED TOTAL INTERVENTION` is the confirmed/contracted amount. `ESTIMATED INTERVENTION` is retained as the estimated/FMV-like reference. `ACTUAL EXPENSE AGAINST BTU` represents direct HCP/BTU spend, `TOTAL ACTUAL BTC EXPENSE` represents overhead/BTC spend, and `TOTAL ACTUAL EXPENSES FOR INTERVENTION` represents total actual spend for ROI.
+
+**Alternatives considered**: `Association Amount` was rejected as the default contracted amount because coverage is sparse and it appears to represent association/event rows. It remains preserved as a separate association amount. Waiting for further mapping was rejected because the user confirmed the confirmed + BTU/BTC mapping.
+
+## Decision: Workflow Governance From Consolidation Lifecycle Columns
+
+**Rationale**: The consolidation workbook directly contains request approval, request confirmation, report/post approval, report/post confirmation, submitted date, confirmed date, and Level 1-6 approver columns. These fields are sufficient to build the transcript-requested three-part execution governance view: current request location, request overview, and reporting/proof status.
+
+**Alternatives considered**: Inferring lifecycle from execution status alone was rejected because it would hide the actual workflow bottleneck fields. Inspecting actual proof images/agendas is out of scope because those files are not in the supplied data.
+
+## Decision: Intervention Mix Is Source-Driven
+
+**Rationale**: The transcript mentioned seven intervention types, but the current consolidation data shows eight observed `INTERVENTION TYPE` values. The app should group by source values and not hard-code a fixed count.
+
+**Alternatives considered**: Hard-coding seven categories was rejected because it would immediately mismatch the workbook. A configurable mapping layer can be added later if business wants renamed/rolled-up categories.
+
+## Decision: ROI Quadrant Uses Deterministic Cohort Thresholds
+
+**Rationale**: Leadership wants a simple quadrant for low effort/high reward and dark-horse opportunities. For MVP, investment/effort is total ROI spend and reward/result is Cipla prescription quantity or value. Median thresholds within the selected cohort are deterministic, explainable, and do not require extra stakeholder configuration.
+
+**Alternatives considered**: AI-based quadrant classification was rejected because segmentation is business logic. Fixed global thresholds were rejected because market/currency/therapy differences would make them brittle before official thresholds are provided.
 
 ## Decision: Synthetic Fixture Structure Before Tests
 

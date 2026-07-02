@@ -143,11 +143,13 @@ Fields:
 - `rate_to_usd`
 - `rate_date`
 - `source`
+- `rate_status`: `official`, `provisional`, `missing`
 
 Validation:
 
 - MVP uses static seed rows only, not a live FX integration,
-- seed one representative rate per supported currency with a documented `rate_date` and `source`,
+- seed LKR with the official company rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`), `source = company`, and `rate_status = official`,
+- temporary manual rates are allowed only for currencies without company-approved rates and must use `rate_status = provisional`; official company-approved rates use `rate_status = official`,
 - USD fields stay null when FX is unavailable,
 - cross-country views must expose missing-FX warnings.
 
@@ -240,17 +242,42 @@ Fields:
 - `intervention_name`, `intervention_name_normalized`
 - `intervention_type`, `intervention_sub_type`
 - `topic_remarks`
-- `estimated_budget_local`
-- `confirmed_budget_local`
-- `actual_expense_local`
+- `estimated_intervention_local`
+- `confirmed_contracted_amount_local`
+- `confirmed_vs_estimated_variance_local`
+- `actual_total_expense_local`
+- `actual_btu_expense_local`
+- `actual_btc_expense_local`
+- `association_amount_local`
+- `association_contract_id`
+- `association_deliverables`
 - `currency_code`
-- `estimated_budget_usd`
-- `confirmed_budget_usd`
-- `actual_expense_usd`
+- `fx_rate_to_usd`
+- `fx_rate_source`
+- `fx_rate_date`
+- `fx_rate_status`: `official`, `provisional`, `missing`
+- `estimated_intervention_usd`
+- `confirmed_contracted_amount_usd`
+- `actual_total_expense_usd`
+- `actual_btu_expense_usd`
+- `actual_btc_expense_usd`
+- `direct_hcp_spend_local`
+- `overhead_spend_local`
+- `total_roi_spend_local`
+- `direct_hcp_spend_usd`
+- `overhead_spend_usd`
+- `total_roi_spend_usd`
 - `expected_customer_count`
 - `attended_customer_count`
 - `expected_category_raw`
 - `attended_category_raw`
+- `request_approval_status`
+- `request_confirmation_status`
+- `post_approval_status`
+- `post_confirmation_status`
+- `expense_submitted_date`
+- `expense_confirmed_date`
+- `current_owner_stage`
 - `approval_status`
 - `confirmation_status`
 - `cancellation_reason`
@@ -262,6 +289,17 @@ Validation:
 
 - unique `(source_system, req_id)` when valid,
 - duplicate `REQ_ID` values create validation errors and fallback `request_uid`,
+- `confirmed_contracted_amount_local` maps from `APPROVE/CONFIRMED TOTAL INTERVENTION`,
+- `estimated_intervention_local` maps from `ESTIMATED INTERVENTION` and is reference-only,
+- `actual_btu_expense_local` maps from `ACTUAL EXPENSE AGAINST BTU`,
+- `actual_btc_expense_local` maps from `TOTAL ACTUAL BTC EXPENSE`,
+- `actual_total_expense_local` maps from `TOTAL ACTUAL EXPENSES FOR INTERVENTION`,
+- `direct_hcp_spend_local = actual_btu_expense_local`,
+- `overhead_spend_local = actual_btc_expense_local`,
+- `total_roi_spend_local = actual_total_expense_local`,
+- when BTU, BTC, and actual total are populated, `actual_btu_expense_local + actual_btc_expense_local` should reconcile to `actual_total_expense_local`; mismatches create data-quality warnings,
+- `association_amount_local` is preserved separately and is not the default contracted HCP spend,
+- request and post/report lifecycle statuses map from the four pending approval/confirmation columns,
 - actual spend without plan match remains visible.
 
 ### request_doctors
@@ -311,9 +349,9 @@ Validation:
 - blank/invalid Pcodes do not create doctor master rows,
 - cross-country Pcode collisions are reported.
 
-### rcpa_prescriptions
+### rcpa_doctor_month_summary
 
-Aggregated prescription behavior.
+Compact online prescription trend by doctor and month.
 
 Fields:
 
@@ -326,24 +364,84 @@ Fields:
 - `doctor_class`
 - `patch_name`
 - `active_status`
-- `brand_group`
-- `sku`
-- `sku_detail`
-- `own_or_competitor`
-- `prescription_qty`
-- `prescription_value_local`
+- `own_prescription_qty`
+- `own_prescription_value_local`
+- `competitor_prescription_qty`
+- `competitor_prescription_value_local`
+- `total_prescription_qty`
+- `total_prescription_value_local`
 - `currency_code`
-- `prescription_value_usd`
 - `row_count_aggregated`
 
 Validation:
 
-- aggregate grain and unique conflict target: `source_file_id`, `country_id`, `calendar_month_id`, `pcode_normalized`, `brand_group`, `sku`, `own_or_competitor`, `currency_code`,
-- `ingestion_run_id` records the latest run that wrote or updated the aggregate row; it is not part of the uniqueness boundary,
-- supports aliases `O & C` and `Own/Competitor`,
-- supports active-status aliases from historical/current RCPA,
-- supports string month labels and Excel serial-number month cells,
-- no raw prescription-level RCPA table for MVP.
+- unique conflict target: `source_file_id`, `country_id`, `calendar_month_id`, `pcode_normalized`, `currency_code`,
+- drives Doctor ROI trend, Cipla vs competitor split, no-RCPA flags, and ROI quadrant reward metrics,
+- `ingestion_run_id` records the latest run that wrote or replaced the summary row.
+
+### rcpa_doctor_brand_summary
+
+Compact online all-period brand mix by doctor.
+
+Fields:
+
+- `id`
+- `source_file_id`, `ingestion_run_id`
+- `country_id`
+- `first_calendar_month_id`, `last_calendar_month_id`
+- `pcode_normalized`
+- `doctor_name`
+- `brand_group`
+- `own_or_competitor`
+- `prescription_qty`
+- `prescription_value_local`
+- `currency_code`
+- `row_count_aggregated`
+
+Validation:
+
+- unique conflict target: `source_file_id`, `country_id`, `pcode_normalized`, `brand_group`, `own_or_competitor`, `currency_code`,
+- supports doctor detail brand mix without storing every monthly SKU row online,
+- detailed SKU-level aggregate evidence is retained in local compressed extracts under `data/processed/`.
+
+### rcpa_country_brand_month_summary
+
+Compact online country/month/brand market trend.
+
+Fields:
+
+- `id`
+- `source_file_id`, `ingestion_run_id`
+- `country_id`, `calendar_month_id`
+- `brand_group`
+- `own_or_competitor`
+- `prescription_qty`
+- `prescription_value_local`
+- `currency_code`
+- `row_count_aggregated`
+
+Validation:
+
+- unique conflict target: `source_file_id`, `country_id`, `calendar_month_id`, `brand_group`, `own_or_competitor`, `currency_code`,
+- supports aggregate brand and market-trend summaries without loading SKU-level RCPA detail into Supabase.
+
+### Local RCPA Detail Extracts
+
+Detailed RCPA aggregate evidence is generated under `data/processed/` as compressed CSV files.
+
+Fields:
+
+- country, month, Pcode, doctor metadata
+- brand group, SKU, SKU detail
+- own-vs-competitor label
+- prescription quantity and local value
+- currency and source row aggregate count
+
+Validation:
+
+- local extracts are gitignored and are not part of the deployed database,
+- they preserve the previous SKU-level aggregate grain for audit/debugging/reruns,
+- no raw prescription-level RCPA table is stored in Supabase for MVP.
 
 ## Reconciliation Entity
 
@@ -382,11 +480,30 @@ Includes planned events, matched events, weak/unmatched events, executed events,
 
 ### mv_budget_utilization
 
-Includes planned budget, confirmed budget, actual spend, unspent gap, overrun, plan without spend, spend without plan, currency labels, and missing-FX flags.
+Includes planned budget, estimated intervention, confirmed/contracted amount, confirmed-vs-estimated variance, direct HCP/BTU spend, overhead/BTC spend, actual total spend, unspent gap, overrun, plan without spend, spend without plan, currency labels, FX source/date/status, provisional-FX flags, and missing-FX flags.
+
+### mv_workflow_governance
+
+Includes request approval status, request confirmation status, post/report approval status, post/report confirmation status, current owner/stage, market, month, rep, intervention type, pending counts, approved/rejected/corrected/deleted/draft counts, report draft counts, report sent-for-correction counts, report approved counts, expense submitted date coverage, and expense confirmed date coverage.
+
+Status derivation:
+
+- request approval stage from `PENDING FOR APPROVAL Request`,
+- request confirmation state from `PENDING FOR CONFIRMATION Request`,
+- report/post approval stage from `PENDING FOR APPROVAL POST`,
+- report/post confirmation state from `PENDING FOR CONFIRMATION POST`,
+- owner/stage parsed from status text such as `Request Submitted Pending With ...` or `Report in Approval Pending With ...`,
+- proof/reporting completion inferred from report approval/confirmation and expense submission/confirmation dates; actual proof files are not available in the supplied workbook.
+
+### mv_intervention_mix
+
+Includes intervention type, intervention subtype, country, month, request count, executed count, approved count, report pending count, confirmed/contracted amount, direct HCP/BTU spend, overhead/BTC spend, total actual spend, and FX status.
+
+The view must be data-driven from source values. Current observed types include Patient Benefit Program, Cipla Own CMEs/ Workshop, Pharmacy Benefit Program, National Local Conference, International Conference, Medical Survey, Cipla Digital initiatives, and Cipla International Conference.
 
 ### mv_doctor_roi
 
-Includes engagement count, last engagement, associated spend, Cipla prescriptions, competitor prescriptions, Cipla share, spend per Cipla prescription, and ROI segment.
+Includes engagement count, last engagement, associated spend, direct HCP/BTU spend, overhead/BTC spend, total ROI spend, Cipla prescriptions, competitor prescriptions, Cipla share, spend per Cipla prescription, ROI segment, ROI quadrant x/y values, ROI quadrant label, and dark-horse flag.
 
 Segments:
 
@@ -395,9 +512,23 @@ Segments:
 - `low_rx_high_spend`
 - `insufficient_data`
 
+Quadrants:
+
+- `low_effort_high_reward`
+- `high_effort_high_reward`
+- `low_effort_low_reward`
+- `high_effort_low_reward`
+
+Default quadrant logic:
+
+- x-axis investment/effort uses `total_roi_spend_local` or `total_roi_spend_usd` when official/provisional FX exists,
+- y-axis reward/result uses Cipla prescription quantity or value from RCPA,
+- thresholds are deterministic medians within the selected country/month/filter cohort unless a later configuration file supplies explicit thresholds,
+- `dark_horse = true` when quadrant is `low_effort_high_reward`.
+
 ### mv_data_quality
 
-Includes latest ingestion status, files loaded, rows seen/skipped, validation errors, match coverage, Pcode coverage, RCPA coverage, missing FX, stale run state, and unmatched counts.
+Includes latest ingestion status, files loaded, rows seen/skipped, validation errors, match coverage, Pcode coverage, RCPA coverage, missing FX, provisional FX, stale run state, unmatched counts, BTU/BTC reconciliation issues, missing confirmed amount counts, missing report/proof status counts, and intervention-type coverage.
 
 ### mv_unmatched_events
 

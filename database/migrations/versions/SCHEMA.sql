@@ -1,0 +1,6901 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict tWzLhDpqclOaLuVCcUlUdyjEA2bBhhFa4G2feoMGkN1I3tdlORHXGjdEOiPzbjQ
+
+-- Dumped from database version 17.6
+-- Dumped by pg_dump version 18.1
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: auth; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA auth;
+
+
+--
+-- Name: extensions; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA extensions;
+
+
+--
+-- Name: graphql; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA graphql;
+
+
+--
+-- Name: graphql_public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA graphql_public;
+
+
+--
+-- Name: pgbouncer; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA pgbouncer;
+
+
+--
+-- Name: realtime; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA realtime;
+
+
+--
+-- Name: storage; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA storage;
+
+
+--
+-- Name: vault; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA vault;
+
+
+--
+-- Name: pg_stat_statements; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION pg_stat_statements; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pg_stat_statements IS 'track planning and execution statistics of all SQL statements executed';
+
+
+--
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
+
+
+--
+-- Name: supabase_vault; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
+
+
+--
+-- Name: EXTENSION supabase_vault; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION supabase_vault IS 'Supabase Vault Extension';
+
+
+--
+-- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
+
+
+--
+-- Name: aal_level; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.aal_level AS ENUM (
+    'aal1',
+    'aal2',
+    'aal3'
+);
+
+
+--
+-- Name: code_challenge_method; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.code_challenge_method AS ENUM (
+    's256',
+    'plain'
+);
+
+
+--
+-- Name: factor_status; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.factor_status AS ENUM (
+    'unverified',
+    'verified'
+);
+
+
+--
+-- Name: factor_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.factor_type AS ENUM (
+    'totp',
+    'webauthn',
+    'phone'
+);
+
+
+--
+-- Name: oauth_authorization_status; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.oauth_authorization_status AS ENUM (
+    'pending',
+    'approved',
+    'denied',
+    'expired'
+);
+
+
+--
+-- Name: oauth_client_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.oauth_client_type AS ENUM (
+    'public',
+    'confidential'
+);
+
+
+--
+-- Name: oauth_registration_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.oauth_registration_type AS ENUM (
+    'dynamic',
+    'manual'
+);
+
+
+--
+-- Name: oauth_response_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.oauth_response_type AS ENUM (
+    'code'
+);
+
+
+--
+-- Name: one_time_token_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.one_time_token_type AS ENUM (
+    'confirmation_token',
+    'reauthentication_token',
+    'recovery_token',
+    'email_change_token_new',
+    'email_change_token_current',
+    'phone_change_token'
+);
+
+
+--
+-- Name: ingestion_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.ingestion_status AS ENUM (
+    'running',
+    'completed',
+    'completed_with_warnings',
+    'failed'
+);
+
+
+--
+-- Name: validation_severity; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.validation_severity AS ENUM (
+    'info',
+    'warning',
+    'error'
+);
+
+
+--
+-- Name: action; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.action AS ENUM (
+    'INSERT',
+    'UPDATE',
+    'DELETE',
+    'TRUNCATE',
+    'ERROR'
+);
+
+
+--
+-- Name: equality_op; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.equality_op AS ENUM (
+    'eq',
+    'neq',
+    'lt',
+    'lte',
+    'gt',
+    'gte',
+    'in'
+);
+
+
+--
+-- Name: user_defined_filter; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.user_defined_filter AS (
+	column_name text,
+	op realtime.equality_op,
+	value text
+);
+
+
+--
+-- Name: wal_column; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.wal_column AS (
+	name text,
+	type_name text,
+	type_oid oid,
+	value jsonb,
+	is_pkey boolean,
+	is_selectable boolean
+);
+
+
+--
+-- Name: wal_rls; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.wal_rls AS (
+	wal jsonb,
+	is_rls_enabled boolean,
+	subscription_ids uuid[],
+	errors text[]
+);
+
+
+--
+-- Name: buckettype; Type: TYPE; Schema: storage; Owner: -
+--
+
+CREATE TYPE storage.buckettype AS ENUM (
+    'STANDARD',
+    'ANALYTICS',
+    'VECTOR'
+);
+
+
+--
+-- Name: email(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.email() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.email', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')
+  )::text
+$$;
+
+
+--
+-- Name: FUNCTION email(); Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON FUNCTION auth.email() IS 'Deprecated. Use auth.jwt() -> ''email'' instead.';
+
+
+--
+-- Name: jwt(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.jwt() RETURNS jsonb
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+    coalesce(
+        nullif(current_setting('request.jwt.claim', true), ''),
+        nullif(current_setting('request.jwt.claims', true), '')
+    )::jsonb
+$$;
+
+
+--
+-- Name: role(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.role() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
+  )::text
+$$;
+
+
+--
+-- Name: FUNCTION role(); Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON FUNCTION auth.role() IS 'Deprecated. Use auth.jwt() -> ''role'' instead.';
+
+
+--
+-- Name: uid(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.uid() RETURNS uuid
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid
+$$;
+
+
+--
+-- Name: FUNCTION uid(); Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON FUNCTION auth.uid() IS 'Deprecated. Use auth.jwt() -> ''sub'' instead.';
+
+
+--
+-- Name: grant_pg_cron_access(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.grant_pg_cron_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF EXISTS (
+    SELECT
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_cron'
+  )
+  THEN
+    grant usage on schema cron to postgres with grant option;
+
+    alter default privileges in schema cron grant all on tables to postgres with grant option;
+    alter default privileges in schema cron grant all on functions to postgres with grant option;
+    alter default privileges in schema cron grant all on sequences to postgres with grant option;
+
+    alter default privileges for user supabase_admin in schema cron grant all
+        on sequences to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on tables to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on functions to postgres with grant option;
+
+    grant all privileges on all tables in schema cron to postgres with grant option;
+    revoke all on table cron.job from postgres;
+    grant select on table cron.job to postgres with grant option;
+  END IF;
+END;
+$$;
+
+
+--
+-- Name: FUNCTION grant_pg_cron_access(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_cron_access() IS 'Grants access to pg_cron';
+
+
+--
+-- Name: grant_pg_graphql_access(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.grant_pg_graphql_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $_$
+begin
+    if not exists (
+        select 1
+        from pg_event_trigger_ddl_commands() ev
+        join pg_catalog.pg_extension e on ev.objid = e.oid
+        where e.extname = 'pg_graphql'
+    ) then
+        return;
+    end if;
+
+    drop function if exists graphql_public.graphql;
+    create or replace function graphql_public.graphql(
+        "operationName" text default null,
+        query text default null,
+        variables jsonb default null,
+        extensions jsonb default null
+    )
+        returns jsonb
+        language sql
+    as $$
+        select graphql.resolve(
+            query := query,
+            variables := coalesce(variables, '{}'),
+            "operationName" := "operationName",
+            extensions := extensions
+        );
+    $$;
+
+    -- Attach the wrapper to the extension so DROP EXTENSION cascades to it,
+    -- which in turn triggers set_graphql_placeholder to reinstall the "not enabled" stub.
+    alter extension pg_graphql add function graphql_public.graphql(text, text, jsonb, jsonb);
+
+    grant usage on schema graphql to postgres, anon, authenticated, service_role;
+    grant execute on function graphql.resolve to postgres, anon, authenticated, service_role;
+    grant usage on schema graphql to postgres with grant option;
+    grant usage on schema graphql_public to postgres with grant option;
+end;
+$_$;
+
+
+--
+-- Name: FUNCTION grant_pg_graphql_access(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_graphql_access() IS 'Grants access to pg_graphql';
+
+
+--
+-- Name: grant_pg_net_access(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.grant_pg_net_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_net'
+  )
+  THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_roles
+      WHERE rolname = 'supabase_functions_admin'
+    )
+    THEN
+      CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
+    END IF;
+
+    GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+
+    IF EXISTS (
+      SELECT FROM pg_extension
+      WHERE extname = 'pg_net'
+      -- all versions in use on existing projects as of 2025-02-20
+      -- version 0.12.0 onwards don't need these applied
+      AND extversion IN ('0.2', '0.6', '0.7', '0.7.1', '0.8', '0.10.0', '0.11.0')
+    ) THEN
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+
+      REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+
+      GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+      GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+    END IF;
+  END IF;
+END;
+$$;
+
+
+--
+-- Name: FUNCTION grant_pg_net_access(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_net_access() IS 'Grants access to pg_net';
+
+
+--
+-- Name: pgrst_ddl_watch(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.pgrst_ddl_watch() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  cmd record;
+BEGIN
+  FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands()
+  LOOP
+    IF cmd.command_tag IN (
+      'CREATE SCHEMA', 'ALTER SCHEMA'
+    , 'CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO', 'ALTER TABLE'
+    , 'CREATE FOREIGN TABLE', 'ALTER FOREIGN TABLE'
+    , 'CREATE VIEW', 'ALTER VIEW'
+    , 'CREATE MATERIALIZED VIEW', 'ALTER MATERIALIZED VIEW'
+    , 'CREATE FUNCTION', 'ALTER FUNCTION'
+    , 'CREATE TRIGGER'
+    , 'CREATE TYPE', 'ALTER TYPE'
+    , 'CREATE RULE'
+    , 'COMMENT'
+    )
+    -- don't notify in case of CREATE TEMP table or other objects created on pg_temp
+    AND cmd.schema_name is distinct from 'pg_temp'
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
+END; $$;
+
+
+--
+-- Name: pgrst_drop_watch(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.pgrst_drop_watch() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  obj record;
+BEGIN
+  FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()
+  LOOP
+    IF obj.object_type IN (
+      'schema'
+    , 'table'
+    , 'foreign table'
+    , 'view'
+    , 'materialized view'
+    , 'function'
+    , 'trigger'
+    , 'type'
+    , 'rule'
+    )
+    AND obj.is_temporary IS false -- no pg_temp objects
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
+END; $$;
+
+
+--
+-- Name: set_graphql_placeholder(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.set_graphql_placeholder() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $_$
+    DECLARE
+    graphql_is_dropped bool;
+    BEGIN
+    graphql_is_dropped = (
+        SELECT ev.schema_name = 'graphql_public'
+        FROM pg_event_trigger_dropped_objects() AS ev
+        WHERE ev.schema_name = 'graphql_public'
+    );
+
+    IF graphql_is_dropped
+    THEN
+        create or replace function graphql_public.graphql(
+            "operationName" text default null,
+            query text default null,
+            variables jsonb default null,
+            extensions jsonb default null
+        )
+            returns jsonb
+            language plpgsql
+        as $$
+            DECLARE
+                server_version float;
+            BEGIN
+                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);
+
+                IF server_version >= 14 THEN
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql extension is not enabled.'
+                            )
+                        )
+                    );
+                ELSE
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'
+                            )
+                        )
+                    );
+                END IF;
+            END;
+        $$;
+    END IF;
+
+    END;
+$_$;
+
+
+--
+-- Name: FUNCTION set_graphql_placeholder(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.set_graphql_placeholder() IS 'Reintroduces placeholder function for graphql_public.graphql';
+
+
+--
+-- Name: graphql(text, text, jsonb, jsonb); Type: FUNCTION; Schema: graphql_public; Owner: -
+--
+
+CREATE FUNCTION graphql_public.graphql("operationName" text DEFAULT NULL::text, query text DEFAULT NULL::text, variables jsonb DEFAULT NULL::jsonb, extensions jsonb DEFAULT NULL::jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    AS $$
+            DECLARE
+                server_version float;
+            BEGIN
+                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);
+
+                IF server_version >= 14 THEN
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql extension is not enabled.'
+                            )
+                        )
+                    );
+                ELSE
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'
+                            )
+                        )
+                    );
+                END IF;
+            END;
+        $$;
+
+
+--
+-- Name: get_auth(text); Type: FUNCTION; Schema: pgbouncer; Owner: -
+--
+
+CREATE FUNCTION pgbouncer.get_auth(p_usename text) RETURNS TABLE(username text, password text)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+  BEGIN
+      RAISE DEBUG 'PgBouncer auth request: %', p_usename;
+
+      RETURN QUERY
+      SELECT
+          rolname::text,
+          CASE WHEN rolvaliduntil < now()
+              THEN null
+              ELSE rolpassword::text
+          END
+      FROM pg_authid
+      WHERE rolname=$1 and rolcanlogin;
+  END;
+  $_$;
+
+
+--
+-- Name: refresh_dashboard_materialized_views(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.refresh_dashboard_materialized_views() RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF to_regclass('mv_execution_kpis') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_execution_kpis;
+  END IF;
+
+  IF to_regclass('mv_unmatched_events') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_unmatched_events;
+  END IF;
+
+  IF to_regclass('mv_execution_event_matrix') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_execution_event_matrix;
+  END IF;
+
+  IF to_regclass('mv_workflow_governance') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_workflow_governance;
+  END IF;
+
+  IF to_regclass('mv_intervention_mix') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_intervention_mix;
+  END IF;
+
+  IF to_regclass('mv_budget_utilization') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_budget_utilization;
+  END IF;
+
+  IF to_regclass('mv_doctor_roi') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_doctor_roi;
+  END IF;
+
+  IF to_regclass('mv_data_quality') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_data_quality;
+  END IF;
+END;
+$$;
+
+
+--
+-- Name: apply_rls(jsonb, integer); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.apply_rls(wal jsonb, max_record_bytes integer DEFAULT (1024 * 1024)) RETURNS SETOF realtime.wal_rls
+    LANGUAGE plpgsql
+    AS $$
+declare
+    -- Regclass of the table e.g. public.notes
+    entity_ regclass = (quote_ident(wal ->> 'schema') || '.' || quote_ident(wal ->> 'table'))::regclass;
+
+    -- I, U, D, T: insert, update ...
+    action realtime.action = (
+        case wal ->> 'action'
+            when 'I' then 'INSERT'
+            when 'U' then 'UPDATE'
+            when 'D' then 'DELETE'
+            else 'ERROR'
+        end
+    );
+
+    -- Is row level security enabled for the table
+    is_rls_enabled bool = relrowsecurity from pg_class where oid = entity_;
+
+    subscriptions realtime.subscription[] = array_agg(subs)
+        from
+            realtime.subscription subs
+        where
+            subs.entity = entity_
+            -- Filter by action early - only get subscriptions interested in this action
+            -- action_filter column can be: '*' (all), 'INSERT', 'UPDATE', or 'DELETE'
+            and (subs.action_filter = '*' or subs.action_filter = action::text);
+
+    -- Subscription vars
+    working_role regrole;
+    working_selected_columns text[];
+    claimed_role regrole;
+    claims jsonb;
+
+    subscription_id uuid;
+    subscription_has_access bool;
+    visible_to_subscription_ids uuid[] = '{}';
+
+    -- structured info for wal's columns
+    columns realtime.wal_column[];
+    -- previous identity values for update/delete
+    old_columns realtime.wal_column[];
+
+    error_record_exceeds_max_size boolean = octet_length(wal::text) > max_record_bytes;
+
+    -- Primary jsonb output for record
+    output jsonb;
+
+    -- Loop record for iterating unique roles (outer loop)
+    role_record record;
+    -- Loop record for iterating unique selected_columns within a role (inner loop)
+    cols_record record;
+    -- Subscription ids visible at the role level (before fanning out by selected_columns)
+    visible_role_sub_ids uuid[] = '{}';
+
+begin
+    perform set_config('role', null, true);
+
+    columns =
+        array_agg(
+            (
+                x->>'name',
+                x->>'type',
+                x->>'typeoid',
+                realtime.cast(
+                    (x->'value') #>> '{}',
+                    coalesce(
+                        (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
+                        (x->>'type')::regtype
+                    )
+                ),
+                (pks ->> 'name') is not null,
+                true
+            )::realtime.wal_column
+        )
+        from
+            jsonb_array_elements(wal -> 'columns') x
+            left join jsonb_array_elements(wal -> 'pk') pks
+                on (x ->> 'name') = (pks ->> 'name');
+
+    old_columns =
+        array_agg(
+            (
+                x->>'name',
+                x->>'type',
+                x->>'typeoid',
+                realtime.cast(
+                    (x->'value') #>> '{}',
+                    coalesce(
+                        (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
+                        (x->>'type')::regtype
+                    )
+                ),
+                (pks ->> 'name') is not null,
+                true
+            )::realtime.wal_column
+        )
+        from
+            jsonb_array_elements(wal -> 'identity') x
+            left join jsonb_array_elements(wal -> 'pk') pks
+                on (x ->> 'name') = (pks ->> 'name');
+
+    for role_record in
+        select claims_role
+        from (select distinct claims_role from unnest(subscriptions)) t
+        order by claims_role::text
+    loop
+        working_role := role_record.claims_role;
+
+        -- Update `is_selectable` for columns and old_columns (once per role)
+        columns =
+            array_agg(
+                (
+                    c.name,
+                    c.type_name,
+                    c.type_oid,
+                    c.value,
+                    c.is_pkey,
+                    pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
+                )::realtime.wal_column
+            )
+            from
+                unnest(columns) c;
+
+        old_columns =
+                array_agg(
+                    (
+                        c.name,
+                        c.type_name,
+                        c.type_oid,
+                        c.value,
+                        c.is_pkey,
+                        pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
+                    )::realtime.wal_column
+                )
+                from
+                    unnest(old_columns) c;
+
+        if action <> 'DELETE' and count(1) = 0 from unnest(columns) c where c.is_pkey then
+            -- Fan out 400 error per distinct selected_columns for this role
+            for cols_record in
+                select selected_columns
+                from (select distinct selected_columns from unnest(subscriptions) s where s.claims_role = working_role) t
+                order by coalesce(array_to_string(selected_columns, ','), '')
+            loop
+                working_selected_columns := cols_record.selected_columns;
+                return next (
+                    jsonb_build_object(
+                        'schema', wal ->> 'schema',
+                        'table', wal ->> 'table',
+                        'type', action
+                    ),
+                    is_rls_enabled,
+                    (select array_agg(s.subscription_id) from unnest(subscriptions) as s where s.claims_role = working_role and (s.selected_columns is not distinct from working_selected_columns)),
+                    array['Error 400: Bad Request, no primary key']
+                )::realtime.wal_rls;
+            end loop;
+
+        -- The claims role does not have SELECT permission to the primary key of entity
+        elsif action <> 'DELETE' and sum(c.is_selectable::int) <> count(1) from unnest(columns) c where c.is_pkey then
+            -- Fan out 401 error per distinct selected_columns for this role
+            for cols_record in
+                select selected_columns
+                from (select distinct selected_columns from unnest(subscriptions) s where s.claims_role = working_role) t
+                order by coalesce(array_to_string(selected_columns, ','), '')
+            loop
+                working_selected_columns := cols_record.selected_columns;
+                return next (
+                    jsonb_build_object(
+                        'schema', wal ->> 'schema',
+                        'table', wal ->> 'table',
+                        'type', action
+                    ),
+                    is_rls_enabled,
+                    (select array_agg(s.subscription_id) from unnest(subscriptions) as s where s.claims_role = working_role and (s.selected_columns is not distinct from working_selected_columns)),
+                    array['Error 401: Unauthorized']
+                )::realtime.wal_rls;
+            end loop;
+
+        else
+            -- Create the prepared statement (once per role)
+            if is_rls_enabled and action <> 'DELETE' then
+                if (select 1 from pg_prepared_statements where name = 'walrus_rls_stmt' limit 1) > 0 then
+                    deallocate walrus_rls_stmt;
+                end if;
+                execute realtime.build_prepared_statement_sql('walrus_rls_stmt', entity_, columns);
+            end if;
+
+            -- Collect all visible subscription IDs for this role (filter check + RLS check)
+            visible_role_sub_ids = '{}';
+
+            for subscription_id, claims in (
+                    select
+                        subs.subscription_id,
+                        subs.claims
+                    from
+                        unnest(subscriptions) subs
+                    where
+                        subs.entity = entity_
+                        and subs.claims_role = working_role
+                        and (
+                            realtime.is_visible_through_filters(columns, subs.filters)
+                            or (
+                              action = 'DELETE'
+                              and realtime.is_visible_through_filters(old_columns, subs.filters)
+                            )
+                        )
+            ) loop
+
+                if not is_rls_enabled or action = 'DELETE' then
+                    visible_role_sub_ids = visible_role_sub_ids || subscription_id;
+                else
+                    -- Check if RLS allows the role to see the record
+                    perform
+                        -- Trim leading and trailing quotes from working_role because set_config
+                        -- doesn't recognize the role as valid if they are included
+                        set_config('role', trim(both '"' from working_role::text), true),
+                        set_config('request.jwt.claims', claims::text, true);
+
+                    execute 'execute walrus_rls_stmt' into subscription_has_access;
+
+                    if subscription_has_access then
+                        visible_role_sub_ids = visible_role_sub_ids || subscription_id;
+                    end if;
+                end if;
+            end loop;
+
+            perform set_config('role', null, true);
+
+            -- Inner loop: per distinct selected_columns for this role
+            for cols_record in
+                select selected_columns
+                from (select distinct selected_columns from unnest(subscriptions) s where s.claims_role = working_role) t
+                order by coalesce(array_to_string(selected_columns, ','), '')
+            loop
+                working_selected_columns := cols_record.selected_columns;
+
+                output = jsonb_build_object(
+                    'schema', wal ->> 'schema',
+                    'table', wal ->> 'table',
+                    'type', action,
+                    'commit_timestamp', to_char(
+                        ((wal ->> 'timestamp')::timestamptz at time zone 'utc'),
+                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+                    ),
+                    'columns', (
+                        select
+                            jsonb_agg(
+                                jsonb_build_object(
+                                    'name', pa.attname,
+                                    'type', pt.typname
+                                )
+                                order by pa.attnum asc
+                            )
+                        from
+                            pg_attribute pa
+                            join pg_type pt
+                                on pa.atttypid = pt.oid
+                            left join (
+                                select unnest(conkey) as pkey_attnum
+                                from pg_constraint
+                                where conrelid = entity_ and contype = 'p'
+                            ) pk on pk.pkey_attnum = pa.attnum
+                        where
+                            attrelid = entity_
+                            and attnum > 0
+                            and pg_catalog.has_column_privilege(working_role, entity_, pa.attname, 'SELECT')
+                            and (working_selected_columns is null or pa.attname = any(working_selected_columns) or pk.pkey_attnum is not null)
+                    )
+                )
+                -- Add "record" key for insert and update
+                || case
+                    when action in ('INSERT', 'UPDATE') then
+                        jsonb_build_object(
+                            'record',
+                            (
+                                select
+                                    jsonb_object_agg(
+                                        -- if unchanged toast, get column name and value from old record
+                                        coalesce((c).name, (oc).name),
+                                        case
+                                            when (c).name is null then (oc).value
+                                            else (c).value
+                                        end
+                                    )
+                                from
+                                    unnest(columns) c
+                                    full outer join unnest(old_columns) oc
+                                        on (c).name = (oc).name
+                                where
+                                    coalesce((c).is_selectable, (oc).is_selectable)
+                                    and (working_selected_columns is null or coalesce((c).name, (oc).name) = any(working_selected_columns) or coalesce((c).is_pkey, (oc).is_pkey))
+                                    and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                            )
+                        )
+                    else '{}'::jsonb
+                end
+                -- Add "old_record" key for update and delete
+                || case
+                    when action = 'UPDATE' then
+                        jsonb_build_object(
+                                'old_record',
+                                (
+                                    select jsonb_object_agg((c).name, (c).value)
+                                    from unnest(old_columns) c
+                                    where
+                                        (c).is_selectable
+                                        and (working_selected_columns is null or (c).name = any(working_selected_columns) or (c).is_pkey)
+                                        and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                                )
+                            )
+                    when action = 'DELETE' then
+                        jsonb_build_object(
+                            'old_record',
+                            (
+                                select jsonb_object_agg((c).name, (c).value)
+                                from unnest(old_columns) c
+                                where
+                                    (c).is_selectable
+                                    and (working_selected_columns is null or (c).name = any(working_selected_columns) or (c).is_pkey)
+                                    and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                                    and ( not is_rls_enabled or (c).is_pkey ) -- if RLS enabled, we can't secure deletes so filter to pkey
+                            )
+                        )
+                    else '{}'::jsonb
+                end;
+
+                -- Filter visible_role_sub_ids to those matching the current selected_columns group
+                visible_to_subscription_ids = coalesce(
+                    (
+                        select array_agg(s.subscription_id)
+                        from unnest(subscriptions) s
+                        where s.claims_role = working_role
+                          and (s.selected_columns is not distinct from working_selected_columns)
+                          and s.subscription_id = any(visible_role_sub_ids)
+                    ),
+                    '{}'::uuid[]
+                );
+
+                return next (
+                    output,
+                    is_rls_enabled,
+                    visible_to_subscription_ids,
+                    case
+                        when error_record_exceeds_max_size then array['Error 413: Payload Too Large']
+                        else '{}'
+                    end
+                )::realtime.wal_rls;
+            end loop;
+
+        end if;
+    end loop;
+
+    perform set_config('role', null, true);
+end;
+$$;
+
+
+--
+-- Name: broadcast_changes(text, text, text, text, text, record, record, text); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.broadcast_changes(topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text DEFAULT 'ROW'::text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    -- Declare a variable to hold the JSONB representation of the row
+    row_data jsonb := '{}'::jsonb;
+BEGIN
+    IF level = 'STATEMENT' THEN
+        RAISE EXCEPTION 'function can only be triggered for each row, not for each statement';
+    END IF;
+    -- Check the operation type and handle accordingly
+    IF operation = 'INSERT' OR operation = 'UPDATE' OR operation = 'DELETE' THEN
+        row_data := jsonb_build_object('old_record', OLD, 'record', NEW, 'operation', operation, 'table', table_name, 'schema', table_schema);
+        PERFORM realtime.send (row_data, event_name, topic_name);
+    ELSE
+        RAISE EXCEPTION 'Unexpected operation type: %', operation;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Failed to process the row: %', SQLERRM;
+END;
+
+$$;
+
+
+--
+-- Name: build_prepared_statement_sql(text, regclass, realtime.wal_column[]); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name text, entity regclass, columns realtime.wal_column[]) RETURNS text
+    LANGUAGE sql
+    AS $$
+      /*
+      Builds a sql string that, if executed, creates a prepared statement to
+      tests retrive a row from *entity* by its primary key columns.
+      Example
+          select realtime.build_prepared_statement_sql('public.notes', '{"id"}'::text[], '{"bigint"}'::text[])
+      */
+          select
+      'prepare ' || prepared_statement_name || ' as
+          select
+              exists(
+                  select
+                      1
+                  from
+                      ' || entity || '
+                  where
+                      ' || string_agg(quote_ident(pkc.name) || '=' || quote_nullable(pkc.value #>> '{}') , ' and ') || '
+              )'
+          from
+              unnest(columns) pkc
+          where
+              pkc.is_pkey
+          group by
+              entity
+      $$;
+
+
+--
+-- Name: cast(text, regtype); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime."cast"(val text, type_ regtype) RETURNS jsonb
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+declare
+  res jsonb;
+begin
+  if type_::text = 'bytea' then
+    return to_jsonb(val);
+  end if;
+  execute format('select to_jsonb(%L::'|| type_::text || ')', val) into res;
+  return res;
+end
+$$;
+
+
+--
+-- Name: check_equality_op(realtime.equality_op, regtype, text, text); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.check_equality_op(op realtime.equality_op, type_ regtype, val_1 text, val_2 text) RETURNS boolean
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+      /*
+      Casts *val_1* and *val_2* as type *type_* and check the *op* condition for truthiness
+      */
+      declare
+          op_symbol text = (
+              case
+                  when op = 'eq' then '='
+                  when op = 'neq' then '!='
+                  when op = 'lt' then '<'
+                  when op = 'lte' then '<='
+                  when op = 'gt' then '>'
+                  when op = 'gte' then '>='
+                  when op = 'in' then '= any'
+                  else 'UNKNOWN OP'
+              end
+          );
+          res boolean;
+      begin
+          execute format(
+              'select %L::'|| type_::text || ' ' || op_symbol
+              || ' ( %L::'
+              || (
+                  case
+                      when op = 'in' then type_::text || '[]'
+                      else type_::text end
+              )
+              || ')', val_1, val_2) into res;
+          return res;
+      end;
+      $$;
+
+
+--
+-- Name: is_visible_through_filters(realtime.wal_column[], realtime.user_defined_filter[]); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.is_visible_through_filters(columns realtime.wal_column[], filters realtime.user_defined_filter[]) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    AS $_$
+    /*
+    Should the record be visible (true) or filtered out (false) after *filters* are applied
+    */
+        select
+            -- Default to allowed when no filters present
+            $2 is null -- no filters. this should not happen because subscriptions has a default
+            or array_length($2, 1) is null -- array length of an empty array is null
+            or bool_and(
+                coalesce(
+                    realtime.check_equality_op(
+                        op:=f.op,
+                        type_:=coalesce(
+                            col.type_oid::regtype, -- null when wal2json version <= 2.4
+                            col.type_name::regtype
+                        ),
+                        -- cast jsonb to text
+                        val_1:=col.value #>> '{}',
+                        val_2:=f.value
+                    ),
+                    false -- if null, filter does not match
+                )
+            )
+        from
+            unnest(filters) f
+            join unnest(columns) col
+                on f.column_name = col.name;
+    $_$;
+
+
+--
+-- Name: list_changes(name, name, integer, integer); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.list_changes(publication name, slot_name name, max_changes integer, max_record_bytes integer) RETURNS TABLE(wal jsonb, is_rls_enabled boolean, subscription_ids uuid[], errors text[], slot_changes_count bigint)
+    LANGUAGE sql
+    SET log_min_messages TO 'fatal'
+    AS $$
+  WITH pub AS (
+    SELECT
+      concat_ws(
+        ',',
+        CASE WHEN bool_or(pubinsert) THEN 'insert' ELSE NULL END,
+        CASE WHEN bool_or(pubupdate) THEN 'update' ELSE NULL END,
+        CASE WHEN bool_or(pubdelete) THEN 'delete' ELSE NULL END
+      ) AS w2j_actions,
+      coalesce(
+        string_agg(
+          realtime.quote_wal2json(format('%I.%I', schemaname, tablename)::regclass),
+          ','
+        ) filter (WHERE ppt.tablename IS NOT NULL),
+        ''
+      ) AS w2j_add_tables
+    FROM pg_publication pp
+    LEFT JOIN pg_publication_tables ppt ON pp.pubname = ppt.pubname
+    WHERE pp.pubname = publication
+    GROUP BY pp.pubname
+    LIMIT 1
+  ),
+  -- MATERIALIZED ensures pg_logical_slot_get_changes is called exactly once
+  w2j AS MATERIALIZED (
+    SELECT x.*, pub.w2j_add_tables
+    FROM pub,
+         pg_logical_slot_get_changes(
+           slot_name, null, max_changes,
+           'include-pk', 'true',
+           'include-transaction', 'false',
+           'include-timestamp', 'true',
+           'include-type-oids', 'true',
+           'format-version', '2',
+           'actions', pub.w2j_actions,
+           'add-tables', pub.w2j_add_tables
+         ) x
+  ),
+  slot_count AS (
+    SELECT count(*)::bigint AS cnt
+    FROM w2j
+    WHERE w2j.w2j_add_tables <> ''
+  ),
+  rls_filtered AS (
+    SELECT xyz.wal, xyz.is_rls_enabled, xyz.subscription_ids, xyz.errors
+    FROM w2j,
+         realtime.apply_rls(
+           wal := w2j.data::jsonb,
+           max_record_bytes := max_record_bytes
+         ) xyz(wal, is_rls_enabled, subscription_ids, errors)
+    WHERE w2j.w2j_add_tables <> ''
+      AND xyz.subscription_ids[1] IS NOT NULL
+  )
+  SELECT rf.wal, rf.is_rls_enabled, rf.subscription_ids, rf.errors, sc.cnt
+  FROM rls_filtered rf, slot_count sc
+
+  UNION ALL
+
+  SELECT null, null, null, null, sc.cnt
+  FROM slot_count sc
+  WHERE NOT EXISTS (SELECT 1 FROM rls_filtered)
+$$;
+
+
+--
+-- Name: quote_wal2json(regclass); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.quote_wal2json(entity regclass) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $$
+  SELECT
+    realtime.wal2json_escape_identifier(nsp.nspname::text)
+    || '.'
+    || realtime.wal2json_escape_identifier(pc.relname::text)
+  FROM pg_class pc
+  JOIN pg_namespace nsp ON pc.relnamespace = nsp.oid
+  WHERE pc.oid = entity
+$$;
+
+
+--
+-- Name: send(jsonb, text, text, boolean); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT true) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  generated_id uuid;
+  final_payload jsonb;
+BEGIN
+  BEGIN
+    generated_id := gen_random_uuid();
+
+    -- Check if payload has an 'id' key, if not, add the generated UUID
+    IF payload ? 'id' THEN
+      final_payload := payload;
+    ELSE
+      final_payload := jsonb_set(payload, '{id}', to_jsonb(generated_id));
+    END IF;
+
+    -- Set the topic configuration
+    EXECUTE format('SET LOCAL realtime.topic TO %L', topic);
+
+    INSERT INTO realtime.messages (id, payload, event, topic, private, extension)
+    VALUES (generated_id, final_payload, event, topic, private, 'broadcast');
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE WARNING 'WarnSendingBroadcastMessage: %', SQLERRM;
+  END;
+END;
+$$;
+
+
+--
+-- Name: send_binary(bytea, text, text, boolean); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.send_binary(payload bytea, event text, topic text, private boolean DEFAULT true) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  generated_id uuid;
+BEGIN
+  BEGIN
+    generated_id := gen_random_uuid();
+
+    EXECUTE format('SET LOCAL realtime.topic TO %L', topic);
+
+    INSERT INTO realtime.messages (id, binary_payload, event, topic, private, extension)
+    VALUES (generated_id, payload, event, topic, private, 'broadcast');
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE WARNING 'WarnSendingBroadcastMessage: %', SQLERRM;
+  END;
+END;
+$$;
+
+
+--
+-- Name: subscription_check_filters(); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.subscription_check_filters() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+declare
+    col_names text[] = coalesce(
+            array_agg(a.attname order by a.attnum),
+            '{}'::text[]
+        )
+        from
+            pg_catalog.pg_attribute a
+        where
+            a.attrelid = new.entity
+            and a.attnum > 0
+            and not a.attisdropped
+            and pg_catalog.has_column_privilege(
+                (new.claims ->> 'role'),
+                a.attrelid,
+                a.attnum,
+                'SELECT'
+            );
+    filter realtime.user_defined_filter;
+    col_type regtype;
+    in_val jsonb;
+    selected_col text;
+begin
+    for filter in select * from unnest(new.filters) loop
+        if not filter.column_name = any(col_names) then
+            raise exception 'invalid column for filter %', filter.column_name;
+        end if;
+
+        col_type = (
+            select atttypid::regtype
+            from pg_catalog.pg_attribute
+            where attrelid = new.entity
+                  and attname = filter.column_name
+        );
+        if col_type is null then
+            raise exception 'failed to lookup type for column %', filter.column_name;
+        end if;
+
+        if filter.op = 'in'::realtime.equality_op then
+            in_val = realtime.cast(filter.value, (col_type::text || '[]')::regtype);
+            if coalesce(jsonb_array_length(in_val), 0) > 100 then
+                raise exception 'too many values for `in` filter. Maximum 100';
+            end if;
+        else
+            perform realtime.cast(filter.value, col_type);
+        end if;
+    end loop;
+
+    if new.selected_columns is not null then
+        for selected_col in select * from unnest(new.selected_columns) loop
+            if not selected_col = any(col_names) then
+                raise exception 'invalid column for select %', selected_col;
+            end if;
+        end loop;
+    end if;
+
+    new.filters = coalesce(
+        array_agg(f order by f.column_name, f.op, f.value),
+        '{}'
+    ) from unnest(new.filters) f;
+
+    new.selected_columns = (
+        select array_agg(c order by c)
+        from unnest(new.selected_columns) c
+    );
+
+    return new;
+end;
+$$;
+
+
+--
+-- Name: to_regrole(text); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.to_regrole(role_name text) RETURNS regrole
+    LANGUAGE sql IMMUTABLE
+    AS $$ select role_name::regrole $$;
+
+
+--
+-- Name: topic(); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.topic() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+select nullif(current_setting('realtime.topic', true), '')::text;
+$$;
+
+
+--
+-- Name: wal2json_escape_identifier(text); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.wal2json_escape_identifier(name text) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $$
+  -- Prefix `\`, `,`, `.`, and any whitespace with `\`
+  SELECT regexp_replace(name, '([\\,.[:space:]])', '\\\1', 'g')
+$$;
+
+
+--
+-- Name: allow_any_operation(text[]); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.allow_any_operation(expected_operations text[]) RETURNS boolean
+    LANGUAGE sql STABLE
+    AS $$
+  WITH current_operation AS (
+    SELECT storage.operation() AS raw_operation
+  ),
+  normalized AS (
+    SELECT CASE
+      WHEN raw_operation LIKE 'storage.%' THEN substr(raw_operation, 9)
+      ELSE raw_operation
+    END AS current_operation
+    FROM current_operation
+  )
+  SELECT EXISTS (
+    SELECT 1
+    FROM normalized n
+    CROSS JOIN LATERAL unnest(expected_operations) AS expected_operation
+    WHERE expected_operation IS NOT NULL
+      AND expected_operation <> ''
+      AND n.current_operation = CASE
+        WHEN expected_operation LIKE 'storage.%' THEN substr(expected_operation, 9)
+        ELSE expected_operation
+      END
+  );
+$$;
+
+
+--
+-- Name: allow_only_operation(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.allow_only_operation(expected_operation text) RETURNS boolean
+    LANGUAGE sql STABLE
+    AS $$
+  WITH current_operation AS (
+    SELECT storage.operation() AS raw_operation
+  ),
+  normalized AS (
+    SELECT
+      CASE
+        WHEN raw_operation LIKE 'storage.%' THEN substr(raw_operation, 9)
+        ELSE raw_operation
+      END AS current_operation,
+      CASE
+        WHEN expected_operation LIKE 'storage.%' THEN substr(expected_operation, 9)
+        ELSE expected_operation
+      END AS requested_operation
+    FROM current_operation
+  )
+  SELECT CASE
+    WHEN requested_operation IS NULL OR requested_operation = '' THEN FALSE
+    ELSE COALESCE(current_operation = requested_operation, FALSE)
+  END
+  FROM normalized;
+$$;
+
+
+--
+-- Name: can_insert_object(text, text, uuid, jsonb); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.can_insert_object(bucketid text, name text, owner uuid, metadata jsonb) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  INSERT INTO "storage"."objects" ("bucket_id", "name", "owner", "metadata") VALUES (bucketid, name, owner, metadata);
+  -- hack to rollback the successful insert
+  RAISE sqlstate 'PT200' using
+  message = 'ROLLBACK',
+  detail = 'rollback successful insert';
+END
+$$;
+
+
+--
+-- Name: enforce_bucket_name_length(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.enforce_bucket_name_length() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+    if length(new.name) > 100 then
+        raise exception 'bucket name "%" is too long (% characters). Max is 100.', new.name, length(new.name);
+    end if;
+    return new;
+end;
+$$;
+
+
+--
+-- Name: extension(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.extension(name text) RETURNS text
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+DECLARE
+    _parts text[];
+    _filename text;
+BEGIN
+    -- Split on "/" to get path segments
+    SELECT string_to_array(name, '/') INTO _parts;
+    -- Get the last path segment (the actual filename)
+    SELECT _parts[array_length(_parts, 1)] INTO _filename;
+    -- Extract extension: reverse, split on '.', then reverse again
+    RETURN reverse(split_part(reverse(_filename), '.', 1));
+END
+$$;
+
+
+--
+-- Name: filename(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.filename(name text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+_parts text[];
+BEGIN
+	select string_to_array(name, '/') into _parts;
+	return _parts[array_length(_parts,1)];
+END
+$$;
+
+
+--
+-- Name: foldername(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.foldername(name text) RETURNS text[]
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+DECLARE
+    _parts text[];
+BEGIN
+    -- Split on "/" to get path segments
+    SELECT string_to_array(name, '/') INTO _parts;
+    -- Return everything except the last segment
+    RETURN _parts[1 : array_length(_parts,1) - 1];
+END
+$$;
+
+
+--
+-- Name: get_common_prefix(text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.get_common_prefix(p_key text, p_prefix text, p_delimiter text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    AS $$
+SELECT CASE
+    WHEN position(p_delimiter IN substring(p_key FROM length(p_prefix) + 1)) > 0
+    THEN left(p_key, length(p_prefix) + position(p_delimiter IN substring(p_key FROM length(p_prefix) + 1)))
+    ELSE NULL
+END;
+$$;
+
+
+--
+-- Name: get_size_by_bucket(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.get_size_by_bucket() RETURNS TABLE(size bigint, bucket_id text)
+    LANGUAGE plpgsql STABLE
+    AS $$
+BEGIN
+    return query
+        select sum((metadata->>'size')::bigint)::bigint as size, obj.bucket_id
+        from "storage".objects as obj
+        group by obj.bucket_id;
+END
+$$;
+
+
+--
+-- Name: list_multipart_uploads_with_delimiter(text, text, text, integer, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.list_multipart_uploads_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, next_key_token text DEFAULT ''::text, next_upload_token text DEFAULT ''::text) RETURNS TABLE(key text, id text, created_at timestamp with time zone)
+    LANGUAGE plpgsql
+    AS $_$
+BEGIN
+    RETURN QUERY EXECUTE
+        'SELECT DISTINCT ON(key COLLATE "C") * from (
+            SELECT
+                CASE
+                    WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
+                        substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1)))
+                    ELSE
+                        key
+                END AS key, id, created_at
+            FROM
+                storage.s3_multipart_uploads
+            WHERE
+                bucket_id = $5 AND
+                key ILIKE $1 || ''%'' AND
+                CASE
+                    WHEN $4 != '''' AND $6 = '''' THEN
+                        CASE
+                            WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
+                                substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1))) COLLATE "C" > $4
+                            ELSE
+                                key COLLATE "C" > $4
+                            END
+                    ELSE
+                        true
+                END AND
+                CASE
+                    WHEN $6 != '''' THEN
+                        id COLLATE "C" > $6
+                    ELSE
+                        true
+                    END
+            ORDER BY
+                key COLLATE "C" ASC, created_at ASC) as e order by key COLLATE "C" LIMIT $3'
+        USING prefix_param, delimiter_param, max_keys, next_key_token, bucket_id, next_upload_token;
+END;
+$_$;
+
+
+--
+-- Name: list_objects_with_delimiter(text, text, text, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.list_objects_with_delimiter(_bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, start_after text DEFAULT ''::text, next_token text DEFAULT ''::text, sort_order text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, metadata jsonb, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+DECLARE
+    v_peek_name TEXT;
+    v_current RECORD;
+    v_common_prefix TEXT;
+
+    -- Configuration
+    v_is_asc BOOLEAN;
+    v_prefix TEXT;
+    v_start TEXT;
+    v_upper_bound TEXT;
+    v_file_batch_size INT;
+
+    -- Seek state
+    v_next_seek TEXT;
+    v_count INT := 0;
+
+    -- Dynamic SQL for batch query only
+    v_batch_query TEXT;
+
+BEGIN
+    -- ========================================================================
+    -- INITIALIZATION
+    -- ========================================================================
+    v_is_asc := lower(coalesce(sort_order, 'asc')) = 'asc';
+    v_prefix := coalesce(prefix_param, '');
+    v_start := CASE WHEN coalesce(next_token, '') <> '' THEN next_token ELSE coalesce(start_after, '') END;
+    v_file_batch_size := LEAST(GREATEST(max_keys * 2, 100), 1000);
+
+    -- Calculate upper bound for prefix filtering (bytewise, using COLLATE "C")
+    IF v_prefix = '' THEN
+        v_upper_bound := NULL;
+    ELSIF right(v_prefix, 1) = delimiter_param THEN
+        v_upper_bound := left(v_prefix, -1) || chr(ascii(delimiter_param) + 1);
+    ELSE
+        v_upper_bound := left(v_prefix, -1) || chr(ascii(right(v_prefix, 1)) + 1);
+    END IF;
+
+    -- Build batch query (dynamic SQL - called infrequently, amortized over many rows)
+    IF v_is_asc THEN
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" >= $2 ' ||
+                'AND o.name COLLATE "C" < $3 ORDER BY o.name COLLATE "C" ASC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" >= $2 ' ||
+                'ORDER BY o.name COLLATE "C" ASC LIMIT $4';
+        END IF;
+    ELSE
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" < $2 ' ||
+                'AND o.name COLLATE "C" >= $3 ORDER BY o.name COLLATE "C" DESC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" < $2 ' ||
+                'ORDER BY o.name COLLATE "C" DESC LIMIT $4';
+        END IF;
+    END IF;
+
+    -- ========================================================================
+    -- SEEK INITIALIZATION: Determine starting position
+    -- ========================================================================
+    IF v_start = '' THEN
+        IF v_is_asc THEN
+            v_next_seek := v_prefix;
+        ELSE
+            -- DESC without cursor: find the last item in range
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_next_seek FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_prefix AND o.name COLLATE "C" < v_upper_bound
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSIF v_prefix <> '' THEN
+                SELECT o.name INTO v_next_seek FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_prefix
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_next_seek FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            END IF;
+
+            IF v_next_seek IS NOT NULL THEN
+                v_next_seek := v_next_seek || delimiter_param;
+            ELSE
+                RETURN;
+            END IF;
+        END IF;
+    ELSE
+        -- Cursor provided: determine if it refers to a folder or leaf
+        IF EXISTS (
+            SELECT 1 FROM storage.objects o
+            WHERE o.bucket_id = _bucket_id
+              AND o.name COLLATE "C" LIKE v_start || delimiter_param || '%'
+            LIMIT 1
+        ) THEN
+            -- Cursor refers to a folder
+            IF v_is_asc THEN
+                v_next_seek := v_start || chr(ascii(delimiter_param) + 1);
+            ELSE
+                v_next_seek := v_start || delimiter_param;
+            END IF;
+        ELSE
+            -- Cursor refers to a leaf object
+            IF v_is_asc THEN
+                v_next_seek := v_start || delimiter_param;
+            ELSE
+                v_next_seek := v_start;
+            END IF;
+        END IF;
+    END IF;
+
+    -- ========================================================================
+    -- MAIN LOOP: Hybrid peek-then-batch algorithm
+    -- Uses STATIC SQL for peek (hot path) and DYNAMIC SQL for batch
+    -- ========================================================================
+    LOOP
+        EXIT WHEN v_count >= max_keys;
+
+        -- STEP 1: PEEK using STATIC SQL (plan cached, very fast)
+        IF v_is_asc THEN
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_next_seek AND o.name COLLATE "C" < v_upper_bound
+                ORDER BY o.name COLLATE "C" ASC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_next_seek
+                ORDER BY o.name COLLATE "C" ASC LIMIT 1;
+            END IF;
+        ELSE
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek AND o.name COLLATE "C" >= v_prefix
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSIF v_prefix <> '' THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek AND o.name COLLATE "C" >= v_prefix
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            END IF;
+        END IF;
+
+        EXIT WHEN v_peek_name IS NULL;
+
+        -- STEP 2: Check if this is a FOLDER or FILE
+        v_common_prefix := storage.get_common_prefix(v_peek_name, v_prefix, delimiter_param);
+
+        IF v_common_prefix IS NOT NULL THEN
+            -- FOLDER: Emit and skip to next folder (no heap access needed)
+            name := rtrim(v_common_prefix, delimiter_param);
+            id := NULL;
+            updated_at := NULL;
+            created_at := NULL;
+            last_accessed_at := NULL;
+            metadata := NULL;
+            RETURN NEXT;
+            v_count := v_count + 1;
+
+            -- Advance seek past the folder range
+            IF v_is_asc THEN
+                v_next_seek := left(v_common_prefix, -1) || chr(ascii(delimiter_param) + 1);
+            ELSE
+                v_next_seek := v_common_prefix;
+            END IF;
+        ELSE
+            -- FILE: Batch fetch using DYNAMIC SQL (overhead amortized over many rows)
+            -- For ASC: upper_bound is the exclusive upper limit (< condition)
+            -- For DESC: prefix is the inclusive lower limit (>= condition)
+            FOR v_current IN EXECUTE v_batch_query USING _bucket_id, v_next_seek,
+                CASE WHEN v_is_asc THEN COALESCE(v_upper_bound, v_prefix) ELSE v_prefix END, v_file_batch_size
+            LOOP
+                v_common_prefix := storage.get_common_prefix(v_current.name, v_prefix, delimiter_param);
+
+                IF v_common_prefix IS NOT NULL THEN
+                    -- Hit a folder: exit batch, let peek handle it
+                    v_next_seek := v_current.name;
+                    EXIT;
+                END IF;
+
+                -- Emit file
+                name := v_current.name;
+                id := v_current.id;
+                updated_at := v_current.updated_at;
+                created_at := v_current.created_at;
+                last_accessed_at := v_current.last_accessed_at;
+                metadata := v_current.metadata;
+                RETURN NEXT;
+                v_count := v_count + 1;
+
+                -- Advance seek past this file
+                IF v_is_asc THEN
+                    v_next_seek := v_current.name || delimiter_param;
+                ELSE
+                    v_next_seek := v_current.name;
+                END IF;
+
+                EXIT WHEN v_count >= max_keys;
+            END LOOP;
+        END IF;
+    END LOOP;
+END;
+$_$;
+
+
+--
+-- Name: operation(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.operation() RETURNS text
+    LANGUAGE plpgsql STABLE
+    AS $$
+BEGIN
+    RETURN current_setting('storage.operation', true);
+END;
+$$;
+
+
+--
+-- Name: protect_delete(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.protect_delete() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Check if storage.allow_delete_query is set to 'true'
+    IF COALESCE(current_setting('storage.allow_delete_query', true), 'false') != 'true' THEN
+        RAISE EXCEPTION 'Direct deletion from storage tables is not allowed. Use the Storage API instead.'
+            USING HINT = 'This prevents accidental data loss from orphaned objects.',
+                  ERRCODE = '42501';
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: search(text, text, integer, integer, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.search(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+DECLARE
+    v_peek_name TEXT;
+    v_current RECORD;
+    v_common_prefix TEXT;
+    v_delimiter CONSTANT TEXT := '/';
+
+    -- Configuration
+    v_limit INT;
+    v_prefix TEXT;
+    v_prefix_lower TEXT;
+    v_is_asc BOOLEAN;
+    v_order_by TEXT;
+    v_sort_order TEXT;
+    v_upper_bound TEXT;
+    v_file_batch_size INT;
+
+    -- Dynamic SQL for batch query only
+    v_batch_query TEXT;
+
+    -- Seek state
+    v_next_seek TEXT;
+    v_count INT := 0;
+    v_skipped INT := 0;
+BEGIN
+    -- ========================================================================
+    -- INITIALIZATION
+    -- ========================================================================
+    v_limit := LEAST(coalesce(limits, 100), 1500);
+    v_prefix := coalesce(prefix, '') || coalesce(search, '');
+    v_prefix_lower := lower(v_prefix);
+    v_is_asc := lower(coalesce(sortorder, 'asc')) = 'asc';
+    v_file_batch_size := LEAST(GREATEST(v_limit * 2, 100), 1000);
+
+    -- Validate sort column
+    CASE lower(coalesce(sortcolumn, 'name'))
+        WHEN 'name' THEN v_order_by := 'name';
+        WHEN 'updated_at' THEN v_order_by := 'updated_at';
+        WHEN 'created_at' THEN v_order_by := 'created_at';
+        WHEN 'last_accessed_at' THEN v_order_by := 'last_accessed_at';
+        ELSE v_order_by := 'name';
+    END CASE;
+
+    v_sort_order := CASE WHEN v_is_asc THEN 'asc' ELSE 'desc' END;
+
+    -- ========================================================================
+    -- NON-NAME SORTING: Use path_tokens approach (unchanged)
+    -- ========================================================================
+    IF v_order_by != 'name' THEN
+        RETURN QUERY EXECUTE format(
+            $sql$
+            WITH folders AS (
+                SELECT path_tokens[$1] AS folder
+                FROM storage.objects
+                WHERE objects.name ILIKE $2 || '%%'
+                  AND bucket_id = $3
+                  AND array_length(objects.path_tokens, 1) <> $1
+                GROUP BY folder
+                ORDER BY folder %s
+            )
+            (SELECT folder AS "name",
+                   NULL::uuid AS id,
+                   NULL::timestamptz AS updated_at,
+                   NULL::timestamptz AS created_at,
+                   NULL::timestamptz AS last_accessed_at,
+                   NULL::jsonb AS metadata FROM folders)
+            UNION ALL
+            (SELECT path_tokens[$1] AS "name",
+                   id, updated_at, created_at, last_accessed_at, metadata
+             FROM storage.objects
+             WHERE objects.name ILIKE $2 || '%%'
+               AND bucket_id = $3
+               AND array_length(objects.path_tokens, 1) = $1
+             ORDER BY %I %s)
+            LIMIT $4 OFFSET $5
+            $sql$, v_sort_order, v_order_by, v_sort_order
+        ) USING levels, v_prefix, bucketname, v_limit, offsets;
+        RETURN;
+    END IF;
+
+    -- ========================================================================
+    -- NAME SORTING: Hybrid skip-scan with batch optimization
+    -- ========================================================================
+
+    -- Calculate upper bound for prefix filtering
+    IF v_prefix_lower = '' THEN
+        v_upper_bound := NULL;
+    ELSIF right(v_prefix_lower, 1) = v_delimiter THEN
+        v_upper_bound := left(v_prefix_lower, -1) || chr(ascii(v_delimiter) + 1);
+    ELSE
+        v_upper_bound := left(v_prefix_lower, -1) || chr(ascii(right(v_prefix_lower, 1)) + 1);
+    END IF;
+
+    -- Build batch query (dynamic SQL - called infrequently, amortized over many rows)
+    IF v_is_asc THEN
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" >= $2 ' ||
+                'AND lower(o.name) COLLATE "C" < $3 ORDER BY lower(o.name) COLLATE "C" ASC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" >= $2 ' ||
+                'ORDER BY lower(o.name) COLLATE "C" ASC LIMIT $4';
+        END IF;
+    ELSE
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" < $2 ' ||
+                'AND lower(o.name) COLLATE "C" >= $3 ORDER BY lower(o.name) COLLATE "C" DESC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" < $2 ' ||
+                'ORDER BY lower(o.name) COLLATE "C" DESC LIMIT $4';
+        END IF;
+    END IF;
+
+    -- Initialize seek position
+    IF v_is_asc THEN
+        v_next_seek := v_prefix_lower;
+    ELSE
+        -- DESC: find the last item in range first (static SQL)
+        IF v_upper_bound IS NOT NULL THEN
+            SELECT o.name INTO v_peek_name FROM storage.objects o
+            WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_prefix_lower AND lower(o.name) COLLATE "C" < v_upper_bound
+            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+        ELSIF v_prefix_lower <> '' THEN
+            SELECT o.name INTO v_peek_name FROM storage.objects o
+            WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_prefix_lower
+            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+        ELSE
+            SELECT o.name INTO v_peek_name FROM storage.objects o
+            WHERE o.bucket_id = bucketname
+            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+        END IF;
+
+        IF v_peek_name IS NOT NULL THEN
+            v_next_seek := lower(v_peek_name) || v_delimiter;
+        ELSE
+            RETURN;
+        END IF;
+    END IF;
+
+    -- ========================================================================
+    -- MAIN LOOP: Hybrid peek-then-batch algorithm
+    -- Uses STATIC SQL for peek (hot path) and DYNAMIC SQL for batch
+    -- ========================================================================
+    LOOP
+        EXIT WHEN v_count >= v_limit;
+
+        -- STEP 1: PEEK using STATIC SQL (plan cached, very fast)
+        IF v_is_asc THEN
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_next_seek AND lower(o.name) COLLATE "C" < v_upper_bound
+                ORDER BY lower(o.name) COLLATE "C" ASC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_next_seek
+                ORDER BY lower(o.name) COLLATE "C" ASC LIMIT 1;
+            END IF;
+        ELSE
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek AND lower(o.name) COLLATE "C" >= v_prefix_lower
+                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+            ELSIF v_prefix_lower <> '' THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek AND lower(o.name) COLLATE "C" >= v_prefix_lower
+                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek
+                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+            END IF;
+        END IF;
+
+        EXIT WHEN v_peek_name IS NULL;
+
+        -- STEP 2: Check if this is a FOLDER or FILE
+        v_common_prefix := storage.get_common_prefix(lower(v_peek_name), v_prefix_lower, v_delimiter);
+
+        IF v_common_prefix IS NOT NULL THEN
+            -- FOLDER: Handle offset, emit if needed, skip to next folder
+            IF v_skipped < offsets THEN
+                v_skipped := v_skipped + 1;
+            ELSE
+                name := split_part(rtrim(storage.get_common_prefix(v_peek_name, v_prefix, v_delimiter), v_delimiter), v_delimiter, levels);
+                id := NULL;
+                updated_at := NULL;
+                created_at := NULL;
+                last_accessed_at := NULL;
+                metadata := NULL;
+                RETURN NEXT;
+                v_count := v_count + 1;
+            END IF;
+
+            -- Advance seek past the folder range
+            IF v_is_asc THEN
+                v_next_seek := lower(left(v_common_prefix, -1)) || chr(ascii(v_delimiter) + 1);
+            ELSE
+                v_next_seek := lower(v_common_prefix);
+            END IF;
+        ELSE
+            -- FILE: Batch fetch using DYNAMIC SQL (overhead amortized over many rows)
+            -- For ASC: upper_bound is the exclusive upper limit (< condition)
+            -- For DESC: prefix_lower is the inclusive lower limit (>= condition)
+            FOR v_current IN EXECUTE v_batch_query
+                USING bucketname, v_next_seek,
+                    CASE WHEN v_is_asc THEN COALESCE(v_upper_bound, v_prefix_lower) ELSE v_prefix_lower END, v_file_batch_size
+            LOOP
+                v_common_prefix := storage.get_common_prefix(lower(v_current.name), v_prefix_lower, v_delimiter);
+
+                IF v_common_prefix IS NOT NULL THEN
+                    -- Hit a folder: exit batch, let peek handle it
+                    v_next_seek := lower(v_current.name);
+                    EXIT;
+                END IF;
+
+                -- Handle offset skipping
+                IF v_skipped < offsets THEN
+                    v_skipped := v_skipped + 1;
+                ELSE
+                    -- Emit file
+                    name := split_part(v_current.name, v_delimiter, levels);
+                    id := v_current.id;
+                    updated_at := v_current.updated_at;
+                    created_at := v_current.created_at;
+                    last_accessed_at := v_current.last_accessed_at;
+                    metadata := v_current.metadata;
+                    RETURN NEXT;
+                    v_count := v_count + 1;
+                END IF;
+
+                -- Advance seek past this file
+                IF v_is_asc THEN
+                    v_next_seek := lower(v_current.name) || v_delimiter;
+                ELSE
+                    v_next_seek := lower(v_current.name);
+                END IF;
+
+                EXIT WHEN v_count >= v_limit;
+            END LOOP;
+        END IF;
+    END LOOP;
+END;
+$_$;
+
+
+--
+-- Name: search_by_timestamp(text, text, integer, integer, text, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.search_by_timestamp(p_prefix text, p_bucket_id text, p_limit integer, p_level integer, p_start_after text, p_sort_order text, p_sort_column text, p_sort_column_after text) RETURNS TABLE(key text, name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+DECLARE
+    v_cursor_op text;
+    v_query text;
+    v_prefix text;
+BEGIN
+    v_prefix := coalesce(p_prefix, '');
+
+    IF p_sort_order = 'asc' THEN
+        v_cursor_op := '>';
+    ELSE
+        v_cursor_op := '<';
+    END IF;
+
+    v_query := format($sql$
+        WITH raw_objects AS (
+            SELECT
+                o.name AS obj_name,
+                o.id AS obj_id,
+                o.updated_at AS obj_updated_at,
+                o.created_at AS obj_created_at,
+                o.last_accessed_at AS obj_last_accessed_at,
+                o.metadata AS obj_metadata,
+                storage.get_common_prefix(o.name, $1, '/') AS common_prefix
+            FROM storage.objects o
+            WHERE o.bucket_id = $2
+              AND o.name COLLATE "C" LIKE $1 || '%%'
+        ),
+        -- Aggregate common prefixes (folders)
+        -- Both created_at and updated_at use MIN(obj_created_at) to match the old prefixes table behavior
+        aggregated_prefixes AS (
+            SELECT
+                rtrim(common_prefix, '/') AS name,
+                NULL::uuid AS id,
+                MIN(obj_created_at) AS updated_at,
+                MIN(obj_created_at) AS created_at,
+                NULL::timestamptz AS last_accessed_at,
+                NULL::jsonb AS metadata,
+                TRUE AS is_prefix
+            FROM raw_objects
+            WHERE common_prefix IS NOT NULL
+            GROUP BY common_prefix
+        ),
+        leaf_objects AS (
+            SELECT
+                obj_name AS name,
+                obj_id AS id,
+                obj_updated_at AS updated_at,
+                obj_created_at AS created_at,
+                obj_last_accessed_at AS last_accessed_at,
+                obj_metadata AS metadata,
+                FALSE AS is_prefix
+            FROM raw_objects
+            WHERE common_prefix IS NULL
+        ),
+        combined AS (
+            SELECT * FROM aggregated_prefixes
+            UNION ALL
+            SELECT * FROM leaf_objects
+        ),
+        filtered AS (
+            SELECT *
+            FROM combined
+            WHERE (
+                $5 = ''
+                OR ROW(
+                    date_trunc('milliseconds', %I),
+                    name COLLATE "C"
+                ) %s ROW(
+                    COALESCE(NULLIF($6, '')::timestamptz, 'epoch'::timestamptz),
+                    $5
+                )
+            )
+        )
+        SELECT
+            split_part(name, '/', $3) AS key,
+            name,
+            id,
+            updated_at,
+            created_at,
+            last_accessed_at,
+            metadata
+        FROM filtered
+        ORDER BY
+            COALESCE(date_trunc('milliseconds', %I), 'epoch'::timestamptz) %s,
+            name COLLATE "C" %s
+        LIMIT $4
+    $sql$,
+        p_sort_column,
+        v_cursor_op,
+        p_sort_column,
+        p_sort_order,
+        p_sort_order
+    );
+
+    RETURN QUERY EXECUTE v_query
+    USING v_prefix, p_bucket_id, p_level, p_limit, p_start_after, p_sort_column_after;
+END;
+$_$;
+
+
+--
+-- Name: search_v2(text, text, integer, integer, text, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.search_v2(prefix text, bucket_name text, limits integer DEFAULT 100, levels integer DEFAULT 1, start_after text DEFAULT ''::text, sort_order text DEFAULT 'asc'::text, sort_column text DEFAULT 'name'::text, sort_column_after text DEFAULT ''::text) RETURNS TABLE(key text, name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $$
+DECLARE
+    v_sort_col text;
+    v_sort_ord text;
+    v_limit int;
+BEGIN
+    -- Cap limit to maximum of 1500 records
+    v_limit := LEAST(coalesce(limits, 100), 1500);
+
+    -- Validate and normalize sort_order
+    v_sort_ord := lower(coalesce(sort_order, 'asc'));
+    IF v_sort_ord NOT IN ('asc', 'desc') THEN
+        v_sort_ord := 'asc';
+    END IF;
+
+    -- Validate and normalize sort_column
+    v_sort_col := lower(coalesce(sort_column, 'name'));
+    IF v_sort_col NOT IN ('name', 'updated_at', 'created_at') THEN
+        v_sort_col := 'name';
+    END IF;
+
+    -- Route to appropriate implementation
+    IF v_sort_col = 'name' THEN
+        -- Use list_objects_with_delimiter for name sorting (most efficient: O(k * log n))
+        RETURN QUERY
+        SELECT
+            split_part(l.name, '/', levels) AS key,
+            l.name AS name,
+            l.id,
+            l.updated_at,
+            l.created_at,
+            l.last_accessed_at,
+            l.metadata
+        FROM storage.list_objects_with_delimiter(
+            bucket_name,
+            coalesce(prefix, ''),
+            '/',
+            v_limit,
+            start_after,
+            '',
+            v_sort_ord
+        ) l;
+    ELSE
+        -- Use aggregation approach for timestamp sorting
+        -- Not efficient for large datasets but supports correct pagination
+        RETURN QUERY SELECT * FROM storage.search_by_timestamp(
+            prefix, bucket_name, v_limit, levels, start_after,
+            v_sort_ord, v_sort_col, sort_column_after
+        );
+    END IF;
+END;
+$$;
+
+
+--
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW; 
+END;
+$$;
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: audit_log_entries; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.audit_log_entries (
+    instance_id uuid,
+    id uuid NOT NULL,
+    payload json,
+    created_at timestamp with time zone,
+    ip_address character varying(64) DEFAULT ''::character varying NOT NULL
+);
+
+
+--
+-- Name: TABLE audit_log_entries; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.audit_log_entries IS 'Auth: Audit trail for user actions.';
+
+
+--
+-- Name: custom_oauth_providers; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.custom_oauth_providers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    provider_type text NOT NULL,
+    identifier text NOT NULL,
+    name text NOT NULL,
+    client_id text NOT NULL,
+    client_secret text NOT NULL,
+    acceptable_client_ids text[] DEFAULT '{}'::text[] NOT NULL,
+    scopes text[] DEFAULT '{}'::text[] NOT NULL,
+    pkce_enabled boolean DEFAULT true NOT NULL,
+    attribute_mapping jsonb DEFAULT '{}'::jsonb NOT NULL,
+    authorization_params jsonb DEFAULT '{}'::jsonb NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    email_optional boolean DEFAULT false NOT NULL,
+    issuer text,
+    discovery_url text,
+    skip_nonce_check boolean DEFAULT false NOT NULL,
+    cached_discovery jsonb,
+    discovery_cached_at timestamp with time zone,
+    authorization_url text,
+    token_url text,
+    userinfo_url text,
+    jwks_uri text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT custom_oauth_providers_authorization_url_https CHECK (((authorization_url IS NULL) OR (authorization_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_authorization_url_length CHECK (((authorization_url IS NULL) OR (char_length(authorization_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_client_id_length CHECK (((char_length(client_id) >= 1) AND (char_length(client_id) <= 512))),
+    CONSTRAINT custom_oauth_providers_discovery_url_length CHECK (((discovery_url IS NULL) OR (char_length(discovery_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_identifier_format CHECK ((identifier ~ '^[a-z0-9][a-z0-9:-]{0,48}[a-z0-9]$'::text)),
+    CONSTRAINT custom_oauth_providers_issuer_length CHECK (((issuer IS NULL) OR ((char_length(issuer) >= 1) AND (char_length(issuer) <= 2048)))),
+    CONSTRAINT custom_oauth_providers_jwks_uri_https CHECK (((jwks_uri IS NULL) OR (jwks_uri ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_jwks_uri_length CHECK (((jwks_uri IS NULL) OR (char_length(jwks_uri) <= 2048))),
+    CONSTRAINT custom_oauth_providers_name_length CHECK (((char_length(name) >= 1) AND (char_length(name) <= 100))),
+    CONSTRAINT custom_oauth_providers_oauth2_requires_endpoints CHECK (((provider_type <> 'oauth2'::text) OR ((authorization_url IS NOT NULL) AND (token_url IS NOT NULL) AND (userinfo_url IS NOT NULL)))),
+    CONSTRAINT custom_oauth_providers_oidc_discovery_url_https CHECK (((provider_type <> 'oidc'::text) OR (discovery_url IS NULL) OR (discovery_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_oidc_issuer_https CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NULL) OR (issuer ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_oidc_requires_issuer CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NOT NULL))),
+    CONSTRAINT custom_oauth_providers_provider_type_check CHECK ((provider_type = ANY (ARRAY['oauth2'::text, 'oidc'::text]))),
+    CONSTRAINT custom_oauth_providers_token_url_https CHECK (((token_url IS NULL) OR (token_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_token_url_length CHECK (((token_url IS NULL) OR (char_length(token_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_userinfo_url_https CHECK (((userinfo_url IS NULL) OR (userinfo_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_userinfo_url_length CHECK (((userinfo_url IS NULL) OR (char_length(userinfo_url) <= 2048)))
+);
+
+
+--
+-- Name: flow_state; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.flow_state (
+    id uuid NOT NULL,
+    user_id uuid,
+    auth_code text,
+    code_challenge_method auth.code_challenge_method,
+    code_challenge text,
+    provider_type text NOT NULL,
+    provider_access_token text,
+    provider_refresh_token text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    authentication_method text NOT NULL,
+    auth_code_issued_at timestamp with time zone,
+    invite_token text,
+    referrer text,
+    oauth_client_state_id uuid,
+    linking_target_id uuid,
+    email_optional boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: TABLE flow_state; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.flow_state IS 'Stores metadata for all OAuth/SSO login flows';
+
+
+--
+-- Name: identities; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.identities (
+    provider_id text NOT NULL,
+    user_id uuid NOT NULL,
+    identity_data jsonb NOT NULL,
+    provider text NOT NULL,
+    last_sign_in_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    email text GENERATED ALWAYS AS (lower((identity_data ->> 'email'::text))) STORED,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- Name: TABLE identities; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.identities IS 'Auth: Stores identities associated to a user.';
+
+
+--
+-- Name: COLUMN identities.email; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.identities.email IS 'Auth: Email is a generated column that references the optional email property in the identity_data';
+
+
+--
+-- Name: instances; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.instances (
+    id uuid NOT NULL,
+    uuid uuid,
+    raw_base_config text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: TABLE instances; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.instances IS 'Auth: Manages users across multiple sites.';
+
+
+--
+-- Name: mfa_amr_claims; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.mfa_amr_claims (
+    session_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    authentication_method text NOT NULL,
+    id uuid NOT NULL
+);
+
+
+--
+-- Name: TABLE mfa_amr_claims; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.mfa_amr_claims IS 'auth: stores authenticator method reference claims for multi factor authentication';
+
+
+--
+-- Name: mfa_challenges; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.mfa_challenges (
+    id uuid NOT NULL,
+    factor_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    verified_at timestamp with time zone,
+    ip_address inet NOT NULL,
+    otp_code text,
+    web_authn_session_data jsonb
+);
+
+
+--
+-- Name: TABLE mfa_challenges; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.mfa_challenges IS 'auth: stores metadata about challenge requests made';
+
+
+--
+-- Name: mfa_factors; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.mfa_factors (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    friendly_name text,
+    factor_type auth.factor_type NOT NULL,
+    status auth.factor_status NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    secret text,
+    phone text,
+    last_challenged_at timestamp with time zone,
+    web_authn_credential jsonb,
+    web_authn_aaguid uuid,
+    last_webauthn_challenge_data jsonb
+);
+
+
+--
+-- Name: TABLE mfa_factors; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.mfa_factors IS 'auth: stores metadata about factors';
+
+
+--
+-- Name: COLUMN mfa_factors.last_webauthn_challenge_data; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.mfa_factors.last_webauthn_challenge_data IS 'Stores the latest WebAuthn challenge data including attestation/assertion for customer verification';
+
+
+--
+-- Name: oauth_authorizations; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.oauth_authorizations (
+    id uuid NOT NULL,
+    authorization_id text NOT NULL,
+    client_id uuid NOT NULL,
+    user_id uuid,
+    redirect_uri text NOT NULL,
+    scope text NOT NULL,
+    state text,
+    resource text,
+    code_challenge text,
+    code_challenge_method auth.code_challenge_method,
+    response_type auth.oauth_response_type DEFAULT 'code'::auth.oauth_response_type NOT NULL,
+    status auth.oauth_authorization_status DEFAULT 'pending'::auth.oauth_authorization_status NOT NULL,
+    authorization_code text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone DEFAULT (now() + '00:03:00'::interval) NOT NULL,
+    approved_at timestamp with time zone,
+    nonce text,
+    CONSTRAINT oauth_authorizations_authorization_code_length CHECK ((char_length(authorization_code) <= 255)),
+    CONSTRAINT oauth_authorizations_code_challenge_length CHECK ((char_length(code_challenge) <= 128)),
+    CONSTRAINT oauth_authorizations_expires_at_future CHECK ((expires_at > created_at)),
+    CONSTRAINT oauth_authorizations_nonce_length CHECK ((char_length(nonce) <= 255)),
+    CONSTRAINT oauth_authorizations_redirect_uri_length CHECK ((char_length(redirect_uri) <= 2048)),
+    CONSTRAINT oauth_authorizations_resource_length CHECK ((char_length(resource) <= 2048)),
+    CONSTRAINT oauth_authorizations_scope_length CHECK ((char_length(scope) <= 4096)),
+    CONSTRAINT oauth_authorizations_state_length CHECK ((char_length(state) <= 4096))
+);
+
+
+--
+-- Name: oauth_client_states; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.oauth_client_states (
+    id uuid NOT NULL,
+    provider_type text NOT NULL,
+    code_verifier text,
+    created_at timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: TABLE oauth_client_states; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.oauth_client_states IS 'Stores OAuth states for third-party provider authentication flows where Supabase acts as the OAuth client.';
+
+
+--
+-- Name: oauth_clients; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.oauth_clients (
+    id uuid NOT NULL,
+    client_secret_hash text,
+    registration_type auth.oauth_registration_type NOT NULL,
+    redirect_uris text NOT NULL,
+    grant_types text NOT NULL,
+    client_name text,
+    client_uri text,
+    logo_uri text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone,
+    client_type auth.oauth_client_type DEFAULT 'confidential'::auth.oauth_client_type NOT NULL,
+    token_endpoint_auth_method text NOT NULL,
+    CONSTRAINT oauth_clients_client_name_length CHECK ((char_length(client_name) <= 1024)),
+    CONSTRAINT oauth_clients_client_uri_length CHECK ((char_length(client_uri) <= 2048)),
+    CONSTRAINT oauth_clients_logo_uri_length CHECK ((char_length(logo_uri) <= 2048)),
+    CONSTRAINT oauth_clients_token_endpoint_auth_method_check CHECK ((token_endpoint_auth_method = ANY (ARRAY['client_secret_basic'::text, 'client_secret_post'::text, 'none'::text])))
+);
+
+
+--
+-- Name: oauth_consents; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.oauth_consents (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    client_id uuid NOT NULL,
+    scopes text NOT NULL,
+    granted_at timestamp with time zone DEFAULT now() NOT NULL,
+    revoked_at timestamp with time zone,
+    CONSTRAINT oauth_consents_revoked_after_granted CHECK (((revoked_at IS NULL) OR (revoked_at >= granted_at))),
+    CONSTRAINT oauth_consents_scopes_length CHECK ((char_length(scopes) <= 2048)),
+    CONSTRAINT oauth_consents_scopes_not_empty CHECK ((char_length(TRIM(BOTH FROM scopes)) > 0))
+);
+
+
+--
+-- Name: one_time_tokens; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.one_time_tokens (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    token_type auth.one_time_token_type NOT NULL,
+    token_hash text NOT NULL,
+    relates_to text NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT one_time_tokens_token_hash_check CHECK ((char_length(token_hash) > 0))
+);
+
+
+--
+-- Name: refresh_tokens; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.refresh_tokens (
+    instance_id uuid,
+    id bigint NOT NULL,
+    token character varying(255),
+    user_id character varying(255),
+    revoked boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    parent character varying(255),
+    session_id uuid
+);
+
+
+--
+-- Name: TABLE refresh_tokens; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.refresh_tokens IS 'Auth: Store of tokens used to refresh JWT tokens once they expire.';
+
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE; Schema: auth; Owner: -
+--
+
+CREATE SEQUENCE auth.refresh_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: auth; Owner: -
+--
+
+ALTER SEQUENCE auth.refresh_tokens_id_seq OWNED BY auth.refresh_tokens.id;
+
+
+--
+-- Name: saml_providers; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.saml_providers (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    entity_id text NOT NULL,
+    metadata_xml text NOT NULL,
+    metadata_url text,
+    attribute_mapping jsonb,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    name_id_format text,
+    CONSTRAINT "entity_id not empty" CHECK ((char_length(entity_id) > 0)),
+    CONSTRAINT "metadata_url not empty" CHECK (((metadata_url = NULL::text) OR (char_length(metadata_url) > 0))),
+    CONSTRAINT "metadata_xml not empty" CHECK ((char_length(metadata_xml) > 0))
+);
+
+
+--
+-- Name: TABLE saml_providers; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.saml_providers IS 'Auth: Manages SAML Identity Provider connections.';
+
+
+--
+-- Name: saml_relay_states; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.saml_relay_states (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    request_id text NOT NULL,
+    for_email text,
+    redirect_to text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    flow_state_id uuid,
+    CONSTRAINT "request_id not empty" CHECK ((char_length(request_id) > 0))
+);
+
+
+--
+-- Name: TABLE saml_relay_states; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.saml_relay_states IS 'Auth: Contains SAML Relay State information for each Service Provider initiated login.';
+
+
+--
+-- Name: schema_migrations; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.schema_migrations (
+    version character varying(255) NOT NULL
+);
+
+
+--
+-- Name: TABLE schema_migrations; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.schema_migrations IS 'Auth: Manages updates to the auth system.';
+
+
+--
+-- Name: sessions; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.sessions (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    factor_id uuid,
+    aal auth.aal_level,
+    not_after timestamp with time zone,
+    refreshed_at timestamp without time zone,
+    user_agent text,
+    ip inet,
+    tag text,
+    oauth_client_id uuid,
+    refresh_token_hmac_key text,
+    refresh_token_counter bigint,
+    scopes text,
+    CONSTRAINT sessions_scopes_length CHECK ((char_length(scopes) <= 4096))
+);
+
+
+--
+-- Name: TABLE sessions; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.sessions IS 'Auth: Stores session data associated to a user.';
+
+
+--
+-- Name: COLUMN sessions.not_after; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sessions.not_after IS 'Auth: Not after is a nullable column that contains a timestamp after which the session should be regarded as expired.';
+
+
+--
+-- Name: COLUMN sessions.refresh_token_hmac_key; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sessions.refresh_token_hmac_key IS 'Holds a HMAC-SHA256 key used to sign refresh tokens for this session.';
+
+
+--
+-- Name: COLUMN sessions.refresh_token_counter; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sessions.refresh_token_counter IS 'Holds the ID (counter) of the last issued refresh token.';
+
+
+--
+-- Name: sso_domains; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.sso_domains (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    domain text NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    CONSTRAINT "domain not empty" CHECK ((char_length(domain) > 0))
+);
+
+
+--
+-- Name: TABLE sso_domains; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.sso_domains IS 'Auth: Manages SSO email address domain mapping to an SSO Identity Provider.';
+
+
+--
+-- Name: sso_providers; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.sso_providers (
+    id uuid NOT NULL,
+    resource_id text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    disabled boolean,
+    CONSTRAINT "resource_id not empty" CHECK (((resource_id = NULL::text) OR (char_length(resource_id) > 0)))
+);
+
+
+--
+-- Name: TABLE sso_providers; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.sso_providers IS 'Auth: Manages SSO identity provider information; see saml_providers for SAML.';
+
+
+--
+-- Name: COLUMN sso_providers.resource_id; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sso_providers.resource_id IS 'Auth: Uniquely identifies a SSO provider according to a user-chosen resource ID (case insensitive), useful in infrastructure as code.';
+
+
+--
+-- Name: users; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.users (
+    instance_id uuid,
+    id uuid NOT NULL,
+    aud character varying(255),
+    role character varying(255),
+    email character varying(255),
+    encrypted_password character varying(255),
+    email_confirmed_at timestamp with time zone,
+    invited_at timestamp with time zone,
+    confirmation_token character varying(255),
+    confirmation_sent_at timestamp with time zone,
+    recovery_token character varying(255),
+    recovery_sent_at timestamp with time zone,
+    email_change_token_new character varying(255),
+    email_change character varying(255),
+    email_change_sent_at timestamp with time zone,
+    last_sign_in_at timestamp with time zone,
+    raw_app_meta_data jsonb,
+    raw_user_meta_data jsonb,
+    is_super_admin boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    phone text DEFAULT NULL::character varying,
+    phone_confirmed_at timestamp with time zone,
+    phone_change text DEFAULT ''::character varying,
+    phone_change_token character varying(255) DEFAULT ''::character varying,
+    phone_change_sent_at timestamp with time zone,
+    confirmed_at timestamp with time zone GENERATED ALWAYS AS (LEAST(email_confirmed_at, phone_confirmed_at)) STORED,
+    email_change_token_current character varying(255) DEFAULT ''::character varying,
+    email_change_confirm_status smallint DEFAULT 0,
+    banned_until timestamp with time zone,
+    reauthentication_token character varying(255) DEFAULT ''::character varying,
+    reauthentication_sent_at timestamp with time zone,
+    is_sso_user boolean DEFAULT false NOT NULL,
+    deleted_at timestamp with time zone,
+    is_anonymous boolean DEFAULT false NOT NULL,
+    CONSTRAINT users_email_change_confirm_status_check CHECK (((email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)))
+);
+
+
+--
+-- Name: TABLE users; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.users IS 'Auth: Stores user login data within a secure schema.';
+
+
+--
+-- Name: COLUMN users.is_sso_user; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.users.is_sso_user IS 'Auth: Set this column to true when the account comes from SSO. These accounts can have duplicate emails.';
+
+
+--
+-- Name: webauthn_challenges; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.webauthn_challenges (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    challenge_type text NOT NULL,
+    session_data jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT webauthn_challenges_challenge_type_check CHECK ((challenge_type = ANY (ARRAY['signup'::text, 'registration'::text, 'authentication'::text])))
+);
+
+
+--
+-- Name: webauthn_credentials; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.webauthn_credentials (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    credential_id bytea NOT NULL,
+    public_key bytea NOT NULL,
+    attestation_type text DEFAULT ''::text NOT NULL,
+    aaguid uuid,
+    sign_count bigint DEFAULT 0 NOT NULL,
+    transports jsonb DEFAULT '[]'::jsonb NOT NULL,
+    backup_eligible boolean DEFAULT false NOT NULL,
+    backed_up boolean DEFAULT false NOT NULL,
+    friendly_name text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_used_at timestamp with time zone
+);
+
+
+--
+-- Name: ai_query_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ai_query_logs (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    country_id uuid,
+    calendar_month_id uuid,
+    question_redacted text NOT NULL,
+    context_summary_json json NOT NULL,
+    answer text,
+    provider text NOT NULL,
+    model text,
+    latency_ms integer,
+    error_code text,
+    error_message text
+);
+
+
+--
+-- Name: alembic_version; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.alembic_version (
+    version_num character varying(32) NOT NULL
+);
+
+
+--
+-- Name: calendar_months; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.calendar_months (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    month_start_date date NOT NULL,
+    month_label text NOT NULL,
+    fiscal_year text NOT NULL,
+    fiscal_month_number integer NOT NULL,
+    calendar_year integer NOT NULL,
+    calendar_month_number integer NOT NULL
+);
+
+
+--
+-- Name: countries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.countries (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    name text NOT NULL,
+    code text NOT NULL,
+    default_currency_code text NOT NULL
+);
+
+
+--
+-- Name: doctors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.doctors (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    country_id uuid NOT NULL,
+    pcode_normalized text NOT NULL,
+    latest_doctor_name text,
+    speciality text,
+    doctor_class text,
+    patch_name text,
+    active_status text,
+    source_count integer DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    first_seen_month_id uuid,
+    last_seen_month_id uuid
+);
+
+
+--
+-- Name: event_matches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_matches (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    country_id uuid NOT NULL,
+    calendar_month_id uuid NOT NULL,
+    plan_event_id uuid,
+    execution_snapshot_id uuid,
+    execution_request_id uuid,
+    match_method text NOT NULL,
+    match_confidence numeric(5,4) NOT NULL,
+    match_status text NOT NULL,
+    matched_on json,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    unmatched_reason_code text,
+    unmatched_reason_detail text
+);
+
+
+--
+-- Name: exchange_rates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.exchange_rates (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    currency_code text NOT NULL,
+    rate_to_usd numeric(18,10),
+    rate_date date,
+    source text NOT NULL,
+    rate_status text NOT NULL,
+    CONSTRAINT ck_exchange_rate_status CHECK ((rate_status = ANY (ARRAY['official'::text, 'provisional'::text, 'missing'::text])))
+);
+
+
+--
+-- Name: execution_requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.execution_requests (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    source_file_id uuid NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    source_system text DEFAULT 'consolidation'::text NOT NULL,
+    req_id text,
+    request_uid text NOT NULL,
+    country_id uuid NOT NULL,
+    calendar_month_id uuid NOT NULL,
+    rep_code text,
+    rep_name text,
+    intervention_date date,
+    actual_intervention_date date,
+    venue text,
+    intervention_name text NOT NULL,
+    intervention_name_normalized text NOT NULL,
+    intervention_type text,
+    intervention_sub_type text,
+    estimated_intervention_local numeric(18,2),
+    confirmed_contracted_amount_local numeric(18,2),
+    confirmed_vs_estimated_variance_local numeric(18,2),
+    actual_total_expense_local numeric(18,2),
+    actual_btu_expense_local numeric(18,2),
+    actual_btc_expense_local numeric(18,2),
+    association_amount_local numeric(18,2),
+    currency_code text NOT NULL,
+    fx_rate_to_usd numeric(18,10),
+    fx_rate_status text NOT NULL,
+    request_approval_status text,
+    request_confirmation_status text,
+    post_approval_status text,
+    post_confirmation_status text,
+    current_owner_stage text,
+    approval_chain_json json,
+    source_row_number integer NOT NULL,
+    topic_remarks text,
+    association_contract_id text,
+    association_deliverables text,
+    fx_rate_source text,
+    fx_rate_date date,
+    estimated_intervention_usd numeric(18,2),
+    confirmed_contracted_amount_usd numeric(18,2),
+    actual_total_expense_usd numeric(18,2),
+    actual_btu_expense_usd numeric(18,2),
+    actual_btc_expense_usd numeric(18,2),
+    direct_hcp_spend_local numeric(18,2),
+    overhead_spend_local numeric(18,2),
+    total_roi_spend_local numeric(18,2),
+    direct_hcp_spend_usd numeric(18,2),
+    overhead_spend_usd numeric(18,2),
+    total_roi_spend_usd numeric(18,2),
+    expected_customer_count integer,
+    attended_customer_count integer,
+    expected_category_raw text,
+    attended_category_raw text,
+    expense_submitted_date date,
+    expense_confirmed_date date,
+    approval_status text,
+    confirmation_status text,
+    cancellation_reason text,
+    city text,
+    state text,
+    CONSTRAINT ck_execution_requests_fx_rate_status CHECK ((fx_rate_status = ANY (ARRAY['official'::text, 'provisional'::text, 'missing'::text])))
+);
+
+
+--
+-- Name: execution_snapshots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.execution_snapshots (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    source_file_id uuid NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    country_id uuid NOT NULL,
+    calendar_month_id uuid NOT NULL,
+    therapy text,
+    event_type text,
+    event_name text NOT NULL,
+    event_name_normalized text NOT NULL,
+    planned_hcps integer,
+    engaged_hcps integer,
+    raised_request_count integer,
+    snapshot_source text NOT NULL,
+    status_source_value text,
+    normalized_status text NOT NULL,
+    source_sheet_name text NOT NULL,
+    source_row_number integer NOT NULL,
+    yp_total_doctors integer,
+    raised_total_doctors integer,
+    approved_total_doctors integer,
+    request_total_doctors integer,
+    event_created_count integer,
+    source_derivation_json json DEFAULT '{}'::json NOT NULL,
+    CONSTRAINT ck_execution_snapshots_normalized_status CHECK ((normalized_status = ANY (ARRAY['executed'::text, 'action_due'::text, 'unknown'::text]))),
+    CONSTRAINT ck_execution_snapshots_snapshot_source CHECK ((snapshot_source = ANY (ARRAY['monthly_planner'::text, 'derived_from_consolidation'::text])))
+);
+
+
+--
+-- Name: ingestion_run_files; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ingestion_run_files (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    source_file_id uuid NOT NULL,
+    local_path_snapshot text,
+    status text NOT NULL,
+    sheets_profiled integer DEFAULT 0 NOT NULL,
+    rows_seen integer DEFAULT 0 NOT NULL,
+    rows_loaded integer DEFAULT 0 NOT NULL,
+    rows_skipped integer DEFAULT 0 NOT NULL,
+    warnings integer DEFAULT 0 NOT NULL,
+    errors integer DEFAULT 0 NOT NULL,
+    profile_json json
+);
+
+
+--
+-- Name: ingestion_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ingestion_runs (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    completed_at timestamp with time zone,
+    status text NOT NULL,
+    triggered_by text,
+    source_file_count integer DEFAULT 0 NOT NULL,
+    total_rows_seen integer DEFAULT 0 NOT NULL,
+    total_rows_loaded integer DEFAULT 0 NOT NULL,
+    total_rows_skipped integer DEFAULT 0 NOT NULL,
+    warning_count integer DEFAULT 0 NOT NULL,
+    error_count integer DEFAULT 0 NOT NULL,
+    summary_json json,
+    CONSTRAINT ck_ingestion_runs_status CHECK ((status = ANY (ARRAY['running'::text, 'completed'::text, 'completed_with_warnings'::text, 'failed'::text])))
+);
+
+
+--
+-- Name: plan_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.plan_events (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    source_file_id uuid NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    country_id uuid NOT NULL,
+    calendar_month_id uuid NOT NULL,
+    fiscal_year text,
+    therapy text,
+    event_type text,
+    event_name text NOT NULL,
+    event_name_normalized text NOT NULL,
+    central_or_local text,
+    brand_name_1 text,
+    brand_name_2 text,
+    planned_total_hcps integer,
+    planned_patients integer,
+    planned_pharmacies integer,
+    total_planned_cost_usd numeric(18,2),
+    source_sheet_name text NOT NULL,
+    source_row_number integer NOT NULL,
+    planned_honorarium_hcps integer,
+    planned_delegate_hcps integer,
+    honorarium_cost_per_hcp_usd numeric(18,2),
+    total_honorarium_cost_usd numeric(18,2),
+    operational_cost_per_unit_usd numeric(18,2),
+    total_operational_cost_usd numeric(18,2),
+    comments text,
+    country_comment text,
+    ho_finalized text
+);
+
+
+--
+-- Name: phase4_analysis_scope; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.phase4_analysis_scope AS
+ WITH all_scopes AS (
+         SELECT plan_events.country_id,
+            plan_events.calendar_month_id
+           FROM public.plan_events
+        UNION
+         SELECT execution_snapshots.country_id,
+            execution_snapshots.calendar_month_id
+           FROM public.execution_snapshots
+        UNION
+         SELECT execution_requests.country_id,
+            execution_requests.calendar_month_id
+           FROM public.execution_requests
+        ), availability AS (
+         SELECT s.country_id,
+            s.calendar_month_id,
+            (EXISTS ( SELECT 1
+                   FROM public.plan_events pe
+                  WHERE ((pe.country_id = s.country_id) AND (pe.calendar_month_id = s.calendar_month_id)))) AS planner_available,
+            (EXISTS ( SELECT 1
+                   FROM public.execution_snapshots es
+                  WHERE ((es.country_id = s.country_id) AND (es.calendar_month_id = s.calendar_month_id)))) AS snapshot_available,
+            (EXISTS ( SELECT 1
+                   FROM public.execution_requests er
+                  WHERE ((er.country_id = s.country_id) AND (er.calendar_month_id = s.calendar_month_id)))) AS consolidation_available
+           FROM all_scopes s
+        )
+ SELECT a.country_id,
+    c.code AS country_code,
+    c.name AS country_name,
+    a.calendar_month_id,
+    cm.month_start_date,
+    cm.month_label,
+    a.planner_available,
+    a.snapshot_available,
+    a.consolidation_available,
+    ((c.name = ANY (ARRAY['Nepal'::text, 'Sri Lanka'::text])) AND (cm.month_label = ANY (ARRAY['2026-04'::text, '2026-05'::text])) AND a.planner_available AND a.snapshot_available AND a.consolidation_available) AS in_primary_scope,
+        CASE
+            WHEN (c.name <> ALL (ARRAY['Nepal'::text, 'Sri Lanka'::text])) THEN 'out_of_scope_no_fy27_planner_country'::text
+            WHEN (cm.month_label < '2026-04'::text) THEN 'historical_consolidation_no_fy27_plan'::text
+            WHEN (cm.month_label > '2026-05'::text) THEN 'future_or_later_period_no_execution_snapshot'::text
+            WHEN (NOT a.planner_available) THEN 'no_planner_for_country_month'::text
+            WHEN (NOT a.snapshot_available) THEN 'no_execution_snapshot_for_month'::text
+            WHEN (NOT a.consolidation_available) THEN 'no_consolidation_requests_for_month'::text
+            ELSE 'primary_phase4_scope'::text
+        END AS scope_status,
+        CASE
+            WHEN (c.name <> ALL (ARRAY['Nepal'::text, 'Sri Lanka'::text])) THEN 'Phase 4 plan-vs-actual KPIs are scoped to Nepal and Sri Lanka because those are the only markets with FY27 planner coverage.'::text
+            WHEN (cm.month_label < '2026-04'::text) THEN 'This period is before FY27 planner coverage and is retained as historical consolidation evidence only.'::text
+            WHEN (cm.month_label > '2026-05'::text) THEN 'This period is outside the available April-May 2026 execution snapshot window and is retained for future analysis.'::text
+            WHEN (NOT a.planner_available) THEN 'No planner row exists for this country/month, so plan-vs-actual execution cannot be computed without inventing a plan.'::text
+            WHEN (NOT a.snapshot_available) THEN 'No monthly execution snapshot exists for this country/month, so execution evidence is incomplete.'::text
+            WHEN (NOT a.consolidation_available) THEN 'No consolidation requests exist for this country/month, so request/workflow evidence is incomplete.'::text
+            ELSE 'Primary Phase 4 scope: planner, execution snapshot, and consolidation evidence are all available.'::text
+        END AS scope_reason
+   FROM ((availability a
+     JOIN public.countries c ON ((c.id = a.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = a.calendar_month_id)));
+
+
+--
+-- Name: mv_budget_utilization; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_budget_utilization AS
+ WITH matched_pairs AS (
+         SELECT DISTINCT em.country_id,
+            em.calendar_month_id,
+            em.plan_event_id,
+            em.execution_request_id,
+            em.match_status
+           FROM public.event_matches em
+          WHERE ((em.match_status = ANY (ARRAY['matched'::text, 'weak_match'::text])) AND ((em.plan_event_id IS NOT NULL) OR (em.execution_request_id IS NOT NULL)))
+        ), plan_only AS (
+         SELECT pe_1.country_id,
+            pe_1.calendar_month_id,
+            pe_1.id AS plan_event_id,
+            NULL::uuid AS execution_request_id,
+            'unmatched_plan'::text AS match_status
+           FROM public.plan_events pe_1
+          WHERE (NOT (EXISTS ( SELECT 1
+                   FROM matched_pairs mp
+                  WHERE (mp.plan_event_id = pe_1.id))))
+        ), request_only AS (
+         SELECT er_1.country_id,
+            er_1.calendar_month_id,
+            NULL::uuid AS plan_event_id,
+            er_1.id AS execution_request_id,
+            'unmatched_request'::text AS match_status
+           FROM public.execution_requests er_1
+          WHERE (NOT (EXISTS ( SELECT 1
+                   FROM matched_pairs mp
+                  WHERE (mp.execution_request_id = er_1.id))))
+        ), budget_rows AS (
+         SELECT matched_pairs.country_id,
+            matched_pairs.calendar_month_id,
+            matched_pairs.plan_event_id,
+            matched_pairs.execution_request_id,
+            matched_pairs.match_status
+           FROM matched_pairs
+        UNION ALL
+         SELECT plan_only.country_id,
+            plan_only.calendar_month_id,
+            plan_only.plan_event_id,
+            plan_only.execution_request_id,
+            plan_only.match_status
+           FROM plan_only
+        UNION ALL
+         SELECT request_only.country_id,
+            request_only.calendar_month_id,
+            request_only.plan_event_id,
+            request_only.execution_request_id,
+            request_only.match_status
+           FROM request_only
+        )
+ SELECT br.country_id,
+    c.code AS country_code,
+    c.name AS country_name,
+    br.calendar_month_id,
+    cm.month_start_date,
+    cm.month_label,
+    br.plan_event_id,
+    br.execution_request_id,
+    br.match_status,
+    COALESCE(pe.event_name, er.intervention_name) AS event_name,
+    COALESCE(pe.event_type, er.intervention_type) AS event_type,
+    pe.therapy,
+    er.intervention_sub_type,
+    pe.total_planned_cost_usd AS planned_budget_usd,
+    er.estimated_intervention_local,
+    er.estimated_intervention_usd,
+    er.confirmed_contracted_amount_local,
+    er.confirmed_contracted_amount_usd,
+    er.confirmed_vs_estimated_variance_local,
+        CASE
+            WHEN ((er.fx_rate_to_usd IS NOT NULL) AND (er.confirmed_vs_estimated_variance_local IS NOT NULL)) THEN round((er.confirmed_vs_estimated_variance_local * er.fx_rate_to_usd), 4)
+            ELSE NULL::numeric
+        END AS confirmed_vs_estimated_variance_usd,
+    er.actual_btu_expense_local AS direct_hcp_btu_spend_local,
+    er.actual_btu_expense_usd AS direct_hcp_btu_spend_usd,
+    er.actual_btc_expense_local AS overhead_btc_spend_local,
+    er.actual_btc_expense_usd AS overhead_btc_spend_usd,
+    er.actual_total_expense_local,
+    er.actual_total_expense_usd,
+    er.association_amount_local,
+    er.currency_code,
+    er.fx_rate_to_usd,
+    er.fx_rate_source,
+    er.fx_rate_date,
+    COALESCE(er.fx_rate_status,
+        CASE
+            WHEN (er.id IS NULL) THEN 'not_applicable'::text
+            ELSE 'missing'::text
+        END) AS fx_rate_status,
+    ((er.id IS NOT NULL) AND ((er.fx_rate_status IS NULL) OR (er.fx_rate_status = 'missing'::text))) AS missing_fx,
+    (er.fx_rate_status = 'provisional'::text) AS provisional_fx,
+        CASE
+            WHEN (er.actual_total_expense_local IS NULL) THEN 'missing_total_actual'::text
+            WHEN ((er.actual_btu_expense_local IS NULL) AND (er.actual_btc_expense_local IS NULL)) THEN 'missing_btu_btc_split'::text
+            WHEN (abs(((COALESCE(er.actual_btu_expense_local, (0)::numeric) + COALESCE(er.actual_btc_expense_local, (0)::numeric)) - er.actual_total_expense_local)) <= (1)::numeric) THEN 'reconciled'::text
+            ELSE 'mismatch'::text
+        END AS btu_btc_reconciliation_status,
+        CASE
+            WHEN (er.actual_total_expense_local IS NULL) THEN NULL::numeric
+            ELSE round(((COALESCE(er.actual_btu_expense_local, (0)::numeric) + COALESCE(er.actual_btc_expense_local, (0)::numeric)) - er.actual_total_expense_local), 4)
+        END AS btu_btc_delta_local,
+        CASE
+            WHEN (er.actual_total_expense_usd IS NULL) THEN NULL::numeric
+            ELSE round(((COALESCE(er.actual_btu_expense_usd, (0)::numeric) + COALESCE(er.actual_btc_expense_usd, (0)::numeric)) - er.actual_total_expense_usd), 4)
+        END AS btu_btc_delta_usd,
+        CASE
+            WHEN ((pe.id IS NOT NULL) AND (er.id IS NULL)) THEN pe.total_planned_cost_usd
+            WHEN ((pe.total_planned_cost_usd IS NOT NULL) AND (er.actual_total_expense_usd IS NOT NULL)) THEN GREATEST((pe.total_planned_cost_usd - er.actual_total_expense_usd), (0)::numeric)
+            ELSE NULL::numeric
+        END AS unspent_gap_usd,
+        CASE
+            WHEN ((pe.total_planned_cost_usd IS NOT NULL) AND (er.actual_total_expense_usd IS NOT NULL)) THEN GREATEST((er.actual_total_expense_usd - pe.total_planned_cost_usd), (0)::numeric)
+            ELSE NULL::numeric
+        END AS overrun_amount_usd,
+    ((pe.id IS NOT NULL) AND (er.id IS NULL)) AS plan_without_spend,
+    ((pe.id IS NULL) AND (er.id IS NOT NULL)) AS spend_without_plan,
+    COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
+    COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
+    COALESCE(p4.scope_reason, 'This country/month is outside the current analytical scope.'::text) AS scope_reason,
+    now() AS refreshed_at
+   FROM (((((budget_rows br
+     JOIN public.countries c ON ((c.id = br.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = br.calendar_month_id)))
+     LEFT JOIN public.plan_events pe ON ((pe.id = br.plan_event_id)))
+     LEFT JOIN public.execution_requests er ON ((er.id = br.execution_request_id)))
+     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = br.country_id) AND (p4.calendar_month_id = br.calendar_month_id))))
+  WITH NO DATA;
+
+
+--
+-- Name: rcpa_doctor_month_summary; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rcpa_doctor_month_summary (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    source_file_id uuid NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    country_id uuid NOT NULL,
+    calendar_month_id uuid NOT NULL,
+    pcode_raw text,
+    pcode_normalized text NOT NULL,
+    doctor_name text,
+    speciality text,
+    doctor_class text,
+    patch_name text,
+    active_status text,
+    own_prescription_qty numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    own_prescription_value_local numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    competitor_prescription_qty numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    competitor_prescription_value_local numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    total_prescription_qty numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    total_prescription_value_local numeric(18,2) DEFAULT '0'::numeric NOT NULL,
+    currency_code text NOT NULL,
+    row_count_aggregated integer NOT NULL
+);
+
+
+--
+-- Name: request_doctors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.request_doctors (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    execution_request_id uuid NOT NULL,
+    attendance_type text NOT NULL,
+    doctor_name_raw text,
+    doctor_class_raw text,
+    pcode_raw text,
+    pcode_normalized text,
+    parse_status text NOT NULL,
+    source_position integer NOT NULL,
+    CONSTRAINT ck_request_doctors_attendance_type CHECK ((attendance_type = ANY (ARRAY['expected'::text, 'actual'::text]))),
+    CONSTRAINT ck_request_doctors_parse_status CHECK ((parse_status = ANY (ARRAY['parsed'::text, 'missing_pcode'::text, 'ambiguous'::text, 'invalid'::text])))
+);
+
+
+--
+-- Name: mv_doctor_roi; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_doctor_roi AS
+ WITH actual_attendance_raw AS (
+         SELECT rd.id AS request_doctor_id,
+            rd.execution_request_id,
+            er.country_id,
+            er.calendar_month_id,
+            er.actual_intervention_date,
+            er.intervention_date,
+            rd.pcode_normalized,
+            rd.doctor_name_raw,
+            rd.doctor_class_raw,
+            er.actual_btu_expense_local,
+            er.actual_btc_expense_local,
+            er.actual_total_expense_local,
+            er.actual_btu_expense_usd,
+            er.actual_btc_expense_usd,
+            er.actual_total_expense_usd,
+            er.currency_code,
+            er.fx_rate_status
+           FROM (public.request_doctors rd
+             JOIN public.execution_requests er ON ((er.id = rd.execution_request_id)))
+          WHERE ((rd.attendance_type = 'actual'::text) AND (rd.pcode_normalized IS NOT NULL) AND (rd.parse_status = 'parsed'::text))
+        ), actual_attendance AS (
+         SELECT (min((actual_attendance_raw.request_doctor_id)::text))::uuid AS request_doctor_id,
+            actual_attendance_raw.execution_request_id,
+            actual_attendance_raw.country_id,
+            actual_attendance_raw.calendar_month_id,
+            max(actual_attendance_raw.actual_intervention_date) AS actual_intervention_date,
+            max(actual_attendance_raw.intervention_date) AS intervention_date,
+            actual_attendance_raw.pcode_normalized,
+            max(actual_attendance_raw.doctor_name_raw) FILTER (WHERE (actual_attendance_raw.doctor_name_raw IS NOT NULL)) AS doctor_name_raw,
+            max(actual_attendance_raw.doctor_class_raw) FILTER (WHERE (actual_attendance_raw.doctor_class_raw IS NOT NULL)) AS doctor_class_raw,
+            max(actual_attendance_raw.actual_btu_expense_local) AS actual_btu_expense_local,
+            max(actual_attendance_raw.actual_btc_expense_local) AS actual_btc_expense_local,
+            max(actual_attendance_raw.actual_total_expense_local) AS actual_total_expense_local,
+            max(actual_attendance_raw.actual_btu_expense_usd) AS actual_btu_expense_usd,
+            max(actual_attendance_raw.actual_btc_expense_usd) AS actual_btc_expense_usd,
+            max(actual_attendance_raw.actual_total_expense_usd) AS actual_total_expense_usd,
+            max(actual_attendance_raw.currency_code) AS currency_code,
+            max(actual_attendance_raw.fx_rate_status) AS fx_rate_status
+           FROM actual_attendance_raw
+          GROUP BY actual_attendance_raw.execution_request_id, actual_attendance_raw.country_id, actual_attendance_raw.calendar_month_id, actual_attendance_raw.pcode_normalized
+        ), request_actual_counts AS (
+         SELECT actual_attendance.execution_request_id,
+            (count(DISTINCT actual_attendance.pcode_normalized))::numeric AS doctor_count
+           FROM actual_attendance
+          GROUP BY actual_attendance.execution_request_id
+        ), engagement AS (
+         SELECT aa.country_id,
+            aa.pcode_normalized,
+            max(aa.doctor_name_raw) FILTER (WHERE (aa.doctor_name_raw IS NOT NULL)) AS attended_doctor_name,
+            max(aa.doctor_class_raw) FILTER (WHERE (aa.doctor_class_raw IS NOT NULL)) AS attended_doctor_class,
+            (count(DISTINCT aa.execution_request_id))::integer AS engagement_count,
+            min(COALESCE(aa.actual_intervention_date, aa.intervention_date)) AS first_engagement_date,
+            max(COALESCE(aa.actual_intervention_date, aa.intervention_date)) AS last_engagement_date,
+            sum((aa.actual_btu_expense_local / NULLIF(rac.doctor_count, (0)::numeric))) AS direct_hcp_btu_spend_local,
+            sum((aa.actual_btc_expense_local / NULLIF(rac.doctor_count, (0)::numeric))) AS overhead_btc_spend_local,
+            sum((aa.actual_total_expense_local / NULLIF(rac.doctor_count, (0)::numeric))) AS total_roi_spend_local,
+            sum((aa.actual_btu_expense_usd / NULLIF(rac.doctor_count, (0)::numeric))) AS direct_hcp_btu_spend_usd,
+            sum((aa.actual_btc_expense_usd / NULLIF(rac.doctor_count, (0)::numeric))) AS overhead_btc_spend_usd,
+            sum((aa.actual_total_expense_usd / NULLIF(rac.doctor_count, (0)::numeric))) AS total_roi_spend_usd,
+            bool_or((aa.fx_rate_status = 'missing'::text)) AS has_missing_fx,
+            bool_or((aa.fx_rate_status = 'provisional'::text)) AS has_provisional_fx
+           FROM (actual_attendance aa
+             JOIN request_actual_counts rac ON ((rac.execution_request_id = aa.execution_request_id)))
+          GROUP BY aa.country_id, aa.pcode_normalized
+        ), rx AS (
+         SELECT rcpa_doctor_month_summary.country_id,
+            rcpa_doctor_month_summary.pcode_normalized,
+            max(rcpa_doctor_month_summary.doctor_name) FILTER (WHERE (rcpa_doctor_month_summary.doctor_name IS NOT NULL)) AS rcpa_doctor_name,
+            max(rcpa_doctor_month_summary.speciality) FILTER (WHERE (rcpa_doctor_month_summary.speciality IS NOT NULL)) AS speciality,
+            max(rcpa_doctor_month_summary.doctor_class) FILTER (WHERE (rcpa_doctor_month_summary.doctor_class IS NOT NULL)) AS doctor_class,
+            max(rcpa_doctor_month_summary.active_status) FILTER (WHERE (rcpa_doctor_month_summary.active_status IS NOT NULL)) AS active_status,
+            min(cm.month_start_date) AS rcpa_first_month,
+            max(cm.month_start_date) AS rcpa_last_month,
+            sum(rcpa_doctor_month_summary.own_prescription_qty) AS cipla_prescription_qty,
+            sum(rcpa_doctor_month_summary.own_prescription_value_local) AS cipla_prescription_value_local,
+            sum(rcpa_doctor_month_summary.competitor_prescription_qty) AS competitor_prescription_qty,
+            sum(rcpa_doctor_month_summary.competitor_prescription_value_local) AS competitor_prescription_value_local,
+            sum(rcpa_doctor_month_summary.total_prescription_qty) AS total_prescription_qty,
+            sum(rcpa_doctor_month_summary.total_prescription_value_local) AS total_prescription_value_local,
+            (count(*))::integer AS rcpa_month_count
+           FROM (public.rcpa_doctor_month_summary
+             JOIN public.calendar_months cm ON ((cm.id = rcpa_doctor_month_summary.calendar_month_id)))
+          WHERE (rcpa_doctor_month_summary.pcode_normalized IS NOT NULL)
+          GROUP BY rcpa_doctor_month_summary.country_id, rcpa_doctor_month_summary.pcode_normalized
+        ), doctor_universe AS (
+         SELECT doctors.country_id,
+            doctors.pcode_normalized
+           FROM public.doctors
+          WHERE (doctors.pcode_normalized IS NOT NULL)
+        UNION
+         SELECT engagement.country_id,
+            engagement.pcode_normalized
+           FROM engagement
+        UNION
+         SELECT rx.country_id,
+            rx.pcode_normalized
+           FROM rx
+        ), metrics AS (
+         SELECT du.country_id,
+            c.code AS country_code,
+            c.name AS country_name,
+            du.pcode_normalized,
+            COALESCE(d.latest_doctor_name, rx.rcpa_doctor_name, e.attended_doctor_name) AS doctor_name,
+            COALESCE(d.speciality, rx.speciality) AS speciality,
+            COALESCE(d.doctor_class, rx.doctor_class, e.attended_doctor_class) AS doctor_class,
+            COALESCE(d.active_status, rx.active_status) AS active_status,
+            COALESCE(e.engagement_count, 0) AS engagement_count,
+            e.first_engagement_date,
+            e.last_engagement_date,
+            COALESCE(e.direct_hcp_btu_spend_local, (0)::numeric) AS direct_hcp_btu_spend_local,
+            COALESCE(e.overhead_btc_spend_local, (0)::numeric) AS overhead_btc_spend_local,
+            COALESCE(e.total_roi_spend_local, (0)::numeric) AS total_roi_spend_local,
+            COALESCE(e.direct_hcp_btu_spend_usd, (0)::numeric) AS direct_hcp_btu_spend_usd,
+            COALESCE(e.overhead_btc_spend_usd, (0)::numeric) AS overhead_btc_spend_usd,
+            COALESCE(e.total_roi_spend_usd, (0)::numeric) AS total_roi_spend_usd,
+            COALESCE(rx.cipla_prescription_qty, (0)::numeric) AS cipla_prescription_qty,
+            COALESCE(rx.cipla_prescription_value_local, (0)::numeric) AS cipla_prescription_value_local,
+            COALESCE(rx.competitor_prescription_qty, (0)::numeric) AS competitor_prescription_qty,
+            COALESCE(rx.competitor_prescription_value_local, (0)::numeric) AS competitor_prescription_value_local,
+            COALESCE(rx.total_prescription_qty, (0)::numeric) AS total_prescription_qty,
+            COALESCE(rx.total_prescription_value_local, (0)::numeric) AS total_prescription_value_local,
+            rx.rcpa_month_count,
+            rx.rcpa_first_month,
+            rx.rcpa_last_month,
+            (rx.pcode_normalized IS NOT NULL) AS has_rcpa,
+            COALESCE(e.has_missing_fx, false) AS has_missing_fx,
+            COALESCE(e.has_provisional_fx, false) AS has_provisional_fx
+           FROM ((((doctor_universe du
+             JOIN public.countries c ON ((c.id = du.country_id)))
+             LEFT JOIN public.doctors d ON (((d.country_id = du.country_id) AND (d.pcode_normalized = du.pcode_normalized))))
+             LEFT JOIN engagement e ON (((e.country_id = du.country_id) AND (e.pcode_normalized = du.pcode_normalized))))
+             LEFT JOIN rx ON (((rx.country_id = du.country_id) AND (rx.pcode_normalized = du.pcode_normalized))))
+        ), thresholds AS (
+         SELECT metrics.country_id,
+            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((NULLIF(metrics.total_roi_spend_usd, (0)::numeric))::double precision)) AS median_spend_usd,
+            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((NULLIF(metrics.cipla_prescription_qty, (0)::numeric))::double precision)) AS median_cipla_qty,
+            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((NULLIF(metrics.engagement_count, 0))::double precision)) AS median_engagement_count
+           FROM metrics
+          GROUP BY metrics.country_id
+        )
+ SELECT m.country_id,
+    m.country_code,
+    m.country_name,
+    m.pcode_normalized,
+    m.doctor_name,
+    m.speciality,
+    m.doctor_class,
+    m.active_status,
+    m.engagement_count,
+    m.first_engagement_date,
+    m.last_engagement_date,
+    m.direct_hcp_btu_spend_local,
+    m.overhead_btc_spend_local,
+    m.total_roi_spend_local,
+    m.direct_hcp_btu_spend_usd,
+    m.overhead_btc_spend_usd,
+    m.total_roi_spend_usd,
+    m.cipla_prescription_qty,
+    m.cipla_prescription_value_local,
+    m.competitor_prescription_qty,
+    m.competitor_prescription_value_local,
+    m.total_prescription_qty,
+    m.total_prescription_value_local,
+    m.rcpa_month_count,
+    m.rcpa_first_month,
+    m.rcpa_last_month,
+    m.has_rcpa,
+    m.has_missing_fx,
+    m.has_provisional_fx,
+        CASE
+            WHEN (m.total_prescription_qty > (0)::numeric) THEN round((m.cipla_prescription_qty / NULLIF(m.total_prescription_qty, (0)::numeric)), 4)
+            ELSE NULL::numeric
+        END AS cipla_share_qty,
+        CASE
+            WHEN (m.cipla_prescription_qty > (0)::numeric) THEN round((m.total_roi_spend_usd / NULLIF(m.cipla_prescription_qty, (0)::numeric)), 4)
+            ELSE NULL::numeric
+        END AS spend_per_cipla_prescription_usd,
+    COALESCE(t.median_spend_usd, (0)::double precision) AS country_median_spend_usd,
+    COALESCE(t.median_cipla_qty, (0)::double precision) AS country_median_cipla_qty,
+    COALESCE(t.median_engagement_count, (0)::double precision) AS country_median_engagement_count,
+    COALESCE(m.total_roi_spend_usd, (0)::numeric) AS quadrant_x,
+    COALESCE(m.cipla_prescription_qty, (0)::numeric) AS quadrant_y,
+        CASE
+            WHEN (NOT m.has_rcpa) THEN 'no_rcpa'::text
+            WHEN ((m.engagement_count = 0) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision)) AND (m.cipla_prescription_qty > (0)::numeric)) THEN 'high_value_unengaged'::text
+            WHEN ((m.engagement_count > 0) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'high_value_engaged'::text
+            WHEN (((m.total_roi_spend_usd)::double precision > COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision < COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'low_rx_high_spend'::text
+            ELSE 'insufficient_data'::text
+        END AS roi_segment,
+        CASE
+            WHEN (NOT m.has_rcpa) THEN 'insufficient data'::text
+            WHEN (((m.total_roi_spend_usd)::double precision <= COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'low effort / high reward'::text
+            WHEN (((m.total_roi_spend_usd)::double precision > COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'high effort / high reward'::text
+            WHEN (((m.total_roi_spend_usd)::double precision <= COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision < COALESCE(t.median_cipla_qty, (0)::double precision))) THEN 'low effort / low reward'::text
+            ELSE 'high effort / low reward'::text
+        END AS quadrant_label,
+    (m.has_rcpa AND (m.engagement_count = 0) AND ((m.total_roi_spend_usd)::double precision <= COALESCE(t.median_spend_usd, (0)::double precision)) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision)) AND (m.cipla_prescription_qty > (0)::numeric)) AS dark_horse_flag,
+    (m.has_rcpa AND (m.engagement_count = 0) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision)) AND (m.cipla_prescription_qty > (0)::numeric)) AS dark_horse_unengaged_flag,
+    (m.has_rcpa AND (m.engagement_count > 0) AND ((m.cipla_prescription_qty)::double precision >= COALESCE(t.median_cipla_qty, (0)::double precision))) AS high_value_engaged_flag,
+    now() AS refreshed_at
+   FROM (metrics m
+     LEFT JOIN thresholds t ON ((t.country_id = m.country_id)))
+  WITH NO DATA;
+
+
+--
+-- Name: mv_execution_kpis; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_execution_kpis AS
+ WITH scope AS (
+         SELECT plan_events.country_id,
+            plan_events.calendar_month_id
+           FROM public.plan_events
+        UNION
+         SELECT execution_snapshots.country_id,
+            execution_snapshots.calendar_month_id
+           FROM public.execution_snapshots
+        UNION
+         SELECT execution_requests.country_id,
+            execution_requests.calendar_month_id
+           FROM public.execution_requests
+        ), plan_counts AS (
+         SELECT plan_events.country_id,
+            plan_events.calendar_month_id,
+            count(DISTINCT plan_events.id) AS planned_events,
+            (COALESCE(sum(plan_events.planned_total_hcps), (0)::bigint))::integer AS planned_hcps
+           FROM public.plan_events
+          GROUP BY plan_events.country_id, plan_events.calendar_month_id
+        ), snapshot_metrics AS (
+         SELECT execution_snapshots.country_id,
+            execution_snapshots.calendar_month_id,
+            count(DISTINCT execution_snapshots.id) FILTER (WHERE (execution_snapshots.normalized_status = 'executed'::text)) AS executed_snapshot_count,
+            count(DISTINCT execution_snapshots.id) FILTER (WHERE (execution_snapshots.normalized_status = 'action_due'::text)) AS action_due_snapshot_count,
+            (COALESCE(sum(execution_snapshots.engaged_hcps), (0)::bigint))::integer AS raw_engaged_hcps
+           FROM public.execution_snapshots
+          GROUP BY execution_snapshots.country_id, execution_snapshots.calendar_month_id
+        ), matched_snapshot_evidence AS (
+         SELECT DISTINCT em.country_id,
+            em.calendar_month_id,
+            em.plan_event_id,
+            em.execution_snapshot_id,
+            es.normalized_status,
+            es.engaged_hcps
+           FROM (public.event_matches em
+             JOIN public.execution_snapshots es ON ((es.id = em.execution_snapshot_id)))
+          WHERE ((em.match_status = 'matched'::text) AND (em.plan_event_id IS NOT NULL) AND (em.execution_snapshot_id IS NOT NULL))
+        ), matched_execution_metrics AS (
+         SELECT matched_snapshot_evidence.country_id,
+            matched_snapshot_evidence.calendar_month_id,
+            count(DISTINCT matched_snapshot_evidence.plan_event_id) FILTER (WHERE (matched_snapshot_evidence.normalized_status = 'executed'::text)) AS planned_events_with_executed_evidence,
+            count(DISTINCT matched_snapshot_evidence.plan_event_id) FILTER (WHERE (matched_snapshot_evidence.normalized_status = 'action_due'::text)) AS planned_events_with_action_due_evidence,
+            (COALESCE(sum(matched_snapshot_evidence.engaged_hcps) FILTER (WHERE (matched_snapshot_evidence.normalized_status = 'executed'::text)), (0)::bigint))::integer AS matched_engaged_hcps
+           FROM matched_snapshot_evidence
+          GROUP BY matched_snapshot_evidence.country_id, matched_snapshot_evidence.calendar_month_id
+        ), snapshot_counts AS (
+         SELECT counts.country_id,
+            counts.calendar_month_id,
+            jsonb_object_agg(counts.snapshot_source, counts.source_count) AS snapshot_source_counts
+           FROM ( SELECT execution_snapshots.country_id,
+                    execution_snapshots.calendar_month_id,
+                    execution_snapshots.snapshot_source,
+                    count(DISTINCT execution_snapshots.id) AS source_count
+                   FROM public.execution_snapshots
+                  GROUP BY execution_snapshots.country_id, execution_snapshots.calendar_month_id, execution_snapshots.snapshot_source) counts
+          GROUP BY counts.country_id, counts.calendar_month_id
+        ), match_counts AS (
+         SELECT event_matches.country_id,
+            event_matches.calendar_month_id,
+            count(DISTINCT event_matches.plan_event_id) FILTER (WHERE ((event_matches.match_status = 'matched'::text) AND (event_matches.plan_event_id IS NOT NULL))) AS matched_events,
+            count(DISTINCT event_matches.plan_event_id) FILTER (WHERE ((event_matches.match_status = 'weak_match'::text) AND (event_matches.plan_event_id IS NOT NULL))) AS weak_match_events,
+            count(*) FILTER (WHERE (event_matches.match_status = ANY (ARRAY['unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text]))) AS unmatched_events,
+            count(*) FILTER (WHERE (event_matches.match_status = 'ignored'::text)) AS ignored_events
+           FROM public.event_matches
+          GROUP BY event_matches.country_id, event_matches.calendar_month_id
+        )
+ SELECT s.country_id,
+    c.code AS country_code,
+    c.name AS country_name,
+    s.calendar_month_id,
+    cm.month_start_date,
+    cm.month_label,
+    COALESCE(pc.planned_events, (0)::bigint) AS planned_events,
+    COALESCE(m.matched_events, (0)::bigint) AS matched_events,
+    (COALESCE(m.weak_match_events, (0)::bigint) + COALESCE(m.unmatched_events, (0)::bigint)) AS weak_or_unmatched_events,
+    COALESCE(mem.planned_events_with_executed_evidence, (0)::bigint) AS executed_events,
+    COALESCE(mem.planned_events_with_action_due_evidence, (0)::bigint) AS action_due_events,
+    COALESCE(mem.planned_events_with_executed_evidence, (0)::bigint) AS planned_events_with_executed_evidence,
+    COALESCE(mem.planned_events_with_action_due_evidence, (0)::bigint) AS planned_events_with_action_due_evidence,
+    COALESCE(sm.executed_snapshot_count, (0)::bigint) AS executed_snapshot_count,
+    COALESCE(sm.action_due_snapshot_count, (0)::bigint) AS action_due_snapshot_count,
+    COALESCE(pc.planned_hcps, 0) AS planned_hcps,
+    COALESCE(mem.matched_engaged_hcps, 0) AS engaged_hcps,
+    COALESCE(mem.matched_engaged_hcps, 0) AS matched_engaged_hcps,
+    COALESCE(sm.raw_engaged_hcps, 0) AS raw_engaged_hcps,
+        CASE
+            WHEN (COALESCE(pc.planned_hcps, 0) > 0) THEN round(((COALESCE(mem.matched_engaged_hcps, 0))::numeric / (NULLIF(pc.planned_hcps, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS hcp_execution_rate,
+        CASE
+            WHEN (COALESCE(pc.planned_events, (0)::bigint) > 0) THEN round(((COALESCE(mem.planned_events_with_executed_evidence, (0)::bigint))::numeric / (NULLIF(pc.planned_events, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS event_execution_rate,
+        CASE
+            WHEN (COALESCE(pc.planned_events, (0)::bigint) > 0) THEN round(((COALESCE(m.matched_events, (0)::bigint))::numeric / (NULLIF(pc.planned_events, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS match_coverage,
+    COALESCE(m.ignored_events, (0)::bigint) AS ignored_events,
+    COALESCE(sc.snapshot_source_counts, '{}'::jsonb) AS snapshot_source_counts,
+    COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
+    COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
+    COALESCE(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.'::text) AS scope_reason,
+    now() AS refreshed_at
+   FROM ((((((((scope s
+     JOIN public.countries c ON ((c.id = s.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = s.calendar_month_id)))
+     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = s.country_id) AND (p4.calendar_month_id = s.calendar_month_id))))
+     LEFT JOIN plan_counts pc ON (((pc.country_id = s.country_id) AND (pc.calendar_month_id = s.calendar_month_id))))
+     LEFT JOIN snapshot_metrics sm ON (((sm.country_id = s.country_id) AND (sm.calendar_month_id = s.calendar_month_id))))
+     LEFT JOIN matched_execution_metrics mem ON (((mem.country_id = s.country_id) AND (mem.calendar_month_id = s.calendar_month_id))))
+     LEFT JOIN match_counts m ON (((m.country_id = s.country_id) AND (m.calendar_month_id = s.calendar_month_id))))
+     LEFT JOIN snapshot_counts sc ON (((sc.country_id = s.country_id) AND (sc.calendar_month_id = s.calendar_month_id))))
+  WITH NO DATA;
+
+
+--
+-- Name: mv_unmatched_events; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_unmatched_events AS
+ SELECT em.id AS match_id,
+    em.country_id,
+    c.code AS country_code,
+    c.name AS country_name,
+    em.calendar_month_id,
+    cm.month_start_date,
+    cm.month_label,
+        CASE
+            WHEN (em.match_status = 'unmatched_plan'::text) THEN 'planner'::text
+            WHEN (em.match_status = 'unmatched_snapshot'::text) THEN 'execution_snapshot'::text
+            WHEN (em.match_status = 'unmatched_request'::text) THEN 'consolidation'::text
+            ELSE 'weak_match'::text
+        END AS source_type,
+    COALESCE(pe.event_name, es.event_name, er.intervention_name) AS event_name,
+    COALESCE(pe.event_type, es.event_type, er.intervention_type) AS event_type,
+    em.match_status AS reason,
+    COALESCE(em.unmatched_reason_code, p4.scope_status) AS unmatched_reason_code,
+    COALESCE(em.unmatched_reason_detail, p4.scope_reason) AS unmatched_reason_detail,
+    COALESCE(es.event_name, er.intervention_name, pe.event_name) AS candidate_match,
+    em.match_confidence AS confidence,
+    COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
+    COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
+    COALESCE(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.'::text) AS scope_reason,
+    jsonb_build_object('planEventId', em.plan_event_id, 'executionSnapshotId', em.execution_snapshot_id, 'executionRequestId', em.execution_request_id, 'matchedOn', em.matched_on, 'notes', em.notes) AS source_references,
+    em.created_at
+   FROM ((((((public.event_matches em
+     JOIN public.countries c ON ((c.id = em.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = em.calendar_month_id)))
+     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = em.country_id) AND (p4.calendar_month_id = em.calendar_month_id))))
+     LEFT JOIN public.plan_events pe ON ((pe.id = em.plan_event_id)))
+     LEFT JOIN public.execution_snapshots es ON ((es.id = em.execution_snapshot_id)))
+     LEFT JOIN public.execution_requests er ON ((er.id = em.execution_request_id)))
+  WHERE (em.match_status = ANY (ARRAY['weak_match'::text, 'unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text]))
+  WITH NO DATA;
+
+
+--
+-- Name: source_files; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.source_files (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    original_filename text NOT NULL,
+    file_hash text NOT NULL,
+    file_type text NOT NULL,
+    source_type text NOT NULL,
+    country_scope text,
+    period_start date,
+    period_end date,
+    detected_sheet_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: validation_errors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.validation_errors (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    source_file_id uuid,
+    sheet_name text,
+    row_number integer,
+    severity text NOT NULL,
+    entity_type text,
+    field_name text,
+    error_code text NOT NULL,
+    message text NOT NULL,
+    raw_value text,
+    CONSTRAINT ck_validation_errors_severity CHECK ((severity = ANY (ARRAY['info'::text, 'warning'::text, 'error'::text])))
+);
+
+
+--
+-- Name: mv_data_quality; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_data_quality AS
+ WITH latest_run AS (
+         SELECT ingestion_runs.id,
+            ingestion_runs.started_at,
+            ingestion_runs.completed_at,
+            ingestion_runs.status,
+            ingestion_runs.triggered_by,
+            ingestion_runs.source_file_count,
+            ingestion_runs.total_rows_seen,
+            ingestion_runs.total_rows_loaded,
+            ingestion_runs.total_rows_skipped,
+            ingestion_runs.warning_count,
+            ingestion_runs.error_count,
+            ingestion_runs.summary_json
+           FROM public.ingestion_runs
+          ORDER BY ingestion_runs.started_at DESC
+         LIMIT 1
+        ), latest_file_runs AS (
+         SELECT DISTINCT ON (irf.source_file_id) irf.ingestion_run_id,
+            irf.source_file_id,
+            irf.status,
+            irf.rows_seen,
+            irf.rows_loaded,
+            irf.rows_skipped,
+            irf.warnings,
+            irf.errors
+           FROM (public.ingestion_run_files irf
+             JOIN public.ingestion_runs ir ON ((ir.id = irf.ingestion_run_id)))
+          ORDER BY irf.source_file_id, ir.started_at DESC
+        ), validation_latest AS (
+         SELECT ve.id,
+            ve.ingestion_run_id,
+            ve.source_file_id,
+            ve.sheet_name,
+            ve.row_number,
+            ve.severity,
+            ve.entity_type,
+            ve.field_name,
+            ve.error_code,
+            ve.message,
+            ve.raw_value
+           FROM (public.validation_errors ve
+             JOIN latest_file_runs lfr ON (((lfr.source_file_id = ve.source_file_id) AND (lfr.ingestion_run_id = ve.ingestion_run_id))))
+        ), request_pcode AS (
+         SELECT (count(*))::integer AS request_doctor_rows,
+            (count(*) FILTER (WHERE (request_doctors.pcode_normalized IS NOT NULL)))::integer AS request_doctor_rows_with_pcode
+           FROM public.request_doctors
+        ), workflow AS (
+         SELECT (count(*))::integer AS workflow_rows,
+            (count(*) FILTER (WHERE ((execution_requests.request_approval_status IS NOT NULL) AND (execution_requests.request_approval_status <> 'unknown'::text))))::integer AS request_approval_covered,
+            (count(*) FILTER (WHERE ((execution_requests.post_approval_status IS NOT NULL) AND (execution_requests.post_approval_status <> 'unknown'::text))))::integer AS post_approval_covered
+           FROM public.execution_requests
+        ), interventions AS (
+         SELECT (count(*))::integer AS request_rows,
+            (count(*) FILTER (WHERE ((execution_requests.intervention_type IS NOT NULL) AND (btrim(execution_requests.intervention_type) <> ''::text))))::integer AS intervention_type_covered
+           FROM public.execution_requests
+        ), fx AS (
+         SELECT (count(*) FILTER (WHERE (execution_requests.fx_rate_status = 'missing'::text)))::integer AS missing_fx_count,
+            (count(*) FILTER (WHERE (execution_requests.fx_rate_status = 'provisional'::text)))::integer AS provisional_fx_count
+           FROM public.execution_requests
+        ), budget_quality AS (
+         SELECT (count(*) FILTER (WHERE (mv_budget_utilization.btu_btc_reconciliation_status = 'mismatch'::text)))::integer AS btu_btc_reconciliation_issue_count,
+            (count(*) FILTER (WHERE ((mv_budget_utilization.confirmed_contracted_amount_local IS NULL) AND (mv_budget_utilization.execution_request_id IS NOT NULL))))::integer AS missing_confirmed_amount_count,
+            (count(*) FILTER (WHERE mv_budget_utilization.spend_without_plan))::integer AS spend_without_plan_count,
+            (count(*) FILTER (WHERE mv_budget_utilization.plan_without_spend))::integer AS plan_without_spend_count
+           FROM public.mv_budget_utilization
+        ), rcpa AS (
+         SELECT (count(DISTINCT ((rcpa_doctor_month_summary.country_id || ':'::text) || rcpa_doctor_month_summary.pcode_normalized)))::integer AS rcpa_doctor_count,
+            (COALESCE(sum(rcpa_doctor_month_summary.row_count_aggregated), (0)::bigint))::integer AS rcpa_rows_aggregated
+           FROM public.rcpa_doctor_month_summary
+        ), doctor_coverage AS (
+         SELECT (count(*))::integer AS doctor_roi_rows,
+            (count(*) FILTER (WHERE mv_doctor_roi.has_rcpa))::integer AS doctor_roi_rows_with_rcpa,
+            (count(*) FILTER (WHERE (mv_doctor_roi.roi_segment = 'no_rcpa'::text)))::integer AS doctor_no_rcpa_count
+           FROM public.mv_doctor_roi
+        ), execution_quality AS (
+         SELECT (COALESCE(sum(mv_execution_kpis.planned_events), (0)::numeric))::integer AS planned_events,
+            (COALESCE(sum(mv_execution_kpis.matched_events), (0)::numeric))::integer AS matched_events,
+            (COALESCE(sum(mv_execution_kpis.weak_or_unmatched_events), (0)::numeric))::integer AS weak_or_unmatched_events,
+            COALESCE(avg(mv_execution_kpis.match_coverage), (0)::numeric) AS avg_match_coverage
+           FROM public.mv_execution_kpis
+          WHERE mv_execution_kpis.is_primary_phase4_scope
+        ), unmatched AS (
+         SELECT (count(*))::integer AS unmatched_event_count
+           FROM public.mv_unmatched_events
+          WHERE mv_unmatched_events.is_primary_phase4_scope
+        ), serial_months AS (
+         SELECT (GREATEST(COALESCE(( SELECT sum(COALESCE((((file_row.value -> 'summaries'::text) ->> 'serial_month_parse_count'::text))::integer, 0)) AS sum
+                   FROM (latest_run lr2
+                     CROSS JOIN LATERAL jsonb_array_elements(COALESCE(((lr2.summary_json)::jsonb -> 'files'::text), '[]'::jsonb)) file_row(value))), (0)::bigint), (COALESCE(( SELECT (count(*))::integer AS count
+                   FROM validation_latest
+                  WHERE ((lower(COALESCE(validation_latest.error_code, ''::text)) ~~ '%serial%'::text) OR (lower(COALESCE(validation_latest.message, ''::text)) ~~ '%serial%'::text))), 0))::bigint))::integer AS serial_month_parse_count
+        ), fx_seed AS (
+         SELECT max(exchange_rates.rate_date) FILTER (WHERE ((exchange_rates.currency_code = 'LKR'::text) AND (exchange_rates.rate_status = 'official'::text))) AS static_fx_seed_date,
+            max(exchange_rates.rate_to_usd) FILTER (WHERE ((exchange_rates.currency_code = 'LKR'::text) AND (exchange_rates.rate_status = 'official'::text))) AS official_lkr_rate_to_usd
+           FROM public.exchange_rates
+        ), unallocated_doctor_spend AS (
+         SELECT (count(*) FILTER (WHERE ((rd.attendance_type = 'actual'::text) AND ((rd.pcode_normalized IS NULL) OR (rd.parse_status <> 'parsed'::text)))))::integer AS actual_attendance_missing_pcode_count,
+            COALESCE(sum(er.actual_total_expense_local) FILTER (WHERE ((rd.attendance_type = 'actual'::text) AND ((rd.pcode_normalized IS NULL) OR (rd.parse_status <> 'parsed'::text)))), (0)::numeric) AS unallocated_doctor_spend_local,
+            COALESCE(sum(er.actual_total_expense_usd) FILTER (WHERE ((rd.attendance_type = 'actual'::text) AND ((rd.pcode_normalized IS NULL) OR (rd.parse_status <> 'parsed'::text)))), (0)::numeric) AS unallocated_doctor_spend_usd
+           FROM (public.request_doctors rd
+             JOIN public.execution_requests er ON ((er.id = rd.execution_request_id)))
+        ), derived AS (
+         SELECT (count(*))::integer AS derived_snapshot_count
+           FROM public.execution_snapshots
+          WHERE (execution_snapshots.snapshot_source = 'derived_from_consolidation'::text)
+        )
+ SELECT lr.id AS latest_ingestion_run_id,
+    lr.status AS latest_ingestion_status,
+    lr.started_at AS latest_ingestion_started_at,
+    lr.completed_at AS latest_ingestion_completed_at,
+    (COALESCE(( SELECT count(*) AS count
+           FROM public.source_files), (0)::bigint))::integer AS source_file_count,
+    (COALESCE(( SELECT count(*) AS count
+           FROM latest_file_runs
+          WHERE (latest_file_runs.status = ANY (ARRAY['loaded'::text, 'completed'::text, 'completed_with_warnings'::text]))), (0)::bigint))::integer AS loaded_file_count,
+    (COALESCE(( SELECT sum(latest_file_runs.rows_seen) AS sum
+           FROM latest_file_runs), (0)::bigint))::integer AS rows_seen,
+    (COALESCE(( SELECT sum(latest_file_runs.rows_loaded) AS sum
+           FROM latest_file_runs), (0)::bigint))::integer AS rows_loaded,
+    (COALESCE(( SELECT sum(latest_file_runs.rows_skipped) AS sum
+           FROM latest_file_runs), (0)::bigint))::integer AS rows_skipped,
+    (COALESCE(( SELECT count(*) AS count
+           FROM validation_latest
+          WHERE (validation_latest.severity = 'error'::text)), (0)::bigint))::integer AS validation_error_count,
+    (COALESCE(( SELECT count(*) AS count
+           FROM validation_latest
+          WHERE (validation_latest.severity = 'warning'::text)), (0)::bigint))::integer AS validation_warning_count,
+    eq.planned_events,
+    eq.matched_events,
+    eq.weak_or_unmatched_events,
+    eq.avg_match_coverage AS match_coverage,
+    rp.request_doctor_rows,
+    rp.request_doctor_rows_with_pcode,
+        CASE
+            WHEN (rp.request_doctor_rows > 0) THEN round(((rp.request_doctor_rows_with_pcode)::numeric / (NULLIF(rp.request_doctor_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS pcode_coverage,
+    rcpa.rcpa_doctor_count,
+    rcpa.rcpa_rows_aggregated,
+    dc.doctor_roi_rows,
+    dc.doctor_roi_rows_with_rcpa,
+    dc.doctor_no_rcpa_count,
+        CASE
+            WHEN (dc.doctor_roi_rows > 0) THEN round(((dc.doctor_roi_rows_with_rcpa)::numeric / (NULLIF(dc.doctor_roi_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS rcpa_coverage,
+    fx.missing_fx_count,
+    fx.provisional_fx_count,
+    bq.btu_btc_reconciliation_issue_count,
+    bq.missing_confirmed_amount_count,
+    bq.spend_without_plan_count,
+    bq.plan_without_spend_count,
+    workflow.workflow_rows,
+        CASE
+            WHEN (workflow.workflow_rows > 0) THEN round(((workflow.request_approval_covered)::numeric / (NULLIF(workflow.workflow_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS request_workflow_coverage,
+        CASE
+            WHEN (workflow.workflow_rows > 0) THEN round(((workflow.post_approval_covered)::numeric / (NULLIF(workflow.workflow_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS post_workflow_coverage,
+        CASE
+            WHEN (interventions.request_rows > 0) THEN round(((interventions.intervention_type_covered)::numeric / (NULLIF(interventions.request_rows, 0))::numeric), 4)
+            ELSE (0)::numeric
+        END AS intervention_type_coverage,
+    unmatched.unmatched_event_count,
+    derived.derived_snapshot_count,
+    serial_months.serial_month_parse_count,
+    fx_seed.static_fx_seed_date,
+    fx_seed.official_lkr_rate_to_usd,
+    uds.actual_attendance_missing_pcode_count,
+    uds.unallocated_doctor_spend_local,
+    uds.unallocated_doctor_spend_usd,
+    ((lr.completed_at IS NULL) OR (lr.completed_at < (now() - '14 days'::interval)) OR (lr.status <> ALL (ARRAY['completed'::text, 'completed_with_warnings'::text]))) AS stale_ingestion,
+    now() AS refreshed_at
+   FROM (((((((((((((latest_run lr
+     CROSS JOIN request_pcode rp)
+     CROSS JOIN workflow)
+     CROSS JOIN interventions)
+     CROSS JOIN fx)
+     CROSS JOIN budget_quality bq)
+     CROSS JOIN rcpa)
+     CROSS JOIN doctor_coverage dc)
+     CROSS JOIN execution_quality eq)
+     CROSS JOIN unmatched)
+     CROSS JOIN serial_months)
+     CROSS JOIN fx_seed)
+     CROSS JOIN unallocated_doctor_spend uds)
+     CROSS JOIN derived)
+  WITH NO DATA;
+
+
+--
+-- Name: mv_execution_event_matrix; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_execution_event_matrix AS
+ WITH decorated AS (
+         SELECT em_1.id,
+            em_1.ingestion_run_id,
+            em_1.country_id,
+            em_1.calendar_month_id,
+            em_1.plan_event_id,
+            em_1.execution_snapshot_id,
+            em_1.execution_request_id,
+            em_1.match_method,
+            em_1.match_confidence,
+            em_1.match_status,
+            em_1.matched_on,
+            em_1.notes,
+            em_1.created_at,
+            em_1.updated_at,
+            em_1.unmatched_reason_code,
+            em_1.unmatched_reason_detail,
+            count(*) FILTER (WHERE ((em_1.match_status = ANY (ARRAY['matched'::text, 'weak_match'::text])) AND (em_1.plan_event_id IS NOT NULL))) OVER (PARTITION BY em_1.plan_event_id) AS plan_match_count,
+            count(*) FILTER (WHERE ((em_1.match_status = ANY (ARRAY['matched'::text, 'weak_match'::text])) AND (em_1.execution_snapshot_id IS NOT NULL))) OVER (PARTITION BY em_1.execution_snapshot_id) AS snapshot_match_count
+           FROM public.event_matches em_1
+        )
+ SELECT em.id AS match_id,
+    em.country_id,
+    c.code AS country_code,
+    c.name AS country_name,
+    em.calendar_month_id,
+    cm.month_start_date,
+    cm.month_label,
+        CASE
+            WHEN (em.match_status = 'unmatched_plan'::text) THEN 'planner'::text
+            WHEN (em.match_status = 'unmatched_snapshot'::text) THEN 'execution_snapshot'::text
+            WHEN (em.match_status = 'unmatched_request'::text) THEN 'consolidation'::text
+            WHEN ((em.plan_event_id IS NOT NULL) AND (em.execution_snapshot_id IS NOT NULL) AND (em.execution_request_id IS NOT NULL)) THEN 'planner_execution_consolidation'::text
+            WHEN ((em.plan_event_id IS NOT NULL) AND (em.execution_snapshot_id IS NOT NULL)) THEN 'planner_execution'::text
+            WHEN ((em.plan_event_id IS NOT NULL) AND (em.execution_request_id IS NOT NULL)) THEN 'planner_consolidation'::text
+            WHEN ((em.execution_snapshot_id IS NOT NULL) AND (em.execution_request_id IS NOT NULL)) THEN 'execution_consolidation'::text
+            ELSE 'reconciliation'::text
+        END AS source_type,
+    COALESCE(pe.event_name, es.event_name, er.intervention_name) AS event_name,
+    COALESCE(pe.event_type, es.event_type, er.intervention_type) AS event_type,
+    pe.event_name AS planned_event_name,
+    es.event_name AS snapshot_event_name,
+    er.intervention_name AS request_event_name,
+    em.match_status,
+    em.match_method,
+    em.match_confidence AS confidence,
+        CASE
+            WHEN (em.match_status = 'unmatched_plan'::text) THEN NULL::text
+            ELSE COALESCE(es.event_name, er.intervention_name, pe.event_name)
+        END AS candidate_match,
+    pe.planned_total_hcps AS planned_hcps,
+    es.engaged_hcps,
+    es.normalized_status AS execution_status,
+    es.snapshot_source,
+    er.req_id,
+    er.request_uid,
+    er.intervention_type,
+    er.intervention_sub_type,
+    er.request_approval_status,
+    er.request_confirmation_status,
+    er.post_approval_status,
+    er.post_confirmation_status,
+    er.current_owner_stage,
+        CASE
+            WHEN (em.match_status = ANY (ARRAY['weak_match'::text, 'unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text])) THEN COALESCE(em.unmatched_reason_code, p4.scope_status)
+            ELSE NULL::text
+        END AS unmatched_reason_code,
+        CASE
+            WHEN (em.match_status = ANY (ARRAY['weak_match'::text, 'unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text])) THEN COALESCE(em.unmatched_reason_detail, p4.scope_reason)
+            ELSE NULL::text
+        END AS unmatched_reason_detail,
+    COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
+    COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
+    COALESCE(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.'::text) AS scope_reason,
+        CASE
+            WHEN (em.match_status = ANY (ARRAY['unmatched_plan'::text, 'unmatched_snapshot'::text, 'unmatched_request'::text])) THEN 'unmatched'::text
+            WHEN ((em.plan_event_id IS NOT NULL) AND (em.plan_match_count > 1)) THEN 'one_plan_many_requests'::text
+            WHEN ((em.execution_snapshot_id IS NOT NULL) AND (em.snapshot_match_count > 1)) THEN 'one_snapshot_many_requests'::text
+            ELSE 'single_match'::text
+        END AS match_grain,
+    jsonb_build_object('planEventId', em.plan_event_id, 'executionSnapshotId', em.execution_snapshot_id, 'executionRequestId', em.execution_request_id, 'matchedOn', em.matched_on, 'notes', em.notes, 'planSourceRow', pe.source_row_number, 'snapshotSourceRow', es.source_row_number, 'requestSourceRow', er.source_row_number, 'snapshotDerivation', es.source_derivation_json) AS source_references,
+        CASE
+            WHEN (es.snapshot_source = 'derived_from_consolidation'::text) THEN 'Derived from consolidation because the monthly execution country tab was missing.'::text
+            ELSE NULL::text
+        END AS source_derivation_note,
+    em.created_at
+   FROM ((((((decorated em
+     JOIN public.countries c ON ((c.id = em.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = em.calendar_month_id)))
+     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = em.country_id) AND (p4.calendar_month_id = em.calendar_month_id))))
+     LEFT JOIN public.plan_events pe ON ((pe.id = em.plan_event_id)))
+     LEFT JOIN public.execution_snapshots es ON ((es.id = em.execution_snapshot_id)))
+     LEFT JOIN public.execution_requests er ON ((er.id = em.execution_request_id)))
+  WITH NO DATA;
+
+
+--
+-- Name: mv_intervention_mix; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_intervention_mix AS
+ SELECT er.country_id,
+    c.code AS country_code,
+    c.name AS country_name,
+    er.calendar_month_id,
+    cm.month_start_date,
+    cm.month_label,
+    COALESCE(er.intervention_type, 'Unknown'::text) AS intervention_type,
+    er.intervention_sub_type,
+    (count(DISTINCT er.id))::integer AS request_count,
+    (count(DISTINCT er.id) FILTER (WHERE ((er.request_approval_status = ANY (ARRAY['approved'::text, 'confirmed'::text])) OR (er.request_confirmation_status = 'confirmed'::text))))::integer AS approved_count,
+    (count(DISTINCT er.id) FILTER (WHERE (em.match_status = 'matched'::text)))::integer AS matched_request_count,
+    (count(DISTINCT er.id) FILTER (WHERE ((em.match_status = 'matched'::text) AND (es.normalized_status = 'executed'::text))))::integer AS executed_count,
+    (count(DISTINCT er.id) FILTER (WHERE ((em.match_status = 'matched'::text) AND (es.normalized_status = 'executed'::text))))::integer AS executed_request_count,
+    (count(DISTINCT es.id) FILTER (WHERE ((em.match_status = 'matched'::text) AND (es.normalized_status = 'executed'::text))))::integer AS executed_snapshot_count,
+    (count(DISTINCT er.id) FILTER (WHERE ((em.match_status = 'matched'::text) AND (es.normalized_status = 'action_due'::text))))::integer AS action_due_count,
+    (count(DISTINCT er.id) FILTER (WHERE ((em.match_status = 'matched'::text) AND (es.normalized_status = 'action_due'::text))))::integer AS action_due_request_count,
+    (count(DISTINCT es.id) FILTER (WHERE ((em.match_status = 'matched'::text) AND (es.normalized_status = 'action_due'::text))))::integer AS action_due_snapshot_count,
+    (count(DISTINCT er.id) FILTER (WHERE ((em.match_status = 'matched'::text) AND (em.execution_snapshot_id IS NULL))))::integer AS matched_without_execution_count,
+    (count(DISTINCT er.id) FILTER (WHERE ((er.post_approval_status = ANY (ARRAY['pending_owner'::text, 'pending_confirmation'::text, 'pending'::text, 'draft'::text, 'sent_for_correction'::text])) OR (er.post_confirmation_status = ANY (ARRAY['pending_owner'::text, 'pending_confirmation'::text, 'pending'::text, 'draft'::text, 'sent_for_correction'::text])))))::integer AS report_pending_count,
+    sum(er.confirmed_contracted_amount_local) AS confirmed_contracted_amount,
+    sum(er.direct_hcp_spend_local) AS direct_hcp_btu_spend,
+    sum(er.overhead_spend_local) AS overhead_btc_spend,
+    sum(er.actual_total_expense_local) AS total_actual_spend,
+    COALESCE(er.fx_rate_status, 'missing'::text) AS fx_rate_status,
+    COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
+    COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
+    COALESCE(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.'::text) AS scope_reason,
+    now() AS refreshed_at
+   FROM (((((public.execution_requests er
+     JOIN public.countries c ON ((c.id = er.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = er.calendar_month_id)))
+     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = er.country_id) AND (p4.calendar_month_id = er.calendar_month_id))))
+     LEFT JOIN public.event_matches em ON ((em.execution_request_id = er.id)))
+     LEFT JOIN public.execution_snapshots es ON ((es.id = em.execution_snapshot_id)))
+  GROUP BY er.country_id, c.code, c.name, er.calendar_month_id, cm.month_start_date, cm.month_label, COALESCE(er.intervention_type, 'Unknown'::text), er.intervention_sub_type, COALESCE(er.fx_rate_status, 'missing'::text), p4.in_primary_scope, p4.scope_status, p4.scope_reason
+  WITH NO DATA;
+
+
+--
+-- Name: mv_latest_file_ingestion_status; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.mv_latest_file_ingestion_status AS
+ SELECT DISTINCT ON (sf.id) sf.id AS source_file_id,
+    sf.original_filename,
+    sf.source_type,
+    sf.country_scope,
+    sf.period_start,
+    sf.period_end,
+    ir.id AS ingestion_run_id,
+    ir.started_at,
+    ir.completed_at,
+    ir.status AS ingestion_status,
+    irf.status AS file_status,
+    irf.rows_seen,
+    irf.rows_loaded,
+    irf.rows_skipped,
+    irf.warnings,
+    irf.errors,
+    irf.sheets_profiled
+   FROM ((public.source_files sf
+     JOIN public.ingestion_run_files irf ON ((irf.source_file_id = sf.id)))
+     JOIN public.ingestion_runs ir ON ((ir.id = irf.ingestion_run_id)))
+  WHERE (ir.status = ANY (ARRAY['completed'::text, 'completed_with_warnings'::text]))
+  ORDER BY sf.id, ir.started_at DESC;
+
+
+--
+-- Name: mv_latest_validation_errors; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.mv_latest_validation_errors AS
+ SELECT ve.id,
+    ve.ingestion_run_id,
+    ve.source_file_id,
+    ve.sheet_name,
+    ve.row_number,
+    ve.severity,
+    ve.entity_type,
+    ve.field_name,
+    ve.error_code,
+    ve.message,
+    ve.raw_value
+   FROM (public.validation_errors ve
+     JOIN public.mv_latest_file_ingestion_status latest ON (((latest.source_file_id = ve.source_file_id) AND (latest.ingestion_run_id = ve.ingestion_run_id))));
+
+
+--
+-- Name: mv_workflow_governance; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.mv_workflow_governance AS
+ SELECT er.country_id,
+    c.code AS country_code,
+    c.name AS country_name,
+    er.calendar_month_id,
+    cm.month_start_date,
+    cm.month_label,
+    er.req_id,
+    er.request_uid,
+    er.rep_name,
+    er.intervention_type,
+    er.intervention_sub_type,
+    COALESCE(er.request_approval_status, 'unknown'::text) AS request_approval_status,
+    COALESCE(er.request_confirmation_status, 'unknown'::text) AS request_confirmation_status,
+    COALESCE(er.post_approval_status, 'unknown'::text) AS post_approval_status,
+    COALESCE(er.post_confirmation_status, 'unknown'::text) AS post_confirmation_status,
+    COALESCE(er.current_owner_stage,
+        CASE
+            WHEN (er.request_approval_status = ANY (ARRAY['pending_owner'::text, 'pending_confirmation'::text, 'pending'::text])) THEN 'request approval pending'::text
+            WHEN (er.request_confirmation_status = ANY (ARRAY['pending_owner'::text, 'pending_confirmation'::text, 'pending'::text])) THEN 'request confirmation pending'::text
+            WHEN (er.post_approval_status = ANY (ARRAY['pending_owner'::text, 'pending_confirmation'::text, 'pending'::text, 'sent_for_correction'::text])) THEN 'post report approval pending'::text
+            WHEN (er.post_confirmation_status = ANY (ARRAY['pending_owner'::text, 'pending_confirmation'::text, 'pending'::text, 'sent_for_correction'::text])) THEN 'post report confirmation pending'::text
+            WHEN ((er.post_approval_status = 'draft'::text) OR (er.post_confirmation_status = 'draft'::text)) THEN 'post report not submitted'::text
+            WHEN (er.request_approval_status = ANY (ARRAY['deleted'::text, 'rejected'::text])) THEN concat('request ', er.request_approval_status)
+            WHEN ((er.post_approval_status = 'approved'::text) OR (er.post_confirmation_status = ANY (ARRAY['approved'::text, 'confirmed'::text]))) THEN 'post report approved'::text
+            WHEN ((er.request_approval_status = ANY (ARRAY['approved'::text, 'confirmed'::text])) OR (er.request_confirmation_status = ANY (ARRAY['approved'::text, 'confirmed'::text]))) THEN 'request approved; report pending'::text
+            ELSE 'unknown'::text
+        END) AS current_owner_stage,
+    er.expense_submitted_date,
+    er.expense_confirmed_date,
+        CASE
+            WHEN (er.request_approval_status = ANY (ARRAY['pending_owner'::text, 'pending_confirmation'::text, 'pending'::text])) THEN 1
+            ELSE 0
+        END AS pending_request_count,
+        CASE
+            WHEN ((er.post_approval_status = ANY (ARRAY['pending_owner'::text, 'pending_confirmation'::text, 'pending'::text, 'draft'::text, 'sent_for_correction'::text])) OR (er.post_confirmation_status = ANY (ARRAY['pending_owner'::text, 'pending_confirmation'::text, 'pending'::text, 'draft'::text, 'sent_for_correction'::text]))) THEN 1
+            ELSE 0
+        END AS pending_report_count,
+        CASE
+            WHEN ((er.post_approval_status = 'sent_for_correction'::text) OR (er.post_confirmation_status = 'sent_for_correction'::text)) THEN 1
+            ELSE 0
+        END AS reports_sent_for_correction,
+        CASE
+            WHEN ((er.post_approval_status = 'approved'::text) OR (er.post_confirmation_status = 'confirmed'::text)) THEN 1
+            ELSE 0
+        END AS reports_approved,
+        CASE
+            WHEN (er.expense_submitted_date IS NOT NULL) THEN 1
+            ELSE 0
+        END AS expense_submitted_flag,
+        CASE
+            WHEN (er.expense_confirmed_date IS NOT NULL) THEN 1
+            ELSE 0
+        END AS expense_confirmed_flag,
+    COALESCE(p4.in_primary_scope, false) AS is_primary_phase4_scope,
+    COALESCE(p4.scope_status, 'out_of_scope_unknown'::text) AS scope_status,
+    COALESCE(p4.scope_reason, 'This country/month is outside the current Phase 4 analytical scope.'::text) AS scope_reason,
+    er.source_row_number,
+    now() AS refreshed_at
+   FROM (((public.execution_requests er
+     JOIN public.countries c ON ((c.id = er.country_id)))
+     JOIN public.calendar_months cm ON ((cm.id = er.calendar_month_id)))
+     LEFT JOIN public.phase4_analysis_scope p4 ON (((p4.country_id = er.country_id) AND (p4.calendar_month_id = er.calendar_month_id))))
+  WITH NO DATA;
+
+
+--
+-- Name: rcpa_country_brand_month_summary; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rcpa_country_brand_month_summary (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    source_file_id uuid NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    country_id uuid NOT NULL,
+    calendar_month_id uuid NOT NULL,
+    brand_group text NOT NULL,
+    own_or_competitor text NOT NULL,
+    prescription_qty numeric(18,2) NOT NULL,
+    prescription_value_local numeric(18,2),
+    currency_code text NOT NULL,
+    row_count_aggregated integer NOT NULL
+);
+
+
+--
+-- Name: rcpa_doctor_brand_summary; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rcpa_doctor_brand_summary (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    source_file_id uuid NOT NULL,
+    ingestion_run_id uuid NOT NULL,
+    country_id uuid NOT NULL,
+    first_calendar_month_id uuid,
+    last_calendar_month_id uuid,
+    pcode_normalized text NOT NULL,
+    doctor_name text,
+    brand_group text NOT NULL,
+    own_or_competitor text NOT NULL,
+    prescription_qty numeric(18,2) NOT NULL,
+    prescription_value_local numeric(18,2),
+    currency_code text NOT NULL,
+    row_count_aggregated integer NOT NULL
+);
+
+
+--
+-- Name: messages; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    binary_payload bytea
+)
+PARTITION BY RANGE (inserted_at);
+
+
+--
+-- Name: schema_migrations; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.schema_migrations (
+    version bigint NOT NULL,
+    inserted_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: subscription; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.subscription (
+    id bigint NOT NULL,
+    subscription_id uuid NOT NULL,
+    entity regclass NOT NULL,
+    filters realtime.user_defined_filter[] DEFAULT '{}'::realtime.user_defined_filter[] NOT NULL,
+    claims jsonb NOT NULL,
+    claims_role regrole GENERATED ALWAYS AS (realtime.to_regrole((claims ->> 'role'::text))) STORED NOT NULL,
+    created_at timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    action_filter text DEFAULT '*'::text,
+    selected_columns text[],
+    CONSTRAINT subscription_action_filter_check CHECK ((action_filter = ANY (ARRAY['*'::text, 'INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))
+);
+
+
+--
+-- Name: subscription_id_seq; Type: SEQUENCE; Schema: realtime; Owner: -
+--
+
+ALTER TABLE realtime.subscription ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME realtime.subscription_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: buckets; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.buckets (
+    id text NOT NULL,
+    name text NOT NULL,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    public boolean DEFAULT false,
+    avif_autodetection boolean DEFAULT false,
+    file_size_limit bigint,
+    allowed_mime_types text[],
+    owner_id text,
+    type storage.buckettype DEFAULT 'STANDARD'::storage.buckettype NOT NULL
+);
+
+
+--
+-- Name: COLUMN buckets.owner; Type: COMMENT; Schema: storage; Owner: -
+--
+
+COMMENT ON COLUMN storage.buckets.owner IS 'Field is deprecated, use owner_id instead';
+
+
+--
+-- Name: buckets_analytics; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.buckets_analytics (
+    name text NOT NULL,
+    type storage.buckettype DEFAULT 'ANALYTICS'::storage.buckettype NOT NULL,
+    format text DEFAULT 'ICEBERG'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    deleted_at timestamp with time zone
+);
+
+
+--
+-- Name: buckets_vectors; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.buckets_vectors (
+    id text NOT NULL,
+    type storage.buckettype DEFAULT 'VECTOR'::storage.buckettype NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: migrations; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.migrations (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    hash character varying(40) NOT NULL,
+    executed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: objects; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.objects (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bucket_id text,
+    name text,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    last_accessed_at timestamp with time zone DEFAULT now(),
+    metadata jsonb,
+    path_tokens text[] GENERATED ALWAYS AS (string_to_array(name, '/'::text)) STORED,
+    version text,
+    owner_id text,
+    user_metadata jsonb
+);
+
+
+--
+-- Name: COLUMN objects.owner; Type: COMMENT; Schema: storage; Owner: -
+--
+
+COMMENT ON COLUMN storage.objects.owner IS 'Field is deprecated, use owner_id instead';
+
+
+--
+-- Name: s3_multipart_uploads; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.s3_multipart_uploads (
+    id text NOT NULL,
+    in_progress_size bigint DEFAULT 0 NOT NULL,
+    upload_signature text NOT NULL,
+    bucket_id text NOT NULL,
+    key text NOT NULL COLLATE pg_catalog."C",
+    version text NOT NULL,
+    owner_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_metadata jsonb,
+    metadata jsonb
+);
+
+
+--
+-- Name: s3_multipart_uploads_parts; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.s3_multipart_uploads_parts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    upload_id text NOT NULL,
+    size bigint DEFAULT 0 NOT NULL,
+    part_number integer NOT NULL,
+    bucket_id text NOT NULL,
+    key text NOT NULL COLLATE pg_catalog."C",
+    etag text NOT NULL,
+    owner_id text,
+    version text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: vector_indexes; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.vector_indexes (
+    id text DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL COLLATE pg_catalog."C",
+    bucket_id text NOT NULL,
+    data_type text NOT NULL,
+    dimension integer NOT NULL,
+    distance_metric text NOT NULL,
+    metadata_configuration jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: refresh_tokens id; Type: DEFAULT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens ALTER COLUMN id SET DEFAULT nextval('auth.refresh_tokens_id_seq'::regclass);
+
+
+--
+-- Name: mfa_amr_claims amr_id_pk; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_amr_claims
+    ADD CONSTRAINT amr_id_pk PRIMARY KEY (id);
+
+
+--
+-- Name: audit_log_entries audit_log_entries_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.audit_log_entries
+    ADD CONSTRAINT audit_log_entries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: custom_oauth_providers custom_oauth_providers_identifier_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.custom_oauth_providers
+    ADD CONSTRAINT custom_oauth_providers_identifier_key UNIQUE (identifier);
+
+
+--
+-- Name: custom_oauth_providers custom_oauth_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.custom_oauth_providers
+    ADD CONSTRAINT custom_oauth_providers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: flow_state flow_state_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.flow_state
+    ADD CONSTRAINT flow_state_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: identities identities_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: identities identities_provider_id_provider_unique; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_provider_id_provider_unique UNIQUE (provider_id, provider);
+
+
+--
+-- Name: instances instances_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.instances
+    ADD CONSTRAINT instances_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mfa_amr_claims mfa_amr_claims_session_id_authentication_method_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_amr_claims
+    ADD CONSTRAINT mfa_amr_claims_session_id_authentication_method_pkey UNIQUE (session_id, authentication_method);
+
+
+--
+-- Name: mfa_challenges mfa_challenges_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_challenges
+    ADD CONSTRAINT mfa_challenges_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mfa_factors mfa_factors_last_challenged_at_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_factors
+    ADD CONSTRAINT mfa_factors_last_challenged_at_key UNIQUE (last_challenged_at);
+
+
+--
+-- Name: mfa_factors mfa_factors_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_factors
+    ADD CONSTRAINT mfa_factors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_authorizations oauth_authorizations_authorization_code_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_authorization_code_key UNIQUE (authorization_code);
+
+
+--
+-- Name: oauth_authorizations oauth_authorizations_authorization_id_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_authorization_id_key UNIQUE (authorization_id);
+
+
+--
+-- Name: oauth_authorizations oauth_authorizations_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_client_states oauth_client_states_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_client_states
+    ADD CONSTRAINT oauth_client_states_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_clients oauth_clients_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_clients
+    ADD CONSTRAINT oauth_clients_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_consents oauth_consents_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_consents
+    ADD CONSTRAINT oauth_consents_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_consents oauth_consents_user_client_unique; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_consents
+    ADD CONSTRAINT oauth_consents_user_client_unique UNIQUE (user_id, client_id);
+
+
+--
+-- Name: one_time_tokens one_time_tokens_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.one_time_tokens
+    ADD CONSTRAINT one_time_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_tokens refresh_tokens_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_tokens refresh_tokens_token_unique; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_token_unique UNIQUE (token);
+
+
+--
+-- Name: saml_providers saml_providers_entity_id_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_providers
+    ADD CONSTRAINT saml_providers_entity_id_key UNIQUE (entity_id);
+
+
+--
+-- Name: saml_providers saml_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_providers
+    ADD CONSTRAINT saml_providers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: saml_relay_states saml_relay_states_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_relay_states
+    ADD CONSTRAINT saml_relay_states_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.schema_migrations
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sessions
+    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sso_domains sso_domains_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sso_domains
+    ADD CONSTRAINT sso_domains_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sso_providers sso_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sso_providers
+    ADD CONSTRAINT sso_providers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users users_phone_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.users
+    ADD CONSTRAINT users_phone_key UNIQUE (phone);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: webauthn_challenges webauthn_challenges_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.webauthn_challenges
+    ADD CONSTRAINT webauthn_challenges_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: webauthn_credentials webauthn_credentials_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.webauthn_credentials
+    ADD CONSTRAINT webauthn_credentials_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ai_query_logs ai_query_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_query_logs
+    ADD CONSTRAINT ai_query_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.alembic_version
+    ADD CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num);
+
+
+--
+-- Name: calendar_months calendar_months_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_months
+    ADD CONSTRAINT calendar_months_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: countries countries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.countries
+    ADD CONSTRAINT countries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: doctors doctors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.doctors
+    ADD CONSTRAINT doctors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event_matches event_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_matches
+    ADD CONSTRAINT event_matches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: exchange_rates exchange_rates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exchange_rates
+    ADD CONSTRAINT exchange_rates_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: execution_requests execution_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_requests
+    ADD CONSTRAINT execution_requests_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: execution_snapshots execution_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_snapshots
+    ADD CONSTRAINT execution_snapshots_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ingestion_run_files ingestion_run_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ingestion_run_files
+    ADD CONSTRAINT ingestion_run_files_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ingestion_runs ingestion_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ingestion_runs
+    ADD CONSTRAINT ingestion_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: plan_events plan_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_events
+    ADD CONSTRAINT plan_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rcpa_country_brand_month_summary rcpa_country_brand_month_summary_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_country_brand_month_summary
+    ADD CONSTRAINT rcpa_country_brand_month_summary_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rcpa_doctor_brand_summary rcpa_doctor_brand_summary_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_brand_summary
+    ADD CONSTRAINT rcpa_doctor_brand_summary_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rcpa_doctor_month_summary rcpa_doctor_month_summary_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_month_summary
+    ADD CONSTRAINT rcpa_doctor_month_summary_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: request_doctors request_doctors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.request_doctors
+    ADD CONSTRAINT request_doctors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: source_files source_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.source_files
+    ADD CONSTRAINT source_files_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: calendar_months uq_calendar_months_start; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_months
+    ADD CONSTRAINT uq_calendar_months_start UNIQUE (month_start_date);
+
+
+--
+-- Name: countries uq_countries_code; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.countries
+    ADD CONSTRAINT uq_countries_code UNIQUE (code);
+
+
+--
+-- Name: doctors uq_doctors_country_pcode; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.doctors
+    ADD CONSTRAINT uq_doctors_country_pcode UNIQUE (country_id, pcode_normalized);
+
+
+--
+-- Name: exchange_rates uq_exchange_rates_currency_date_source; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exchange_rates
+    ADD CONSTRAINT uq_exchange_rates_currency_date_source UNIQUE (currency_code, rate_date, source);
+
+
+--
+-- Name: execution_requests uq_execution_requests_request_uid; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_requests
+    ADD CONSTRAINT uq_execution_requests_request_uid UNIQUE (request_uid);
+
+
+--
+-- Name: execution_requests uq_execution_requests_source_req_id; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_requests
+    ADD CONSTRAINT uq_execution_requests_source_req_id UNIQUE (source_system, req_id);
+
+
+--
+-- Name: ingestion_run_files uq_ingestion_run_files_run_file; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ingestion_run_files
+    ADD CONSTRAINT uq_ingestion_run_files_run_file UNIQUE (ingestion_run_id, source_file_id);
+
+
+--
+-- Name: rcpa_country_brand_month_summary uq_rcpa_country_brand_month_summary_grain; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_country_brand_month_summary
+    ADD CONSTRAINT uq_rcpa_country_brand_month_summary_grain UNIQUE (source_file_id, country_id, calendar_month_id, brand_group, own_or_competitor, currency_code);
+
+
+--
+-- Name: rcpa_doctor_brand_summary uq_rcpa_doctor_brand_summary_grain; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_brand_summary
+    ADD CONSTRAINT uq_rcpa_doctor_brand_summary_grain UNIQUE (source_file_id, country_id, pcode_normalized, brand_group, own_or_competitor, currency_code);
+
+
+--
+-- Name: rcpa_doctor_month_summary uq_rcpa_doctor_month_summary_grain; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_month_summary
+    ADD CONSTRAINT uq_rcpa_doctor_month_summary_grain UNIQUE (source_file_id, country_id, calendar_month_id, pcode_normalized, currency_code);
+
+
+--
+-- Name: request_doctors uq_request_doctors_request_type_position; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.request_doctors
+    ADD CONSTRAINT uq_request_doctors_request_type_position UNIQUE (execution_request_id, attendance_type, source_position);
+
+
+--
+-- Name: source_files uq_source_files_file_hash; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.source_files
+    ADD CONSTRAINT uq_source_files_file_hash UNIQUE (file_hash);
+
+
+--
+-- Name: validation_errors validation_errors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.validation_errors
+    ADD CONSTRAINT validation_errors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: messages messages_payload_exclusive; Type: CHECK CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE realtime.messages
+    ADD CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL))) NOT VALID;
+
+
+--
+-- Name: messages messages_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages
+    ADD CONSTRAINT messages_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: subscription pk_subscription; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.subscription
+    ADD CONSTRAINT pk_subscription PRIMARY KEY (id);
+
+
+--
+-- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.schema_migrations
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: buckets_analytics buckets_analytics_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.buckets_analytics
+    ADD CONSTRAINT buckets_analytics_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: buckets buckets_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.buckets
+    ADD CONSTRAINT buckets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: buckets_vectors buckets_vectors_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.buckets_vectors
+    ADD CONSTRAINT buckets_vectors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: migrations migrations_name_key; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.migrations
+    ADD CONSTRAINT migrations_name_key UNIQUE (name);
+
+
+--
+-- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.migrations
+    ADD CONSTRAINT migrations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: objects objects_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.objects
+    ADD CONSTRAINT objects_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: s3_multipart_uploads_parts s3_multipart_uploads_parts_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.s3_multipart_uploads_parts
+    ADD CONSTRAINT s3_multipart_uploads_parts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: s3_multipart_uploads s3_multipart_uploads_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.s3_multipart_uploads
+    ADD CONSTRAINT s3_multipart_uploads_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vector_indexes vector_indexes_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.vector_indexes
+    ADD CONSTRAINT vector_indexes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audit_logs_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX audit_logs_instance_id_idx ON auth.audit_log_entries USING btree (instance_id);
+
+
+--
+-- Name: confirmation_token_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX confirmation_token_idx ON auth.users USING btree (confirmation_token) WHERE ((confirmation_token)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: custom_oauth_providers_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX custom_oauth_providers_created_at_idx ON auth.custom_oauth_providers USING btree (created_at);
+
+
+--
+-- Name: custom_oauth_providers_enabled_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX custom_oauth_providers_enabled_idx ON auth.custom_oauth_providers USING btree (enabled);
+
+
+--
+-- Name: custom_oauth_providers_identifier_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX custom_oauth_providers_identifier_idx ON auth.custom_oauth_providers USING btree (identifier);
+
+
+--
+-- Name: custom_oauth_providers_provider_type_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX custom_oauth_providers_provider_type_idx ON auth.custom_oauth_providers USING btree (provider_type);
+
+
+--
+-- Name: email_change_token_current_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX email_change_token_current_idx ON auth.users USING btree (email_change_token_current) WHERE ((email_change_token_current)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: email_change_token_new_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX email_change_token_new_idx ON auth.users USING btree (email_change_token_new) WHERE ((email_change_token_new)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: factor_id_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX factor_id_created_at_idx ON auth.mfa_factors USING btree (user_id, created_at);
+
+
+--
+-- Name: flow_state_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX flow_state_created_at_idx ON auth.flow_state USING btree (created_at DESC);
+
+
+--
+-- Name: identities_email_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX identities_email_idx ON auth.identities USING btree (email text_pattern_ops);
+
+
+--
+-- Name: INDEX identities_email_idx; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON INDEX auth.identities_email_idx IS 'Auth: Ensures indexed queries on the email column';
+
+
+--
+-- Name: identities_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX identities_user_id_idx ON auth.identities USING btree (user_id);
+
+
+--
+-- Name: idx_auth_code; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_auth_code ON auth.flow_state USING btree (auth_code);
+
+
+--
+-- Name: idx_oauth_client_states_created_at; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_oauth_client_states_created_at ON auth.oauth_client_states USING btree (created_at);
+
+
+--
+-- Name: idx_user_id_auth_method; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_user_id_auth_method ON auth.flow_state USING btree (user_id, authentication_method);
+
+
+--
+-- Name: idx_users_created_at_desc; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_users_created_at_desc ON auth.users USING btree (created_at DESC);
+
+
+--
+-- Name: idx_users_email; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_users_email ON auth.users USING btree (email);
+
+
+--
+-- Name: idx_users_last_sign_in_at_desc; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_users_last_sign_in_at_desc ON auth.users USING btree (last_sign_in_at DESC);
+
+
+--
+-- Name: idx_users_name; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_users_name ON auth.users USING btree (((raw_user_meta_data ->> 'name'::text))) WHERE ((raw_user_meta_data ->> 'name'::text) IS NOT NULL);
+
+
+--
+-- Name: mfa_challenge_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX mfa_challenge_created_at_idx ON auth.mfa_challenges USING btree (created_at DESC);
+
+
+--
+-- Name: mfa_factors_user_friendly_name_unique; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX mfa_factors_user_friendly_name_unique ON auth.mfa_factors USING btree (friendly_name, user_id) WHERE (TRIM(BOTH FROM friendly_name) <> ''::text);
+
+
+--
+-- Name: mfa_factors_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX mfa_factors_user_id_idx ON auth.mfa_factors USING btree (user_id);
+
+
+--
+-- Name: oauth_auth_pending_exp_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX oauth_auth_pending_exp_idx ON auth.oauth_authorizations USING btree (expires_at) WHERE (status = 'pending'::auth.oauth_authorization_status);
+
+
+--
+-- Name: oauth_clients_deleted_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX oauth_clients_deleted_at_idx ON auth.oauth_clients USING btree (deleted_at);
+
+
+--
+-- Name: oauth_consents_active_client_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX oauth_consents_active_client_idx ON auth.oauth_consents USING btree (client_id) WHERE (revoked_at IS NULL);
+
+
+--
+-- Name: oauth_consents_active_user_client_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX oauth_consents_active_user_client_idx ON auth.oauth_consents USING btree (user_id, client_id) WHERE (revoked_at IS NULL);
+
+
+--
+-- Name: oauth_consents_user_order_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX oauth_consents_user_order_idx ON auth.oauth_consents USING btree (user_id, granted_at DESC);
+
+
+--
+-- Name: one_time_tokens_relates_to_hash_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX one_time_tokens_relates_to_hash_idx ON auth.one_time_tokens USING hash (relates_to);
+
+
+--
+-- Name: one_time_tokens_token_hash_hash_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX one_time_tokens_token_hash_hash_idx ON auth.one_time_tokens USING hash (token_hash);
+
+
+--
+-- Name: one_time_tokens_user_id_token_type_key; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX one_time_tokens_user_id_token_type_key ON auth.one_time_tokens USING btree (user_id, token_type);
+
+
+--
+-- Name: reauthentication_token_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX reauthentication_token_idx ON auth.users USING btree (reauthentication_token) WHERE ((reauthentication_token)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: recovery_token_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX recovery_token_idx ON auth.users USING btree (recovery_token) WHERE ((recovery_token)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: refresh_tokens_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX refresh_tokens_instance_id_idx ON auth.refresh_tokens USING btree (instance_id);
+
+
+--
+-- Name: refresh_tokens_instance_id_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX refresh_tokens_instance_id_user_id_idx ON auth.refresh_tokens USING btree (instance_id, user_id);
+
+
+--
+-- Name: refresh_tokens_parent_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX refresh_tokens_parent_idx ON auth.refresh_tokens USING btree (parent);
+
+
+--
+-- Name: refresh_tokens_session_id_revoked_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX refresh_tokens_session_id_revoked_idx ON auth.refresh_tokens USING btree (session_id, revoked);
+
+
+--
+-- Name: refresh_tokens_updated_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX refresh_tokens_updated_at_idx ON auth.refresh_tokens USING btree (updated_at DESC);
+
+
+--
+-- Name: saml_providers_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX saml_providers_sso_provider_id_idx ON auth.saml_providers USING btree (sso_provider_id);
+
+
+--
+-- Name: saml_relay_states_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX saml_relay_states_created_at_idx ON auth.saml_relay_states USING btree (created_at DESC);
+
+
+--
+-- Name: saml_relay_states_for_email_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX saml_relay_states_for_email_idx ON auth.saml_relay_states USING btree (for_email);
+
+
+--
+-- Name: saml_relay_states_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX saml_relay_states_sso_provider_id_idx ON auth.saml_relay_states USING btree (sso_provider_id);
+
+
+--
+-- Name: sessions_not_after_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX sessions_not_after_idx ON auth.sessions USING btree (not_after DESC);
+
+
+--
+-- Name: sessions_oauth_client_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX sessions_oauth_client_id_idx ON auth.sessions USING btree (oauth_client_id);
+
+
+--
+-- Name: sessions_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX sessions_user_id_idx ON auth.sessions USING btree (user_id);
+
+
+--
+-- Name: sso_domains_domain_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX sso_domains_domain_idx ON auth.sso_domains USING btree (lower(domain));
+
+
+--
+-- Name: sso_domains_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX sso_domains_sso_provider_id_idx ON auth.sso_domains USING btree (sso_provider_id);
+
+
+--
+-- Name: sso_providers_resource_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX sso_providers_resource_id_idx ON auth.sso_providers USING btree (lower(resource_id));
+
+
+--
+-- Name: sso_providers_resource_id_pattern_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX sso_providers_resource_id_pattern_idx ON auth.sso_providers USING btree (resource_id text_pattern_ops);
+
+
+--
+-- Name: unique_phone_factor_per_user; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX unique_phone_factor_per_user ON auth.mfa_factors USING btree (user_id, phone);
+
+
+--
+-- Name: user_id_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX user_id_created_at_idx ON auth.sessions USING btree (user_id, created_at);
+
+
+--
+-- Name: users_email_partial_key; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX users_email_partial_key ON auth.users USING btree (email) WHERE (is_sso_user = false);
+
+
+--
+-- Name: INDEX users_email_partial_key; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON INDEX auth.users_email_partial_key IS 'Auth: A partial unique index that applies only when is_sso_user is false';
+
+
+--
+-- Name: users_instance_id_email_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX users_instance_id_email_idx ON auth.users USING btree (instance_id, lower((email)::text));
+
+
+--
+-- Name: users_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX users_instance_id_idx ON auth.users USING btree (instance_id);
+
+
+--
+-- Name: users_is_anonymous_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX users_is_anonymous_idx ON auth.users USING btree (is_anonymous);
+
+
+--
+-- Name: webauthn_challenges_expires_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX webauthn_challenges_expires_at_idx ON auth.webauthn_challenges USING btree (expires_at);
+
+
+--
+-- Name: webauthn_challenges_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX webauthn_challenges_user_id_idx ON auth.webauthn_challenges USING btree (user_id);
+
+
+--
+-- Name: webauthn_credentials_credential_id_key; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX webauthn_credentials_credential_id_key ON auth.webauthn_credentials USING btree (credential_id);
+
+
+--
+-- Name: webauthn_credentials_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX webauthn_credentials_user_id_idx ON auth.webauthn_credentials USING btree (user_id);
+
+
+--
+-- Name: ix_event_matches_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_event_matches_country_month ON public.event_matches USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_event_matches_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_event_matches_status ON public.event_matches USING btree (match_status);
+
+
+--
+-- Name: ix_event_matches_unmatched_reason; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_event_matches_unmatched_reason ON public.event_matches USING btree (unmatched_reason_code);
+
+
+--
+-- Name: ix_execution_requests_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_execution_requests_country_month ON public.execution_requests USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_execution_requests_finance_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_execution_requests_finance_country_month ON public.execution_requests USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_execution_requests_fx_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_execution_requests_fx_status ON public.execution_requests USING btree (fx_rate_status);
+
+
+--
+-- Name: ix_execution_snapshots_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_execution_snapshots_country_month ON public.execution_snapshots USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_mv_budget_utilization_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_budget_utilization_country_month ON public.mv_budget_utilization USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_mv_budget_utilization_match_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_budget_utilization_match_status ON public.mv_budget_utilization USING btree (match_status);
+
+
+--
+-- Name: ix_mv_budget_utilization_scope; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_budget_utilization_scope ON public.mv_budget_utilization USING btree (is_primary_phase4_scope);
+
+
+--
+-- Name: ix_mv_data_quality_latest_run; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_data_quality_latest_run ON public.mv_data_quality USING btree (latest_ingestion_run_id);
+
+
+--
+-- Name: ix_mv_doctor_roi_country_pcode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_doctor_roi_country_pcode ON public.mv_doctor_roi USING btree (country_id, pcode_normalized);
+
+
+--
+-- Name: ix_mv_doctor_roi_engagement_window; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_doctor_roi_engagement_window ON public.mv_doctor_roi USING btree (first_engagement_date, last_engagement_date);
+
+
+--
+-- Name: ix_mv_doctor_roi_quadrant; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_doctor_roi_quadrant ON public.mv_doctor_roi USING btree (quadrant_label);
+
+
+--
+-- Name: ix_mv_doctor_roi_segment; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_doctor_roi_segment ON public.mv_doctor_roi USING btree (roi_segment);
+
+
+--
+-- Name: ix_mv_execution_event_matrix_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_execution_event_matrix_country_month ON public.mv_execution_event_matrix USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_mv_execution_event_matrix_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_execution_event_matrix_status ON public.mv_execution_event_matrix USING btree (match_status);
+
+
+--
+-- Name: ix_mv_execution_kpis_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_execution_kpis_country_month ON public.mv_execution_kpis USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_mv_execution_kpis_scope; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_execution_kpis_scope ON public.mv_execution_kpis USING btree (is_primary_phase4_scope);
+
+
+--
+-- Name: ix_mv_intervention_mix_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_intervention_mix_country_month ON public.mv_intervention_mix USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_mv_intervention_mix_scope; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_intervention_mix_scope ON public.mv_intervention_mix USING btree (is_primary_phase4_scope);
+
+
+--
+-- Name: ix_mv_unmatched_events_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_unmatched_events_country_month ON public.mv_unmatched_events USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_mv_workflow_governance_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_workflow_governance_country_month ON public.mv_workflow_governance USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_mv_workflow_governance_scope; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_mv_workflow_governance_scope ON public.mv_workflow_governance USING btree (is_primary_phase4_scope);
+
+
+--
+-- Name: ix_plan_events_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_plan_events_country_month ON public.plan_events USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_rcpa_country_brand_month_summary_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_rcpa_country_brand_month_summary_country_month ON public.rcpa_country_brand_month_summary USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_rcpa_doctor_brand_summary_pcode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_rcpa_doctor_brand_summary_pcode ON public.rcpa_doctor_brand_summary USING btree (country_id, pcode_normalized);
+
+
+--
+-- Name: ix_rcpa_doctor_month_country_pcode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_rcpa_doctor_month_country_pcode ON public.rcpa_doctor_month_summary USING btree (country_id, pcode_normalized);
+
+
+--
+-- Name: ix_rcpa_doctor_month_summary_country_month; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_rcpa_doctor_month_summary_country_month ON public.rcpa_doctor_month_summary USING btree (country_id, calendar_month_id);
+
+
+--
+-- Name: ix_rcpa_doctor_month_summary_pcode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_rcpa_doctor_month_summary_pcode ON public.rcpa_doctor_month_summary USING btree (country_id, pcode_normalized);
+
+
+--
+-- Name: ix_request_doctors_pcode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_request_doctors_pcode ON public.request_doctors USING btree (pcode_normalized);
+
+
+--
+-- Name: ix_request_doctors_pcode_attendance; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_request_doctors_pcode_attendance ON public.request_doctors USING btree (pcode_normalized, attendance_type);
+
+
+--
+-- Name: ix_source_files_source_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_source_files_source_type ON public.source_files USING btree (source_type);
+
+
+--
+-- Name: ix_validation_errors_latest_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_validation_errors_latest_lookup ON public.validation_errors USING btree (source_file_id, severity);
+
+
+--
+-- Name: ix_validation_errors_run_severity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_validation_errors_run_severity ON public.validation_errors USING btree (ingestion_run_id, severity);
+
+
+--
+-- Name: ix_realtime_subscription_entity; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX ix_realtime_subscription_entity ON realtime.subscription USING btree (entity);
+
+
+--
+-- Name: messages_inserted_at_topic_index; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE INDEX messages_inserted_at_topic_index ON ONLY realtime.messages USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: subscription_subscription_id_entity_filters_action_filter_selec; Type: INDEX; Schema: realtime; Owner: -
+--
+
+CREATE UNIQUE INDEX subscription_subscription_id_entity_filters_action_filter_selec ON realtime.subscription USING btree (subscription_id, entity, filters, action_filter, COALESCE(selected_columns, '{}'::text[]));
+
+
+--
+-- Name: bname; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE UNIQUE INDEX bname ON storage.buckets USING btree (name);
+
+
+--
+-- Name: bucketid_objname; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE UNIQUE INDEX bucketid_objname ON storage.objects USING btree (bucket_id, name);
+
+
+--
+-- Name: buckets_analytics_unique_name_idx; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE UNIQUE INDEX buckets_analytics_unique_name_idx ON storage.buckets_analytics USING btree (name) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_multipart_uploads_list; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE INDEX idx_multipart_uploads_list ON storage.s3_multipart_uploads USING btree (bucket_id, key, created_at);
+
+
+--
+-- Name: idx_objects_bucket_id_name; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE INDEX idx_objects_bucket_id_name ON storage.objects USING btree (bucket_id, name COLLATE "C");
+
+
+--
+-- Name: idx_objects_bucket_id_name_lower; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE INDEX idx_objects_bucket_id_name_lower ON storage.objects USING btree (bucket_id, lower(name) COLLATE "C");
+
+
+--
+-- Name: name_prefix_search; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE INDEX name_prefix_search ON storage.objects USING btree (name text_pattern_ops);
+
+
+--
+-- Name: vector_indexes_name_bucket_id_idx; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE UNIQUE INDEX vector_indexes_name_bucket_id_idx ON storage.vector_indexes USING btree (name, bucket_id);
+
+
+--
+-- Name: subscription tr_check_filters; Type: TRIGGER; Schema: realtime; Owner: -
+--
+
+CREATE TRIGGER tr_check_filters BEFORE INSERT OR UPDATE ON realtime.subscription FOR EACH ROW EXECUTE FUNCTION realtime.subscription_check_filters();
+
+
+--
+-- Name: buckets enforce_bucket_name_length_trigger; Type: TRIGGER; Schema: storage; Owner: -
+--
+
+CREATE TRIGGER enforce_bucket_name_length_trigger BEFORE INSERT OR UPDATE OF name ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.enforce_bucket_name_length();
+
+
+--
+-- Name: buckets protect_buckets_delete; Type: TRIGGER; Schema: storage; Owner: -
+--
+
+CREATE TRIGGER protect_buckets_delete BEFORE DELETE ON storage.buckets FOR EACH STATEMENT EXECUTE FUNCTION storage.protect_delete();
+
+
+--
+-- Name: objects protect_objects_delete; Type: TRIGGER; Schema: storage; Owner: -
+--
+
+CREATE TRIGGER protect_objects_delete BEFORE DELETE ON storage.objects FOR EACH STATEMENT EXECUTE FUNCTION storage.protect_delete();
+
+
+--
+-- Name: objects update_objects_updated_at; Type: TRIGGER; Schema: storage; Owner: -
+--
+
+CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.update_updated_at_column();
+
+
+--
+-- Name: identities identities_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mfa_amr_claims mfa_amr_claims_session_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_amr_claims
+    ADD CONSTRAINT mfa_amr_claims_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mfa_challenges mfa_challenges_auth_factor_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_challenges
+    ADD CONSTRAINT mfa_challenges_auth_factor_id_fkey FOREIGN KEY (factor_id) REFERENCES auth.mfa_factors(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mfa_factors mfa_factors_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_factors
+    ADD CONSTRAINT mfa_factors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: oauth_authorizations oauth_authorizations_client_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
+
+
+--
+-- Name: oauth_authorizations oauth_authorizations_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: oauth_consents oauth_consents_client_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_consents
+    ADD CONSTRAINT oauth_consents_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
+
+
+--
+-- Name: oauth_consents oauth_consents_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_consents
+    ADD CONSTRAINT oauth_consents_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: one_time_tokens one_time_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.one_time_tokens
+    ADD CONSTRAINT one_time_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: refresh_tokens refresh_tokens_session_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: saml_providers saml_providers_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_providers
+    ADD CONSTRAINT saml_providers_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: saml_relay_states saml_relay_states_flow_state_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_relay_states
+    ADD CONSTRAINT saml_relay_states_flow_state_id_fkey FOREIGN KEY (flow_state_id) REFERENCES auth.flow_state(id) ON DELETE CASCADE;
+
+
+--
+-- Name: saml_relay_states saml_relay_states_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_relay_states
+    ADD CONSTRAINT saml_relay_states_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sessions sessions_oauth_client_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sessions
+    ADD CONSTRAINT sessions_oauth_client_id_fkey FOREIGN KEY (oauth_client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sessions sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sessions
+    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sso_domains sso_domains_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sso_domains
+    ADD CONSTRAINT sso_domains_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: webauthn_challenges webauthn_challenges_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.webauthn_challenges
+    ADD CONSTRAINT webauthn_challenges_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: webauthn_credentials webauthn_credentials_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.webauthn_credentials
+    ADD CONSTRAINT webauthn_credentials_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ai_query_logs ai_query_logs_calendar_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_query_logs
+    ADD CONSTRAINT ai_query_logs_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: ai_query_logs ai_query_logs_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_query_logs
+    ADD CONSTRAINT ai_query_logs_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id);
+
+
+--
+-- Name: doctors doctors_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.doctors
+    ADD CONSTRAINT doctors_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id);
+
+
+--
+-- Name: doctors doctors_first_seen_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.doctors
+    ADD CONSTRAINT doctors_first_seen_month_id_fkey FOREIGN KEY (first_seen_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: doctors doctors_last_seen_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.doctors
+    ADD CONSTRAINT doctors_last_seen_month_id_fkey FOREIGN KEY (last_seen_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: event_matches event_matches_calendar_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_matches
+    ADD CONSTRAINT event_matches_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: event_matches event_matches_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_matches
+    ADD CONSTRAINT event_matches_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id);
+
+
+--
+-- Name: event_matches event_matches_execution_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_matches
+    ADD CONSTRAINT event_matches_execution_request_id_fkey FOREIGN KEY (execution_request_id) REFERENCES public.execution_requests(id);
+
+
+--
+-- Name: event_matches event_matches_execution_snapshot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_matches
+    ADD CONSTRAINT event_matches_execution_snapshot_id_fkey FOREIGN KEY (execution_snapshot_id) REFERENCES public.execution_snapshots(id);
+
+
+--
+-- Name: event_matches event_matches_ingestion_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_matches
+    ADD CONSTRAINT event_matches_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id);
+
+
+--
+-- Name: event_matches event_matches_plan_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_matches
+    ADD CONSTRAINT event_matches_plan_event_id_fkey FOREIGN KEY (plan_event_id) REFERENCES public.plan_events(id);
+
+
+--
+-- Name: execution_requests execution_requests_calendar_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_requests
+    ADD CONSTRAINT execution_requests_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: execution_requests execution_requests_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_requests
+    ADD CONSTRAINT execution_requests_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id);
+
+
+--
+-- Name: execution_requests execution_requests_ingestion_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_requests
+    ADD CONSTRAINT execution_requests_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id);
+
+
+--
+-- Name: execution_requests execution_requests_source_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_requests
+    ADD CONSTRAINT execution_requests_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id);
+
+
+--
+-- Name: execution_snapshots execution_snapshots_calendar_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_snapshots
+    ADD CONSTRAINT execution_snapshots_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: execution_snapshots execution_snapshots_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_snapshots
+    ADD CONSTRAINT execution_snapshots_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id);
+
+
+--
+-- Name: execution_snapshots execution_snapshots_ingestion_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_snapshots
+    ADD CONSTRAINT execution_snapshots_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id);
+
+
+--
+-- Name: execution_snapshots execution_snapshots_source_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.execution_snapshots
+    ADD CONSTRAINT execution_snapshots_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id);
+
+
+--
+-- Name: ingestion_run_files ingestion_run_files_ingestion_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ingestion_run_files
+    ADD CONSTRAINT ingestion_run_files_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id);
+
+
+--
+-- Name: ingestion_run_files ingestion_run_files_source_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ingestion_run_files
+    ADD CONSTRAINT ingestion_run_files_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id);
+
+
+--
+-- Name: plan_events plan_events_calendar_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_events
+    ADD CONSTRAINT plan_events_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: plan_events plan_events_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_events
+    ADD CONSTRAINT plan_events_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id);
+
+
+--
+-- Name: plan_events plan_events_ingestion_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_events
+    ADD CONSTRAINT plan_events_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id);
+
+
+--
+-- Name: plan_events plan_events_source_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_events
+    ADD CONSTRAINT plan_events_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id);
+
+
+--
+-- Name: rcpa_country_brand_month_summary rcpa_country_brand_month_summary_calendar_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_country_brand_month_summary
+    ADD CONSTRAINT rcpa_country_brand_month_summary_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: rcpa_country_brand_month_summary rcpa_country_brand_month_summary_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_country_brand_month_summary
+    ADD CONSTRAINT rcpa_country_brand_month_summary_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id);
+
+
+--
+-- Name: rcpa_country_brand_month_summary rcpa_country_brand_month_summary_ingestion_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_country_brand_month_summary
+    ADD CONSTRAINT rcpa_country_brand_month_summary_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id);
+
+
+--
+-- Name: rcpa_country_brand_month_summary rcpa_country_brand_month_summary_source_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_country_brand_month_summary
+    ADD CONSTRAINT rcpa_country_brand_month_summary_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id);
+
+
+--
+-- Name: rcpa_doctor_brand_summary rcpa_doctor_brand_summary_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_brand_summary
+    ADD CONSTRAINT rcpa_doctor_brand_summary_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id);
+
+
+--
+-- Name: rcpa_doctor_brand_summary rcpa_doctor_brand_summary_first_calendar_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_brand_summary
+    ADD CONSTRAINT rcpa_doctor_brand_summary_first_calendar_month_id_fkey FOREIGN KEY (first_calendar_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: rcpa_doctor_brand_summary rcpa_doctor_brand_summary_ingestion_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_brand_summary
+    ADD CONSTRAINT rcpa_doctor_brand_summary_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id);
+
+
+--
+-- Name: rcpa_doctor_brand_summary rcpa_doctor_brand_summary_last_calendar_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_brand_summary
+    ADD CONSTRAINT rcpa_doctor_brand_summary_last_calendar_month_id_fkey FOREIGN KEY (last_calendar_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: rcpa_doctor_brand_summary rcpa_doctor_brand_summary_source_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_brand_summary
+    ADD CONSTRAINT rcpa_doctor_brand_summary_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id);
+
+
+--
+-- Name: rcpa_doctor_month_summary rcpa_doctor_month_summary_calendar_month_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_month_summary
+    ADD CONSTRAINT rcpa_doctor_month_summary_calendar_month_id_fkey FOREIGN KEY (calendar_month_id) REFERENCES public.calendar_months(id);
+
+
+--
+-- Name: rcpa_doctor_month_summary rcpa_doctor_month_summary_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_month_summary
+    ADD CONSTRAINT rcpa_doctor_month_summary_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id);
+
+
+--
+-- Name: rcpa_doctor_month_summary rcpa_doctor_month_summary_ingestion_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_month_summary
+    ADD CONSTRAINT rcpa_doctor_month_summary_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id);
+
+
+--
+-- Name: rcpa_doctor_month_summary rcpa_doctor_month_summary_source_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rcpa_doctor_month_summary
+    ADD CONSTRAINT rcpa_doctor_month_summary_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id);
+
+
+--
+-- Name: request_doctors request_doctors_execution_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.request_doctors
+    ADD CONSTRAINT request_doctors_execution_request_id_fkey FOREIGN KEY (execution_request_id) REFERENCES public.execution_requests(id);
+
+
+--
+-- Name: validation_errors validation_errors_ingestion_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.validation_errors
+    ADD CONSTRAINT validation_errors_ingestion_run_id_fkey FOREIGN KEY (ingestion_run_id) REFERENCES public.ingestion_runs(id);
+
+
+--
+-- Name: validation_errors validation_errors_source_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.validation_errors
+    ADD CONSTRAINT validation_errors_source_file_id_fkey FOREIGN KEY (source_file_id) REFERENCES public.source_files(id);
+
+
+--
+-- Name: objects objects_bucketId_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.objects
+    ADD CONSTRAINT "objects_bucketId_fkey" FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
+
+
+--
+-- Name: s3_multipart_uploads s3_multipart_uploads_bucket_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.s3_multipart_uploads
+    ADD CONSTRAINT s3_multipart_uploads_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
+
+
+--
+-- Name: s3_multipart_uploads_parts s3_multipart_uploads_parts_bucket_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.s3_multipart_uploads_parts
+    ADD CONSTRAINT s3_multipart_uploads_parts_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
+
+
+--
+-- Name: s3_multipart_uploads_parts s3_multipart_uploads_parts_upload_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.s3_multipart_uploads_parts
+    ADD CONSTRAINT s3_multipart_uploads_parts_upload_id_fkey FOREIGN KEY (upload_id) REFERENCES storage.s3_multipart_uploads(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vector_indexes vector_indexes_bucket_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.vector_indexes
+    ADD CONSTRAINT vector_indexes_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets_vectors(id);
+
+
+--
+-- Name: audit_log_entries; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.audit_log_entries ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: flow_state; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.flow_state ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: identities; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.identities ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: instances; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.instances ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: mfa_amr_claims; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.mfa_amr_claims ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: mfa_challenges; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.mfa_challenges ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: mfa_factors; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.mfa_factors ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: one_time_tokens; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.one_time_tokens ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: refresh_tokens; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.refresh_tokens ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: saml_providers; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.saml_providers ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: saml_relay_states; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.saml_relay_states ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: schema_migrations; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.schema_migrations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sessions; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.sessions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sso_domains; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.sso_domains ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sso_providers; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.sso_providers ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: users; Type: ROW SECURITY; Schema: auth; Owner: -
+--
+
+ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: messages; Type: ROW SECURITY; Schema: realtime; Owner: -
+--
+
+ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: buckets; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: buckets_analytics; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.buckets_analytics ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: buckets_vectors; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.buckets_vectors ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: migrations; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.migrations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: objects; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: s3_multipart_uploads; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.s3_multipart_uploads ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: s3_multipart_uploads_parts; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.s3_multipart_uploads_parts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: vector_indexes; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.vector_indexes ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: supabase_realtime; Type: PUBLICATION; Schema: -; Owner: -
+--
+
+CREATE PUBLICATION supabase_realtime WITH (publish = 'insert, update, delete, truncate');
+
+
+--
+-- Name: issue_graphql_placeholder; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER issue_graphql_placeholder ON sql_drop
+         WHEN TAG IN ('DROP EXTENSION')
+   EXECUTE FUNCTION extensions.set_graphql_placeholder();
+
+
+--
+-- Name: issue_pg_cron_access; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER issue_pg_cron_access ON ddl_command_end
+         WHEN TAG IN ('CREATE EXTENSION')
+   EXECUTE FUNCTION extensions.grant_pg_cron_access();
+
+
+--
+-- Name: issue_pg_graphql_access; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER issue_pg_graphql_access ON ddl_command_end
+         WHEN TAG IN ('CREATE EXTENSION')
+   EXECUTE FUNCTION extensions.grant_pg_graphql_access();
+
+
+--
+-- Name: issue_pg_net_access; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER issue_pg_net_access ON ddl_command_end
+         WHEN TAG IN ('CREATE EXTENSION')
+   EXECUTE FUNCTION extensions.grant_pg_net_access();
+
+
+--
+-- Name: pgrst_ddl_watch; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER pgrst_ddl_watch ON ddl_command_end
+   EXECUTE FUNCTION extensions.pgrst_ddl_watch();
+
+
+--
+-- Name: pgrst_drop_watch; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
+   EXECUTE FUNCTION extensions.pgrst_drop_watch();
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict tWzLhDpqclOaLuVCcUlUdyjEA2bBhhFa4G2feoMGkN1I3tdlORHXGjdEOiPzbjQ
+

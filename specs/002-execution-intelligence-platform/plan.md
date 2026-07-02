@@ -17,13 +17,15 @@ The core design decision is to treat the source workbooks as complementary evide
 
 AI provider choice is intentionally deferred. The architecture defines a backend-only `AIProvider` interface and requires all AI answers to summarize deterministic service results.
 
+Transcript 2026-06-15 adds confirmed financial governance scope: budget and ROI must use confirmed/contracted amounts and actual BTU/BTC spend splits from consolidation, not estimated/FMV-like values. Execution must include workflow governance for request approval, request confirmation, post-event report approval, and post-event report confirmation. ROI must include a leadership quadrant matrix and intervention-type mix analytics.
+
 ## Technical Context
 
 **Language/Version**: Python 3.11 for backend and ingestion; TypeScript 5.x for frontend; SQL for migrations and views.
 
 **Primary Dependencies**: FastAPI, Pydantic v2, Pydantic Settings, SQLAlchemy 2.0, Alembic, psycopg, pandas, openpyxl, python-calamine as the primary XLSB reader with pyxlsb fallback, Typer, pytest, ruff; React, Vite, Tailwind CSS, TanStack Query, Zustand, Recharts, Lucide React.
 
-**Storage**: Supabase PostgreSQL for canonical data, reconciliation records, validation records, materialized KPI views, and AI query logs. Local filesystem for confidential raw workbooks and generated ingestion reports.
+**Storage**: Supabase PostgreSQL for canonical data, compact RCPA summary tables, reconciliation records, validation records, materialized KPI views, and AI query logs. Local filesystem for confidential raw workbooks, generated ingestion reports, and detailed RCPA aggregate extracts.
 
 **Testing**: pytest for ingestion, normalization, reconciliation, database/view, and API tests; React Testing Library/Vitest for frontend states and query behavior; contract tests against OpenAPI schemas.
 
@@ -31,9 +33,11 @@ AI provider choice is intentionally deferred. The architecture defines a backend
 
 **Project Type**: Data-heavy full-stack web application with local ingestion CLI, read-only web API, React dashboard, and backend-mediated AI assistant.
 
-**Performance Goals**: Profile all eight supplied workbooks without manual inspection; aggregate RCPA prescription rows before persistence; keep dashboard summary API responses under 1s against materialized views for MVP data volume; keep event/doctor detail tables paginated.
+**Performance Goals**: Profile all eight supplied workbooks without manual inspection; aggregate RCPA prescription rows before persistence; keep Supabase under the free-tier storage limit by persisting compact RCPA summaries online and detailed RCPA extracts locally; keep dashboard summary API responses under 1s against materialized views for MVP data volume; keep event/doctor detail tables paginated.
 
 **Constraints**: Real workbooks and generated extracts must not enter git; service-role database credentials and AI keys remain server-side; no browser upload in MVP; no AI calculation of KPIs; cross-country money comparisons require normalized currency or explicit warning; protected demo access is required for deployment.
+
+**Transcript-Verified Data Constraints**: `APPROVE/CONFIRMED TOTAL INTERVENTION` is the contracted/confirmed amount; `ESTIMATED INTERVENTION` is estimated/FMV-like reference only; `ACTUAL EXPENSE AGAINST BTU` is direct HCP/BTU spend; `TOTAL ACTUAL BTC EXPENSE` is overhead/BTC spend; `TOTAL ACTUAL EXPENSES FOR INTERVENTION` is total actual spend; `Association Amount` is preserved separately; LKR must use the official company rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`) with `fx_rate_status = official`; other currencies may remain provisional or missing until company rates are supplied.
 
 **Scale/Scope**: MVP supports Nepal and Sri Lanka as primary markets, Myanmar as modeled/ingested source coverage where present, FY27 planner analysis, execution data from November 2025 onward, historical Nepal/Myanmar RCPA baseline from April 2024 through March 2025, and current RCPA through March 2026.
 
@@ -60,10 +64,14 @@ AI provider choice is intentionally deferred. The architecture defines a backend
 6. AI query logs must store compact structured context summaries, not raw prompts containing sensitive workbook data.
 7. Manual match editing is deferred. Therefore unmatched and weak matches must be sufficiently visible for operational review from day one.
 8. Excel serial-number dates are real source data in current RCPA files. The month normalizer must parse serials such as `45772` into canonical calendar months and test them explicitly.
-9. FX conversion is static-seeded for MVP. Seed one representative rate per supported currency and expose missing-FX flags rather than adding a live exchange-rate integration.
+9. FX conversion is static-seeded for MVP. Seed LKR using the official company rate `1 USD = 310 LKR`; seed other currencies only when a documented company/provisional rate exists, and expose missing-FX flags rather than adding a live exchange-rate integration.
 10. `question_redacted` in AI logs requires concrete masking rules for Pcodes, monetary values, and likely doctor-name spans before storage.
 11. Sri Lanka May execution must be derived from consolidation requests in a deterministic, labeled path because no monthly execution country tab exists.
-12. RCPA aggregation must be idempotent through an explicit unique conflict target at the aggregate grain.
+12. RCPA aggregation must be idempotent through explicit unique conflict targets on compact online summary grains. Detailed SKU-level aggregate evidence belongs in local generated extracts, not in Supabase.
+13. Transcript-verified financial mapping must be modeled directly from consolidation columns: confirmed/contracted amount, estimated/FMV-like reference, BTU direct spend, BTC overhead spend, and total actual spend.
+14. Workflow governance must be modeled from request approval/confirmation and post-event report approval/confirmation fields, not inferred from execution status alone.
+15. Intervention type analytics must be data-driven from observed `INTERVENTION TYPE` and `INTERVENTION SUB TYPE` values; current files contain eight observed types.
+16. ROI quadrant must be deterministic and leadership-facing, with low-effort/high-reward doctors highlighted as dark-horse opportunities.
 
 ### Selected Architecture
 
@@ -97,7 +105,7 @@ specs/002-execution-intelligence-platform/
 |   |-- openapi.yaml
 |   |-- cli.md
 |   `-- dashboard-data-contract.md
-`-- tasks.md                 # created later by /speckit-tasks
+`-- tasks.md                 # dependency-ordered implementation tasks
 ```
 
 ### Source Code
@@ -183,29 +191,32 @@ Exit criteria:
 
 - database can be rebuilt from migrations,
 - uniqueness rules reflect country-scoped Pcodes and run/file separation,
-- static exchange-rate seeds exist for `NPR`, `LKR`, `MMK`, `OMR`, `AED`, and `MYR` with documented `rate_date` and source label,
+- static exchange-rate seeds include official LKR at `1 USD = 310 LKR` with documented `rate_date`, `source = company`, and `rate_status = official`; other supported currencies have documented provisional or missing status,
 - materialized views compile on empty or seeded data.
 
 ### Phase 3: Ingestion MVP
 
-Deliver loaders for planners, consolidation, monthly execution snapshots, and aggregated RCPA facts. Add validation errors, ingestion summaries, and deterministic normalizers for months, Pcodes, event names, status values, and currencies. Month normalization must cover string months and Excel serial numbers. Use SQLAlchemy transactions and Alembic-owned schema objects; do not use the Supabase client as the primary write/read abstraction.
+Deliver loaders for planners, consolidation, monthly execution snapshots, and aggregated RCPA facts. Add validation errors, ingestion summaries, and deterministic normalizers for months, Pcodes, event names, status values, and currencies. Month normalization must cover string months and Excel serial numbers. Use SQLAlchemy transactions and Alembic-owned schema objects; do not use the Supabase client as the primary write/read abstraction. RCPA writes compact online summaries to Supabase and detailed SKU-level aggregate extracts to local `data/processed/` files.
 
 Exit criteria:
 
 - supplied files load or produce explicit validation errors,
-- RCPA is aggregated before persistence,
+- RCPA is aggregated before persistence, compact summaries are written to Supabase, and detailed SKU-level aggregate evidence is written locally,
 - consolidation doctor fields split into traceable participation rows,
 - Sri Lanka missing May tab is handled by deterministic consolidation-derived rows labeled `derived_from_consolidation`,
-- repeated RCPA ingestion of the same file is idempotent through the aggregate unique key.
+- repeated RCPA ingestion of the same file is idempotent through the summary unique keys.
 
 ### Phase 4: Reconciliation and KPI Views
 
-Deliver event matching, match coverage metrics, unmatched records, budget utilization views, doctor ROI views, and data-quality views.
+Deliver event matching, match coverage metrics, unmatched records, budget utilization views, workflow governance views, intervention mix views, doctor ROI views, ROI quadrant outputs, and data-quality views.
 
 Exit criteria:
 
 - weak and unmatched records are queryable,
 - KPI views include freshness and coverage flags,
+- budget views expose estimated, confirmed, BTU, BTC, actual total, variance, and FX status,
+- workflow views expose request approval, request confirmation, post/report approval, post/report confirmation, and owner/stage,
+- intervention mix views are driven by source values rather than hard-coded categories,
 - no KPI requires frontend-side business calculations.
 
 ### Phase 5: Backend API
@@ -231,11 +242,13 @@ Exit criteria:
 
 ### Phase 7: Advanced Analytics
 
-Deliver budget utilization, doctor ROI, doctor detail drawer, unmatched records/data-quality pages, and demo-ready business narratives.
+Deliver budget utilization, workflow governance drilldowns, intervention-type mix, doctor ROI, ROI quadrant matrix, doctor detail drawer, unmatched records/data-quality pages, and demo-ready business narratives.
 
 Exit criteria:
 
 - user can identify missed/action-due events, budget gaps, and doctor opportunities in under two minutes,
+- user can identify pending approval/reporting bottlenecks and intervention-type mix by country/month,
+- user can distinguish low-effort/high-reward dark-horse doctors from high-effort/high-return established voices,
 - local currency warnings and no-RCPA states are visible where applicable.
 
 ### Phase 8: AI Assistant
