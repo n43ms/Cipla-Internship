@@ -206,7 +206,6 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
                 {ref.value !== null && ref.value !== undefined ? (
                   <p className="mt-2 text-xs text-zinc-300">Value: {String(ref.value)}</p>
                 ) : null}
-                {ref.sourcePath ? <p className="mt-1 text-[0.68rem] text-zinc-600">{ref.sourcePath}</p> : null}
               </div>
             ))}
           </div>

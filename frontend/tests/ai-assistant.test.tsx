@@ -45,6 +45,7 @@ describe("AI assistant", () => {
     expect(screen.getByText(/gemini-test/i)).toBeInTheDocument();
     expect(screen.getByText("Evidence used")).toBeInTheDocument();
     expect(screen.getByText("Weak/unmatched execution rows")).toBeInTheDocument();
+    expect(screen.queryByText("execution.weakOrUnmatchedEvents")).not.toBeInTheDocument();
     expect(screen.getByText("Grounded assistant workflow")).toBeInTheDocument();
     expect(screen.getByText("Where to verify this")).toBeInTheDocument();
     expect(screen.getByText("Execution event matrix table")).toBeInTheDocument();

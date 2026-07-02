@@ -13,7 +13,7 @@ class AiResponseContractError(ValueError):
 
 def parse_structured_answer(raw_answer: str, context: dict[str, Any]) -> dict[str, Any]:
     payload = _extract_json(raw_answer)
-    markdown = _string_field(payload, "markdownAnswer")
+    markdown = _dashboard_safe_markdown(_string_field(payload, "markdownAnswer"))
     if not markdown:
         raise AiResponseContractError("Gemini response did not include markdownAnswer.")
 
@@ -22,8 +22,14 @@ def parse_structured_answer(raw_answer: str, context: dict[str, Any]) -> dict[st
     if not valid_refs:
         valid_refs = evidence_refs_for_context(context)
 
-    limitations = _string_list(payload.get("limitations"))
-    assumptions = _string_list(payload.get("assumptions"))
+    limitations = [
+        _dashboard_safe_markdown(item)
+        for item in _string_list(payload.get("limitations"))
+    ]
+    assumptions = [
+        _dashboard_safe_markdown(item)
+        for item in _string_list(payload.get("assumptions"))
+    ]
     if assumptions:
         limitations.extend(f"Assumption: {item}" for item in assumptions)
     if invalid_count:
@@ -85,8 +91,8 @@ def _validated_evidence_refs(
             continue
         refs.append(
             {
-                "section": section,
-                "label": label,
+                "section": _dashboard_section_label(section),
+                "label": _dashboard_safe_markdown(label),
                 "value": item.get("value"),
                 "sourcePath": source_path or None,
             }
@@ -138,3 +144,66 @@ def _plain_text(markdown: str) -> str:
     text = re.sub(r"^\s{0,3}#{1,6}\s*", "", text, flags=re.M)
     text = re.sub(r"^\s*[-*]\s+", "- ", text, flags=re.M)
     return text.strip()
+
+
+_INTERNAL_PATH_LABELS = {
+    "execution.eventRows": "Execution event matrix table",
+    "execution.weakOrUnmatchedEvents": "Execution KPI cards",
+    "execution.matchedEvents": "Execution KPI cards",
+    "execution.executedEvents": "Execution KPI cards",
+    "execution.actionDueEvents": "Execution KPI cards",
+    "execution.matchCoverage": "Execution KPI cards",
+    "execution.hcpExecutionRate": "Planned vs engaged HCPs chart",
+    "workflow.ownerStageCounts": "Workflow status cards",
+    "workflow.pendingReportCount": "Workflow status cards",
+    "workflow.requestRows": "Workflow request table",
+    "workflow.requestApprovalCounts": "Request approval panel",
+    "workflow.requestConfirmationCounts": "Request confirmation panel",
+    "workflow.postApprovalCounts": "Post approval panel",
+    "workflow.postConfirmationCounts": "Post confirmation panel",
+    "interventions.topRows": "Intervention mix table",
+    "budget.topGapRows": "Budget event gap table",
+    "budget.spendWithoutPlanCount": "Budget summary cards",
+    "budget.unspentGapUsd": "Budget summary cards",
+    "budget.overrunAmountUsd": "Budget summary cards",
+    "doctorRoi.topDoctorOpportunityRows": "Doctor ROI table",
+    "doctorRoi.matchedDoctorDetails": "Doctor detail drawer",
+    "dataQuality.validationWarningCount": "Data Quality validation panels",
+    "dataQuality.matchCoverage": "Data Quality coverage cards",
+    "dataQuality.pcodeCoverage": "Data Quality coverage cards",
+    "dataQuality.rcpaCoverage": "Data Quality coverage cards",
+    "dataQuality.unmatchedBySource": "Data Quality unmatched records panel",
+}
+
+_SECTION_LABELS = {
+    "execution": "Execution",
+    "workflow": "Workflow",
+    "interventions": "Intervention Mix",
+    "budget": "Budget",
+    "doctorRoi": "Doctor ROI",
+    "dataQuality": "Data Quality",
+}
+
+
+def _dashboard_safe_markdown(text: str) -> str:
+    safe = text
+    internal_paths = sorted(
+        _INTERNAL_PATH_LABELS.items(),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    )
+    for path, label in internal_paths:
+        safe = re.sub(rf"\b{re.escape(path)}\b", label, safe)
+    safe = re.sub(
+        r"\b(?:execution|workflow|interventions|budget|doctorRoi|dataQuality)"
+        r"(?:\.[A-Za-z_][A-Za-z0-9_]*(?:\[\d+])?)+\b",
+        "the relevant dashboard section",
+        safe,
+    )
+    safe = re.sub(r"\bsourcePath\b", "dashboard source", safe)
+    safe = re.sub(r"\bJSON context\b", "dashboard context", safe, flags=re.I)
+    return safe.strip()
+
+
+def _dashboard_section_label(section: str) -> str:
+    return _SECTION_LABELS.get(section, section)
