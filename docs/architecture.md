@@ -31,3 +31,33 @@ Phase 2 establishes:
 - official LKR company FX seed at `1 USD = 310 LKR`,
 - shared constants and error schemas,
 - test harnesses and fixture structure.
+
+## Sponsorship Readiness MVP
+
+The sponsorship readiness work is a pre-data inspection layer, not a product feature surface.
+
+It extends only the safe front of the architecture:
+
+```text
+local source files
+  -> ingestion CLI
+  -> workbook profiling
+  -> raw-vs-cleaned comparison
+  -> markdown/json decision reports
+```
+
+The following remain blocked until real source files are profiled and a separate post-data task file exists:
+
+- sponsorship and territory database tables,
+- source-specific sponsorship/contract/territory loaders,
+- sponsorship and territory backend routers,
+- sponsorship and territory frontend pages,
+- sponsorship and territory AI context.
+
+Primary references:
+
+- `specs/002-execution-intelligence-platform/sponsorship-readiness-plan.md`
+- `specs/002-execution-intelligence-platform/sponsorship-readiness-tasks.md`
+- `ingestion_sponsorship.md`
+- `docs/source-onboarding-playbook.md`
+- `docs/feature-gate-policy.md`

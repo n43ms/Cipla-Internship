@@ -69,6 +69,46 @@ Use this before ingestion to verify:
 - canonical sheets are correct
 - required-column coverage is acceptable
 - unexpected sheets are documented but not loaded
+- schema drift sections show mapped, unknown, missing, empty, and sample-value metadata
+
+## Comparing Raw And Cleaned Workbooks
+
+When the business provides both a raw recurring extract and a cleaned/presentable copy, compare them before changing loaders:
+
+```powershell
+python -m ingestion.main compare --raw data/raw/raw-export.xlsx --cleaned data/raw/cleaned-copy.xlsx
+```
+
+Output:
+
+```text
+data/reports/workbook-comparison-report.md
+data/reports/workbook-comparison-report.json
+```
+
+Use the comparison report to identify:
+
+- shared columns,
+- raw-only columns,
+- cleaned-only columns,
+- normalized-header matches,
+- rename candidates,
+- canonical fields already covered by existing schema maps,
+- columns requiring business decision.
+
+Do not code against a cleaned-only shape unless the source intake contract confirms that it is the recurring source.
+
+## Sponsorship Readiness Intake
+
+The readiness MVP uses these documents:
+
+- `docs/sponsorship-data-request.md`
+- `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
+- `docs/feature-gate-policy.md`
+- `docs/source-onboarding-playbook.md`
+- `docs/storage-budget.md`
+
+If even one file arrives, follow the source onboarding playbook before making loader, migration, backend, frontend, or AI changes.
 
 ## Dry-Run Ingestion
 
@@ -140,6 +180,12 @@ Then run:
 
 ```powershell
 python -m ingestion.main ingest
+```
+
+Before large RCPA or future sponsorship/territory loads, check storage:
+
+```powershell
+.\scripts\db_size_report.ps1
 ```
 
 This writes:
@@ -230,3 +276,17 @@ If database ingestion fails:
 - Do not paste workbook excerpts into prompts unless explicitly needed.
 - Do not expose database passwords or Supabase service keys.
 - The frontend must not connect directly to Supabase.
+
+## Readiness MVP Validation Commands
+
+Focused readiness validation:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest ingestion\tests\test_profile_schema_drift.py ingestion\tests\test_workbook_compare.py ingestion\tests\test_cli_schema_readiness.py backend\tests\database\test_storage_budget_report.py -q
+```
+
+Style validation for touched readiness code:
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff check ingestion\models.py ingestion\profiler.py ingestion\report.py ingestion\main.py ingestion\workbook_compare.py ingestion\tests\test_profile_schema_drift.py ingestion\tests\test_workbook_compare.py ingestion\tests\test_cli_schema_readiness.py backend\tests\database\test_storage_budget_report.py ingestion\tests\fixtures\build_fixtures.py
+```

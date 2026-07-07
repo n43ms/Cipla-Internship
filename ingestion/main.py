@@ -6,15 +6,28 @@ from sqlalchemy import text
 from ingestion.config import get_settings
 from ingestion.database import session_scope
 from ingestion.orchestrator import ingest_workbooks, profile_workbooks
+from ingestion.profiler import profile_path
 from ingestion.reconciliation.event_matcher import EventMatcher
-from ingestion.report import write_ingestion_report, write_profile_report
+from ingestion.report import (
+    write_ingestion_report,
+    write_profile_report,
+    write_workbook_comparison_report,
+)
 from ingestion.repositories.event_match_repository import EventMatchRepository
+from ingestion.workbook_compare import compare_workbook_profiles
 
 app = typer.Typer(help="Profile, ingest, reconcile, and report on Cipla source workbooks.")
 DATA_DIR_OPTION = typer.Option(None, help="Directory containing raw local workbooks.")
 PROFILE_SOURCE_OPTION = typer.Option("all", help="Source family to profile.")
 INGEST_SOURCE_OPTION = typer.Option("all", help="Source family to ingest.")
 DRY_RUN_OPTION = typer.Option(False, help="Parse and validate without database writes.")
+COMPARE_RAW_OPTION = typer.Option(..., "--raw", help="Raw recurring workbook path.")
+COMPARE_CLEANED_OPTION = typer.Option(
+    ..., "--cleaned", help="Cleaned or presentable workbook path."
+)
+COMPARE_OUTPUT_DIR_OPTION = typer.Option(
+    None, help="Directory for comparison markdown/json reports."
+)
 
 
 @app.command()
@@ -28,6 +41,29 @@ def profile(
     output_path = settings.reports_dir / "workbook-profile-report.md"
     write_profile_report(profiles, output_path)
     typer.echo(f"Profiled {len(profiles)} workbook(s). Report: {output_path}")
+
+
+@app.command("compare")
+def compare_workbooks(
+    raw: Path = COMPARE_RAW_OPTION,
+    cleaned: Path = COMPARE_CLEANED_OPTION,
+    output_dir: Path | None = COMPARE_OUTPUT_DIR_OPTION,
+) -> None:
+    """Compare a raw workbook profile against a cleaned workbook profile."""
+    raw_profile = profile_path(raw)
+    cleaned_profile = profile_path(cleaned)
+    comparison = compare_workbook_profiles(raw_profile, cleaned_profile)
+    settings = get_settings()
+    markdown_path, json_path = write_workbook_comparison_report(
+        comparison,
+        output_dir or settings.reports_dir,
+    )
+    typer.echo(
+        f"Compared raw={raw.name} cleaned={cleaned.name}; "
+        f"raw_only={len(comparison.raw_only_columns)}, "
+        f"cleaned_only={len(comparison.cleaned_only_columns)}."
+    )
+    typer.echo(f"Reports: {markdown_path}, {json_path}")
 
 
 @app.command()
@@ -53,7 +89,8 @@ def report() -> None:
     if output_path.exists():
         typer.echo(str(output_path))
         return
-    typer.echo("No local ingestion report exists yet. Run `python -m ingestion.main ingest --dry-run` first.")
+    typer.echo("No local ingestion report exists yet.")
+    typer.echo("Run `python -m ingestion.main ingest --dry-run` first.")
 
 
 @app.command()

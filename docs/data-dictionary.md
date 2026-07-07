@@ -1,5 +1,19 @@
 # Data Dictionary
 
+## Planned Data-Gated Terms
+
+These terms are intentionally not implemented as database entities until real source files are profiled.
+
+| Term | Working Meaning | Gate |
+|---|---|---|
+| sponsorship event | A confirmed source row that business labels as sponsorship, conference sponsorship, no-fee/free-service support, or similar | Requires observed raw source labels and stable request/event keys |
+| sponsorship doctor | A doctor linked to a sponsorship event through country + P-code or another confirmed doctor-level key | Requires P-code/doctor linkage evidence |
+| no-fee service | A service or agreement outcome associated with sponsorship/free-service workflow | Requires exact source label and date behavior |
+| post-sponsorship movement | RCPA movement after a sponsorship event, described as association, not causality | Requires sponsorship facts plus enough before/after RCPA months |
+| accommodation support | Travel/accommodation support related to a doctor or event | Requires a separate source or confirmed fields in consolidation |
+| territory opportunity | A territory-level opportunity segment based on official territory mapping and deterministic metrics | Requires official territory/patch/region/cluster mapping |
+| manual P-code provenance | Evidence that P-codes were manually mapped or source-supplied | Requires actual provenance fields in RCPA or doctor master source |
+
 ## Phase 3 Source Workbooks
 
 Real workbooks live locally in `data/raw/` and are not committed.

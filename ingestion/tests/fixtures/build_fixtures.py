@@ -5,7 +5,11 @@ from openpyxl import Workbook
 ROOT = Path(__file__).resolve().parent
 
 
-def write_workbook(path: Path, sheet_name: str, headers: list[str], rows: list[list[object]]) -> None:
+def write_workbook(
+    path: Path, sheet_name: str, headers: list[str], rows: list[list[object]]
+) -> None:
+    if path.exists():
+        return
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = sheet_name
@@ -36,7 +40,14 @@ def build() -> None:
     write_workbook(
         ROOT / "xlsx" / "execution_may_tiny.xlsx",
         "Nepal",
-        ["Month", "Event", "Status", "Raised Requests", "YP Total Doctors", "Approved Total Doctors"],
+        [
+            "Month",
+            "Event",
+            "Status",
+            "Raised Requests",
+            "YP Total Doctors",
+            "Approved Total Doctors",
+        ],
         [["May-26", "Diabetes CME", "Executed", 1, 15, 12]],
     )
     write_workbook(
@@ -99,7 +110,82 @@ def build() -> None:
             "Qty",
             "Value",
         ],
-        [["Sri Lanka", 45772, "00123", "Dr Example", "Cardiology", "A", "Colombo 1", "Active", "Cipla Brand", "SKU A", "Own", 10, 3100]],
+        [
+            [
+                "Sri Lanka",
+                45772,
+                "00123",
+                "Dr Example",
+                "Cardiology",
+                "A",
+                "Colombo 1",
+                "Active",
+                "Cipla Brand",
+                "SKU A",
+                "Own",
+                10,
+                3100,
+            ]
+        ],
+    )
+    build_schema_drift()
+
+
+def build_schema_drift() -> None:
+    write_workbook(
+        ROOT / "xlsx" / "schema_drift_raw.xlsx",
+        "Working",
+        [
+            "DIVISION",
+            "Months",
+            "INTERVENTION NAME",
+            "REQ_ID",
+            "Raw Only Field",
+            "Unused Empty Field",
+            "Doctor Sponsorship Remark",
+        ],
+        [
+            [
+                "Sri Lanka",
+                "May-26",
+                "International congress",
+                "REQ-RAW-1",
+                "raw value",
+                None,
+                "Business example only",
+            ],
+            [
+                "Sri Lanka",
+                "May-26",
+                "National conference",
+                "REQ-RAW-2",
+                "raw value 2",
+                None,
+                "Second sample",
+            ],
+        ],
+    )
+    write_workbook(
+        ROOT / "xlsx" / "schema_drift_cleaned.xlsx",
+        "Working",
+        [
+            "Division",
+            "Month",
+            "Intervention Name",
+            "Request ID",
+            "Cleaned Only Field",
+            "Doctor Sponsorship Notes",
+        ],
+        [
+            [
+                "Sri Lanka",
+                "May-26",
+                "International congress",
+                "REQ-RAW-1",
+                "cleaned value",
+                "Business example only",
+            ]
+        ],
     )
 
 

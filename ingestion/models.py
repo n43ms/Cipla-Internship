@@ -6,7 +6,6 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-
 CellValue = str | int | float | bool | date | None
 
 
@@ -55,6 +54,11 @@ class SheetProfile:
     column_names: list[str]
     required_column_coverage: float
     sample_rows: list[list[str | None]]
+    mapped_columns: dict[str, str] = field(default_factory=dict)
+    unknown_columns: list[str] = field(default_factory=list)
+    missing_required_columns: list[str] = field(default_factory=list)
+    empty_columns: list[str] = field(default_factory=list)
+    sample_values: dict[str, list[str]] = field(default_factory=dict)
     anomalies: list[str] = field(default_factory=list)
 
 
@@ -97,6 +101,11 @@ class WorkbookProfile:
                     "column_names": sheet.column_names,
                     "required_column_coverage": sheet.required_column_coverage,
                     "sample_rows": sheet.sample_rows,
+                    "mapped_columns": sheet.mapped_columns,
+                    "unknown_columns": sheet.unknown_columns,
+                    "missing_required_columns": sheet.missing_required_columns,
+                    "empty_columns": sheet.empty_columns,
+                    "sample_values": sheet.sample_values,
                     "anomalies": sheet.anomalies,
                 }
                 for sheet in self.sheets
