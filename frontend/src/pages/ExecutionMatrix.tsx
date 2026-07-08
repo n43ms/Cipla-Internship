@@ -13,7 +13,7 @@ import { SidePanel } from "../components/common/SidePanel";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { LoadingState } from "../components/common/DataStateComponents";
 import { TableLoadingOverlay } from "../components/common/TableLoadingOverlay";
-import { WarningDisclosure } from "../components/common/WarningDisclosure";
+import { WarningRegistration } from "../components/common/WarningCenter";
 import { nextSort, SortableHeader, type SortState } from "../components/common/SortableTable";
 import type { ExecutionEventRow, WorkflowRequestRow, WorkflowSummaryResponse } from "../types/api";
 
@@ -317,12 +317,14 @@ function QualityPanel({
       : []),
   ];
   return (
-    <WarningDisclosure
-      className="mt-5"
-      title="Execution evidence notes"
-      detail="Review before treating execution coverage as final"
-      items={messages}
-      emptyLabel="No Phase 4 data-quality limitations are reported for this scope"
+    <WarningRegistration
+      record={{
+        id: "execution-evidence",
+        title: "Execution evidence notes",
+        detail: "Review before treating execution coverage as final",
+        tone: "warning",
+        items: messages,
+      }}
     />
   );
 }

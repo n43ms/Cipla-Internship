@@ -3,6 +3,7 @@ import { Activity, ArrowRight, DatabaseZap, LogOut, ShieldCheck, Sparkles, Steth
 
 import { AiAssistantPanel } from "./components/ai/AiAssistantPanel";
 import { DataFreshnessBanner, LoadingState } from "./components/common/DataStateComponents";
+import { WarningCenterDock, WarningCenterProvider } from "./components/common/WarningCenter";
 import { useDashboardMeta } from "./hooks/useDashboardMeta";
 const BudgetUtilization = lazy(() => import("./pages/BudgetUtilization").then((module) => ({ default: module.BudgetUtilization })));
 const DataQuality = lazy(() => import("./pages/DataQuality").then((module) => ({ default: module.DataQuality })));
@@ -43,7 +44,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <WarningCenterProvider>
       <div className="min-h-screen animate-page-enter bg-surface text-ink">
         <nav className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#07090a]/88 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
           <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -108,8 +109,9 @@ export default function App() {
           {page === "quality" ? <DataQuality onAiContextChange={setAiContext} /> : null}
         </Suspense>
       </div>
+      <WarningCenterDock />
       <AiAssistantPanel context={aiContext} />
-    </>
+    </WarningCenterProvider>
   );
 }
 

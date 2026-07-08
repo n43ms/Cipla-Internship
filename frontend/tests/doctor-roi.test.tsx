@@ -25,6 +25,7 @@ describe("Doctor ROI page", () => {
     await waitFor(() => expect(screen.getByText("Doctor opportunities and missed value")).toBeInTheDocument());
     expect(screen.getByText("Doctor ROI rows")).toBeInTheDocument();
     expect(screen.getByText("ROI quadrant matrix")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /open data warning notes/i }));
     expect(screen.getByText("Doctor ROI interpretation notes")).toBeInTheDocument();
     expect(screen.getByText("Dr Test")).toBeInTheDocument();
     expect(screen.getByText("No RCPA rows")).toBeInTheDocument();

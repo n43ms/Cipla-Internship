@@ -6,7 +6,7 @@ import { getFilters } from "../api/filters";
 import { DataFreshnessBanner, EmptyState, ErrorState, LoadingState } from "../components/common/DataStateComponents";
 import { SidePanel } from "../components/common/SidePanel";
 import { SmoothSelect } from "../components/common/SmoothSelect";
-import { WarningDisclosure } from "../components/common/WarningDisclosure";
+import { WarningRegistration } from "../components/common/WarningCenter";
 import { DoctorRoiCards, DoctorRoiTable, DoctorScatter, QuadrantMatrix, type DoctorRoiSortKey } from "../components/doctors/DoctorRoiComponents";
 import { nextSort, type SortState } from "../components/common/SortableTable";
 import type { DoctorRoiRow } from "../types/api";
@@ -83,16 +83,17 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
             <button className="soft-button w-full self-end rounded-md border border-zinc-800 px-4 py-2 text-sm sm:w-auto" onClick={() => { setCountry(""); setMonthStart(""); setMonthEnd(""); setBrand(""); setSpeciality(""); setDoctorClass(""); setRoiSegment(""); setIncludeOutOfScope(false); setPage(1); }}>Clear</button>
           </div>
         </section>
-        <WarningDisclosure
-          className="dashboard-card"
-          title="Doctor ROI interpretation notes"
-          tone="info"
-          items={[
-            "Doctor ROI defaults to Nepal and Sri Lanka primary markets.",
-            "RCPA prescription data is a historical baseline.",
-            "Brand filters identify doctors with that brand in baseline RCPA; displayed ROI metrics remain all-brand doctor totals.",
-          ]}
-          defaultOpen={false}
+        <WarningRegistration
+          record={{
+            id: "doctor-roi-interpretation",
+            title: "Doctor ROI interpretation notes",
+            tone: "info",
+            items: [
+              "Doctor ROI defaults to Nepal and Sri Lanka primary markets.",
+              "RCPA prescription data is a historical baseline.",
+              "Brand filters identify doctors with that brand in baseline RCPA; displayed ROI metrics remain all-brand doctor totals.",
+            ],
+          }}
         />
         <DoctorRoiCards data={roi.data} />
         {roi.data.rows.length ? (

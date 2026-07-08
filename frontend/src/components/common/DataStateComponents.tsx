@@ -1,18 +1,19 @@
 import type { ResponseMeta } from "../../types/api";
 import { LoaderCircle } from "lucide-react";
-import { WarningDisclosure } from "./WarningDisclosure";
+import { WarningRegistration } from "./WarningCenter";
 
 export function DataFreshnessBanner({ meta }: { meta?: ResponseMeta }) {
   if (!meta) return null;
   const hasWarnings = meta.dataQualityFlags.length > 0 || meta.limitations.length > 0;
   return (
-    <WarningDisclosure
-      title="Data freshness"
-      tone={hasWarnings ? "warning" : "success"}
-      detail={`Latest ingestion: ${meta.latestIngestionStatus}. Generated ${new Date(meta.generatedAt).toLocaleString()}`}
-      items={hasWarnings ? [...meta.dataQualityFlags, ...meta.limitations] : []}
-      emptyLabel="Freshness and quality checks are clear"
-      className="dashboard-card"
+    <WarningRegistration
+      record={{
+        id: "data-freshness",
+        title: "Data freshness",
+        tone: hasWarnings ? "warning" : "success",
+        detail: `Latest ingestion: ${meta.latestIngestionStatus}. Generated ${new Date(meta.generatedAt).toLocaleString()}`,
+        items: hasWarnings ? [...meta.dataQualityFlags, ...meta.limitations] : [],
+      }}
     />
   );
 }

@@ -161,8 +161,8 @@ describe("Execution governance page", () => {
     expect(screen.getByText("Out-of-scope policy")).toBeInTheDocument();
     expect(screen.getByText(/The page opens on 2026-05/)).toBeInTheDocument();
     expect(screen.getByText("1 derived from consolidation")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /open data warning notes/i }));
     expect(screen.getByText("Execution evidence notes")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /execution evidence notes/i }));
     expect(screen.getByText(/weak or unmatched reconciliation records require review/)).toBeInTheDocument();
     expect(screen.getByText("Planned vs engaged HCPs")).toBeInTheDocument();
     expect(screen.getByText("Event execution matrix")).toBeInTheDocument();

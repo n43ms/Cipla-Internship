@@ -25,9 +25,9 @@ describe("Budget utilization page", () => {
     expect(screen.getByText("Confirmed contracted")).toBeInTheDocument();
     expect(screen.getByText("Budget split")).toBeInTheDocument();
     expect(screen.getByText("Local currency totals")).toBeInTheDocument();
+    expect(screen.getByText("1 rows use provisional FX.")).not.toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /open data warning notes/i }));
     expect(screen.getByText("Budget quality notes")).toBeInTheDocument();
-    expect(screen.queryByText("1 rows use provisional FX.")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /budget quality notes/i }));
     expect(screen.getByText("1 rows use provisional FX.")).toBeInTheDocument();
     expect(screen.getByText("Diabetes CME")).toBeInTheDocument();
     expect(screen.getByText("Event budget gaps and unmatched spend")).toBeInTheDocument();

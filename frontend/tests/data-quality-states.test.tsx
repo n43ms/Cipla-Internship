@@ -19,10 +19,10 @@ describe("Data state components", () => {
       />,
     );
 
+    expect(screen.getByRole("button", { name: /open data warning notes/i })).toBeInTheDocument();
+    expect(screen.getByText("weak match coverage")).not.toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /open data warning notes/i }));
     expect(screen.getByText("Data freshness")).toBeInTheDocument();
-    expect(screen.getByText(/5 notes available/)).toBeInTheDocument();
-    expect(screen.queryByText("weak match coverage")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /data freshness/i }));
     expect(screen.getByText("weak match coverage")).toBeInTheDocument();
     expect(screen.getByText("provisional fx")).toBeInTheDocument();
     expect(screen.getByText("no rcpa")).toBeInTheDocument();
@@ -43,8 +43,7 @@ describe("Data state components", () => {
       />,
     );
 
-    expect(screen.getByText("Data freshness")).toBeInTheDocument();
-    expect(screen.getByText(/Freshness and quality checks are clear/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /open data warning notes/i })).not.toBeInTheDocument();
   });
 
   it("renders loading, empty, and error states with accessible labels", () => {

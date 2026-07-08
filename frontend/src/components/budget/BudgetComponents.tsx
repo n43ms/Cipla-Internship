@@ -4,7 +4,7 @@ import type { BudgetSummaryResponse, LocalCurrencyTotal } from "../../types/api"
 import { KpiCard } from "../common/DataStateComponents";
 import { TableLoadingOverlay } from "../common/TableLoadingOverlay";
 import { SortableHeader, type SortState, useSortableRows } from "../common/SortableTable";
-import { WarningDisclosure } from "../common/WarningDisclosure";
+import { WarningRegistration } from "../common/WarningCenter";
 
 const LOCAL_CURRENCY_SORT_ACCESSORS = {
   currency: (row: LocalCurrencyTotal) => row.currencyCode,
@@ -173,12 +173,14 @@ export function FxWarning({ data }: { data: BudgetSummaryResponse }) {
     data.btuBtcReconciliationIssueCount ? `${data.btuBtcReconciliationIssueCount} rows have BTU/BTC reconciliation issues.` : "",
   ].filter(Boolean);
   return (
-    <WarningDisclosure
-      className="dashboard-card"
-      title="Budget quality notes"
-      detail="FX and BTU/BTC checks"
-      items={items}
-      emptyLabel="FX and BTU/BTC checks are clear"
+    <WarningRegistration
+      record={{
+        id: "budget-quality",
+        title: "Budget quality notes",
+        detail: "FX and BTU/BTC checks",
+        tone: "warning",
+        items,
+      }}
     />
   );
 }
