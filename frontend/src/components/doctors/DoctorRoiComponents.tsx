@@ -3,6 +3,7 @@ import { Scatter, ScatterChart, ResponsiveContainer, CartesianGrid, XAxis, YAxis
 import type { DoctorRoiResponse, DoctorRoiRow } from "../../types/api";
 import { KpiCard } from "../common/DataStateComponents";
 import { money } from "../budget/BudgetComponents";
+import { TableLoadingOverlay } from "../common/TableLoadingOverlay";
 import { SortableHeader, type SortState } from "../common/SortableTable";
 
 export type DoctorRoiSortKey = "doctorName" | "roiSegment" | "quadrantLabel" | "engagementCount" | "rcpaLastMonth" | "totalRoiSpendUsd" | "ciplaPrescriptionQty";
@@ -67,6 +68,7 @@ export function DoctorRoiTable({
   pageSize,
   total,
   sort,
+  isFetching = false,
   onPageChange,
   onSelect,
   onSort,
@@ -76,13 +78,15 @@ export function DoctorRoiTable({
   pageSize: number;
   total: number;
   sort: SortState<DoctorRoiSortKey>;
+  isFetching?: boolean;
   onPageChange: (page: number) => void;
   onSelect: (row: DoctorRoiRow) => void;
   onSort: (column: DoctorRoiSortKey) => void;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   return (
-    <div className="dashboard-card overflow-hidden">
+    <div className="dashboard-card relative overflow-hidden">
+      <TableLoadingOverlay isFetching={isFetching} label="Refreshing doctor rows" />
       <div className="border-b border-zinc-800 p-4">
         <h2 className="font-semibold text-zinc-50">Doctor opportunities</h2>
         <p className="text-sm text-zinc-500">Showing {rows.length} of {total} rows. Sorted by dark-horse flag, prescription volume, and spend.</p>

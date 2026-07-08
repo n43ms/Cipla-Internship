@@ -1,20 +1,19 @@
 import type { ResponseMeta } from "../../types/api";
 import { LoaderCircle } from "lucide-react";
+import { WarningDisclosure } from "./WarningDisclosure";
 
 export function DataFreshnessBanner({ meta }: { meta?: ResponseMeta }) {
   if (!meta) return null;
   const hasWarnings = meta.dataQualityFlags.length > 0 || meta.limitations.length > 0;
   return (
-    <section className={`dashboard-card p-4 ${hasWarnings ? "border-[#6d5c32]/45 bg-[#3b3218]/20" : "border-emerald-300/20 bg-emerald-300/[0.045]"}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Data freshness</p>
-          <p className="text-sm text-zinc-200">Latest ingestion status: <strong>{meta.latestIngestionStatus}</strong></p>
-        </div>
-        <p className="text-xs text-zinc-500">Generated {new Date(meta.generatedAt).toLocaleString()}</p>
-      </div>
-      {hasWarnings ? <LimitationList limitations={[...meta.dataQualityFlags, ...meta.limitations]} /> : null}
-    </section>
+    <WarningDisclosure
+      title="Data freshness"
+      tone={hasWarnings ? "warning" : "success"}
+      detail={`Latest ingestion: ${meta.latestIngestionStatus}. Generated ${new Date(meta.generatedAt).toLocaleString()}`}
+      items={hasWarnings ? [...meta.dataQualityFlags, ...meta.limitations] : []}
+      emptyLabel="Freshness and quality checks are clear"
+      className="dashboard-card"
+    />
   );
 }
 

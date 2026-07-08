@@ -60,7 +60,7 @@ export default function App() {
                 </div>
                 <p className="text-xs bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Planner, consolidation, RCPA, workflow, budget, ROI, and data-quality governance</p>
                 <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Engineered by Aditya Nema</p>
-                <p className="mt-1 text-[0.68rem] text-cyan-200/75">Grounded AI: query planning, structured evidence retrieval, Gemini synthesis, backend validation.</p>
+                
               </div>
             </button>
             <div className="-mx-1 flex max-w-full items-center gap-2 overflow-x-auto px-3 p-1 lg:mx-0 lg:shrink-0">
@@ -96,7 +96,7 @@ export default function App() {
             </div>
           </div>
         </nav>
-        {meta.data && page !== "quality" ? (
+        {meta.data && page === "execution" ? (
           <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
             <DataFreshnessBanner meta={meta.data.meta} />
           </div>
@@ -116,23 +116,24 @@ export default function App() {
 function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => void }) {
   return (
     <main className={`relative flex min-h-screen overflow-hidden bg-[#07090a] text-ink transition-all duration-500 ease-out ${exiting ? "scale-[1.01] opacity-0 blur-sm" : "scale-100 opacity-100 blur-0"}`}>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(97,199,187,0.18),transparent_32%),radial-gradient(circle_at_78%_24%,rgba(126,144,255,0.12),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.04),transparent_42%)]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-accent/[0.08] to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(97,199,187,0.12),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.045),transparent_48%)]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-accent/[0.07] to-transparent" />
       <section className="relative mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.65fr)]">
         <div className="max-w-4xl animate-page-enter">
-          <div className="hover:scale-y-[1.025] hover:opacity-90 transition-all duration-300"><CiplaLogoPlaceholder size="lg"/></div>
+          <div className="transition-all duration-700 hover:scale-y-[1.05] hover:opacity-90"><CiplaLogoPlaceholder size="lg"/></div>
           
-          <p className=" mt-8  font-semibold uppercase tracking-[0.05em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent sm:text-2xl lg:text-4xl">Execution intelligence platform</p>
-          <h1 className="mt-4 text-[17px] font-semibold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent  ">
-            One command center for planning, execution, budget control, workflow proof, and doctor ROI.
+          <p className="mt-8 text-sm font-semibold uppercase tracking-[0.24em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Cipla EMEU/PBP analytics</p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-semibold bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">
+            Doctor ROI and Execution Intelligence for regional investment decisions.
           </h1>
-          <p className="mt-5 max-w-3xl text-base leading-7 bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">
-            Organize planner, consolidation, RCPA, execution, and workflow Excel data into a governed dashboard with auditable matching, budget utilization, intervention mix, doctor opportunity scoring, and data-quality checks.
+          <p className="mt-5 max-w-3xl text-base leading-7 text-zinc-300">
+            Built to orchestrate 50+ regional investment decisions per month across 6 countries by converting fragmented planner, execution, consolidation, workflow, budget, and RCPA workbooks into one auditable decision layer.
           </p>
-          <div className="mt-7 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
-            <EntryFeature icon={<ShieldCheck className="h-4 w-4" />} title="Auditable data" detail="Tracks source files, validation warnings, scope rules, and match coverage." />
-            <EntryFeature icon={<Activity className="h-4 w-4" />} title="Execution cockpit" detail="Compares planned events against snapshots and consolidation evidence." />
-            <EntryFeature icon={<Stethoscope className="h-4 w-4" />} title="Doctor ROI" detail="Connects attended doctors, spend allocation, and historical RCPA baselines." />
+          <div className="mt-7 grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2">
+            <EntryFeature icon={<Stethoscope className="h-4 w-4" />} title="Doctor ROI" detail="Surfaces ROI quadrants, dark-horse doctors, high-value engaged physicians, and no-RCPA limitations." />
+            <EntryFeature icon={<Activity className="h-4 w-4" />} title="Execution governance" detail="Reconciles planned events, execution snapshots, consolidation requests, workflow owners, and intervention mix." />
+            <EntryFeature icon={<WalletCards className="h-4 w-4" />} title="Budget control" detail="Separates planned, confirmed, BTU, BTC, actual spend, unspent gaps, overruns, and FX quality." />
+            <EntryFeature icon={<Sparkles className="h-4 w-4" />} title="ExecAI" detail="Embedded structured RAG assistant with query planning, evidence validation, redaction, and deterministic fallback." />
           </div>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <button
@@ -144,27 +145,27 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
               Click to continue
               <ArrowRight className="h-4 w-4 transition-transform duration-500 group-hover:translate-x-1" />
             </button>
-            <p className="text-xs font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Engineered by Aditya Nema</p>
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-cyan-200/80">Engineered by Aditya Nema</p>
           </div>
         </div>
 
         <aside className="dashboard-card relative overflow-hidden p-5">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.055] to-transparent" />
           <div className="relative">
             <div className="flex items-center gap-2 text-accent">
               <Sparkles className="h-4 w-4" />
-              <p className="text-xs font-semibold uppercase tracking-[0.24em]">What it does</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em]">Platform evidence</p>
             </div>
-            <div className="mt-5 space-y-4 text-sm text-zinc-300">
-              <p>Normalizes XLSX/XLSB source files into production-grade Supabase tables.</p>
-              <p>Reconciles planner rows, monthly execution snapshots, consolidation requests, and report workflow status.</p>
-              <p>Separates matched evidence from actual execution so leadership views stay honest.</p>
-              <p>Highlights budget gaps, FX quality, pending reports, unmatched records, and doctor-level opportunities.</p>
+            <div className="mt-5 grid gap-3 text-sm text-zinc-300">
+              <MetricLine label="Rows normalized" value="1M+" detail="Raw Excel/XLSB rows into auditable PostgreSQL KPI views." />
+              <MetricLine label="Architecture" value="FastAPI + Supabase + React" detail="Automated Python ETL with typed APIs and a reusable dashboard." />
+              <MetricLine label="Decision views" value="ROI, budget, workflow" detail="Dynamic visualizations for quadrants, tables, utilization, and bottlenecks." />
+              <MetricLine label="Reliability" value="100+ test definitions" detail="Covers ETL edge cases, financial mappings, frontend states, and AI grounding." />
             </div>
             <div className="mt-6 rounded-lg border border-white/[0.08] bg-black/20 p-4">
               <p className="text-xs uppercase tracking-wide text-zinc-500">Built for</p>
-              <p className="mt-2 text-lg font-semibold bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Cipla EMEU execution governance</p>
-              <p className="mt-1 text-sm bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Fast reviews. Clean audit trail. Practical decisions from raw field data.</p>
+              <p className="mt-2 text-lg font-semibold text-zinc-50">Cipla EMEU doctor investment governance</p>
+              <p className="mt-1 text-sm text-zinc-400">Fast reviews, clean audit trail, and practical doctor ROI decisions from raw field data.</p>
             </div>
           </div>
         </aside>
@@ -198,6 +199,16 @@ function EntryFeature({ icon, title, detail }: { icon: ReactNode; title: string;
         <p className="text-sm font-semibold text-zinc-100">{title}</p>
       </div>
       <p className="mt-2 text-xs leading-5 text-zinc-500">{detail}</p>
+    </div>
+  );
+}
+
+function MetricLine({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="rounded-lg border border-white/[0.08] bg-black/20 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-zinc-50">{value}</p>
+      <p className="mt-1 text-xs leading-5 text-zinc-500">{detail}</p>
     </div>
   );
 }

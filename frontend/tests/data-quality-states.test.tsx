@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { DataFreshnessBanner, EmptyState, ErrorState, LoadingState } from "../src/components/common/DataStateComponents";
@@ -19,11 +19,32 @@ describe("Data state components", () => {
       />,
     );
 
-    expect(screen.getByText(/Latest ingestion status:/)).toBeInTheDocument();
+    expect(screen.getByText("Data freshness")).toBeInTheDocument();
+    expect(screen.getByText(/5 notes available/)).toBeInTheDocument();
+    expect(screen.queryByText("weak match coverage")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /data freshness/i }));
     expect(screen.getByText("weak match coverage")).toBeInTheDocument();
     expect(screen.getByText("provisional fx")).toBeInTheDocument();
     expect(screen.getByText("no rcpa")).toBeInTheDocument();
     expect(screen.getByText("Some rows use provisional FX.")).toBeInTheDocument();
+  });
+
+  it("renders clear freshness state without expandable warning details", () => {
+    renderWithProviders(
+      <DataFreshnessBanner
+        meta={{
+          generatedAt: "2026-06-19T00:00:00Z",
+          latestIngestionStatus: "completed",
+          filtersApplied: {},
+          dataQualityFlags: [],
+          limitations: [],
+          sourceDerivationNotes: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Data freshness")).toBeInTheDocument();
+    expect(screen.getByText(/Freshness and quality checks are clear/)).toBeInTheDocument();
   });
 
   it("renders loading, empty, and error states with accessible labels", () => {

@@ -344,7 +344,7 @@
 - **US3 Budget Utilization (Phase 5)**: Depends on US1 and benefits from US2 event matches for event-level budget gaps.
 - **US4 Doctor ROI (Phase 6)**: Depends on US1 and US3 spend fields; can proceed alongside US2 after canonical tables exist, but final ROI spend outputs require US3 financial mapping.
 - **US5 Data Quality (Phase 7)**: Depends on US1 and integrates quality metrics from US2, US3, and US4.
-- **US6 Grounded AI (Phase 8)**: Depends on US2, US3, US4, and US5 service outputs because AI must summarize deterministic context only.
+- **US6 ExecAI (Phase 8)**: Depends on US2, US3, US4, and US5 service outputs because AI must summarize deterministic context only.
 - **Product Shell and Deployment (Phase 9)**: Depends on the selected demo scope; full demo readiness depends on all user stories.
 
 ### User Story Completion Order

@@ -1,1 +1,1 @@
-"""Grounded AI assistant services."""
+"""ExecAI assistant services."""

@@ -32,8 +32,8 @@ describe("AI assistant", () => {
     renderWithProviders(<App />);
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /open grounded ai/i })).toBeInTheDocument(), { timeout: 5000 });
-    fireEvent.click(screen.getByRole("button", { name: /open grounded ai/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /open execai/i })).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: /open execai/i }));
     await waitFor(() => expect(screen.getByText("Ask the dashboard")).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText("Business question"), {
       target: { value: "Where is execution risk highest?" },
@@ -46,7 +46,7 @@ describe("AI assistant", () => {
     expect(screen.getByText("Evidence used")).toBeInTheDocument();
     expect(screen.getByText("Weak/unmatched execution rows")).toBeInTheDocument();
     expect(screen.queryByText("execution.weakOrUnmatchedEvents")).not.toBeInTheDocument();
-    expect(screen.getByText("Grounded assistant workflow")).toBeInTheDocument();
+    expect(screen.getByText("ExecAI evidence workflow")).toBeInTheDocument();
     expect(screen.getByText("Where to verify this")).toBeInTheDocument();
     expect(screen.getByText("Execution event matrix table")).toBeInTheDocument();
     expect(screen.queryByText("execution: weak or unmatched events")).not.toBeInTheDocument();
@@ -72,8 +72,8 @@ describe("AI assistant", () => {
     renderWithProviders(<App />);
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /open grounded ai/i })).toBeInTheDocument(), { timeout: 5000 });
-    fireEvent.click(screen.getByRole("button", { name: /open grounded ai/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /open execai/i })).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: /open execai/i }));
     await waitFor(() => expect(screen.getByText("Ask the dashboard")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Where is execution risk highest?" }));
 
@@ -110,8 +110,8 @@ describe("AI assistant", () => {
     renderWithProviders(<App />);
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /open grounded ai/i })).toBeInTheDocument(), { timeout: 5000 });
-    fireEvent.click(screen.getByRole("button", { name: /open grounded ai/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /open execai/i })).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: /open execai/i }));
     await waitFor(() => expect(screen.getByText("Ask the dashboard")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Where is execution risk highest?" }));
 
@@ -138,8 +138,8 @@ describe("AI assistant", () => {
     renderWithProviders(<App />);
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /open grounded ai/i })).toBeInTheDocument(), { timeout: 5000 });
-    fireEvent.click(screen.getByRole("button", { name: /open grounded ai/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /open execai/i })).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: /open execai/i }));
     await waitFor(() => expect(screen.getByText("Ask the dashboard")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Where is execution risk highest?" }));
 

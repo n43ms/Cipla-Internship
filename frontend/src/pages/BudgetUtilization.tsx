@@ -18,13 +18,14 @@ export function BudgetUtilization({ onAiContextChange }: { onAiContextChange?: (
   const budget = useQuery({
     queryKey: ["budget-summary", country, month, page, sort],
     queryFn: () => getBudgetSummary({ country, month, page, pageSize: 25, sort: sort.key, sortDirection: sort.direction }),
+    placeholderData: (previousData) => previousData,
   });
 
   useEffect(() => {
     onAiContextChange?.({ pageContext: "budget", filters: aiFilters });
   }, [aiFilters, onAiContextChange]);
 
-  if (budget.isLoading) return <main><LoadingState label="Loading budget utilization" /></main>;
+  if (budget.isLoading && !budget.data) return <main><LoadingState label="Loading budget utilization" /></main>;
   if (budget.isError) return <main className="p-6"><ErrorState title="Budget utilization unavailable" /></main>;
   if (!budget.data) return null;
 
@@ -62,6 +63,7 @@ export function BudgetUtilization({ onAiContextChange }: { onAiContextChange?: (
               data={budget.data}
               page={page}
               sort={sort}
+              isFetching={budget.isFetching}
               onPageChange={setPage}
               onSort={(column) => { setSort((current) => nextSort(current, column)); setPage(1); }}
             />

@@ -6,7 +6,7 @@
 
 ## Summary
 
-Build a protected, deployment-ready execution intelligence platform that converts Cipla EMEU planner, execution, consolidation, and RCPA workbooks into audited canonical tables, explicit reconciliation records, materialized KPI views, typed FastAPI services, and a polished React dashboard. Ingestion remains a local controlled CLI for MVP; the deployed app is read-only except for grounded AI query logging.
+Build a protected, deployment-ready execution intelligence platform that converts Cipla EMEU planner, execution, consolidation, and RCPA workbooks into audited canonical tables, explicit reconciliation records, materialized KPI views, typed FastAPI services, and a polished React dashboard. Ingestion remains a local controlled CLI for MVP; the deployed app is read-only except for ExecAI query logging.
 
 The core design decision is to treat the source workbooks as complementary evidence, not interchangeable sources of truth:
 
@@ -31,7 +31,7 @@ Transcript 2026-06-15 adds confirmed financial governance scope: budget and ROI 
 
 **Target Platform**: Local Windows development and ingestion; deployed React frontend on Vercel or equivalent; deployed Python backend on Render/Railway/Fly.io or equivalent; Supabase-hosted PostgreSQL.
 
-**Project Type**: Data-heavy full-stack web application with local ingestion CLI, read-only web API, React dashboard, and backend-mediated AI assistant.
+**Project Type**: Data-heavy full-stack web application with local ingestion CLI, read-only web API, React dashboard, and backend-mediated ExecAI assistant.
 
 **Performance Goals**: Profile all eight supplied workbooks without manual inspection; aggregate RCPA prescription rows before persistence; keep Supabase under the free-tier storage limit by persisting compact RCPA summaries online and detailed RCPA extracts locally; keep dashboard summary API responses under 1s against materialized views for MVP data volume; keep event/doctor detail tables paginated.
 
@@ -85,7 +85,7 @@ data/raw local workbooks
   -> materialized KPI/data-quality views
   -> FastAPI read services
   -> React dashboard
-  -> backend-grounded AI service
+  -> backend-mediated ExecAI service
 ```
 
 The ingestion CLI is the only component that writes source-derived business facts. Backend routes are read-only for dashboard data, except `POST /api/ai/query`, which stores sanitized AI query logs.

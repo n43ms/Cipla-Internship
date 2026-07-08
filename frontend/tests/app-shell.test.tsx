@@ -9,6 +9,9 @@ describe("App shell", () => {
     renderWithProviders(<App />);
 
     expect(screen.getByRole("button", { name: /click to continue/i })).toBeInTheDocument();
-    expect(screen.getByText("Execution intelligence platform")).toBeInTheDocument();
+    expect(screen.getByText("Cipla EMEU/PBP analytics")).toBeInTheDocument();
+    expect(screen.getByText(/Doctor ROI and Execution Intelligence/)).toBeInTheDocument();
+    expect(screen.getByText("ExecAI")).toBeInTheDocument();
+    expect(screen.getByText(/50\+ regional investment decisions/)).toBeInTheDocument();
   });
 });

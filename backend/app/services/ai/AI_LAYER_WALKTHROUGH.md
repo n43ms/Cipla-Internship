@@ -370,7 +370,7 @@ Redaction badge:
 Evidence used:
   evidenceRefs from backend response
 
-Grounded assistant workflow:
+ExecAI evidence workflow:
   agentSteps from backend response
 
 Where to verify this:
@@ -1392,7 +1392,7 @@ This marks `backend/app/services/ai/` as a Python package.
 It currently contains only:
 
 ```python
-"""Grounded AI assistant services."""
+"""ExecAI assistant services."""
 ```
 
 It has no runtime behavior.

@@ -6,6 +6,7 @@ import { getFilters } from "../api/filters";
 import { DataFreshnessBanner, EmptyState, ErrorState, LoadingState } from "../components/common/DataStateComponents";
 import { SidePanel } from "../components/common/SidePanel";
 import { SmoothSelect } from "../components/common/SmoothSelect";
+import { WarningDisclosure } from "../components/common/WarningDisclosure";
 import { DoctorRoiCards, DoctorRoiTable, DoctorScatter, QuadrantMatrix, type DoctorRoiSortKey } from "../components/doctors/DoctorRoiComponents";
 import { nextSort, type SortState } from "../components/common/SortableTable";
 import type { DoctorRoiRow } from "../types/api";
@@ -39,6 +40,7 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
   const roi = useQuery({
     queryKey: ["doctor-roi", country, monthStart, monthEnd, brand, speciality, doctorClass, roiSegment, includeOutOfScope, page, sort],
     queryFn: () => getDoctorRoi({ country, monthStart, monthEnd, brand, speciality, doctorClass, roiSegment, includeOutOfScope, page, pageSize: 50, sort: sort.key, sortDirection: sort.direction }),
+    placeholderData: (previousData) => previousData,
   });
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
     enabled: Boolean(selected),
   });
 
-  if (roi.isLoading) return <main><LoadingState label="Loading doctor ROI" /></main>;
+  if (roi.isLoading && !roi.data) return <main><LoadingState label="Loading doctor ROI" /></main>;
   if (roi.isError) return <main className="p-6"><ErrorState title="Doctor ROI unavailable" /></main>;
   if (!roi.data) return null;
 
@@ -81,9 +83,17 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
             <button className="soft-button w-full self-end rounded-md border border-zinc-800 px-4 py-2 text-sm sm:w-auto" onClick={() => { setCountry(""); setMonthStart(""); setMonthEnd(""); setBrand(""); setSpeciality(""); setDoctorClass(""); setRoiSegment(""); setIncludeOutOfScope(false); setPage(1); }}>Clear</button>
           </div>
         </section>
-        <div className="dashboard-card border-cyan-400/30 bg-cyan-400/[0.07] p-4 text-sm text-cyan-200">
-          Doctor ROI defaults to Nepal and Sri Lanka primary markets. RCPA prescription data is a historical baseline. Brand filters identify doctors with that brand in baseline RCPA; displayed ROI metrics remain all-brand doctor totals.
-        </div>
+        <WarningDisclosure
+          className="dashboard-card"
+          title="Doctor ROI interpretation notes"
+          tone="info"
+          items={[
+            "Doctor ROI defaults to Nepal and Sri Lanka primary markets.",
+            "RCPA prescription data is a historical baseline.",
+            "Brand filters identify doctors with that brand in baseline RCPA; displayed ROI metrics remain all-brand doctor totals.",
+          ]}
+          defaultOpen={false}
+        />
         <DoctorRoiCards data={roi.data} />
         {roi.data.rows.length ? (
           <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.6fr)]">
@@ -96,6 +106,7 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
                 pageSize={roi.data.pageSize}
                 total={roi.data.total}
                 sort={sort}
+                isFetching={roi.isFetching}
                 onPageChange={setPage}
                 onSelect={setSelected}
                 onSort={(column) => { setSort((current) => nextSort(current, column)); setPage(1); }}

@@ -12,6 +12,8 @@ import { WorkflowGovernanceCards, WorkflowStatusTable } from "../components/work
 import { SidePanel } from "../components/common/SidePanel";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { LoadingState } from "../components/common/DataStateComponents";
+import { TableLoadingOverlay } from "../components/common/TableLoadingOverlay";
+import { WarningDisclosure } from "../components/common/WarningDisclosure";
 import { nextSort, SortableHeader, type SortState } from "../components/common/SortableTable";
 import type { ExecutionEventRow, WorkflowRequestRow, WorkflowSummaryResponse } from "../types/api";
 
@@ -62,6 +64,7 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
   const events = useQuery({
     queryKey: ["execution-events", activeFilters, page, eventSort],
     queryFn: () => getExecutionEvents({ ...activeFilters, page, pageSize: PAGE_SIZE, sort: eventSort.key, sortDirection: eventSort.direction }),
+    placeholderData: (previousData) => previousData,
   });
   const workflow = useQuery({
     queryKey: ["workflow-summary", workflowFilters],
@@ -70,6 +73,7 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
   const workflowRequests = useQuery({
     queryKey: ["workflow-requests", workflowFilters, workflowSort],
     queryFn: () => getWorkflowRequests({ ...workflowFilters, page: 1, pageSize: WORKFLOW_PAGE_SIZE, sort: workflowSort.key, sortDirection: workflowSort.direction }),
+    placeholderData: (previousData) => previousData,
   });
   const interventions = useQuery({
     queryKey: ["intervention-mix", activeFilters],
@@ -90,11 +94,11 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
 
   const isLoading =
     filterOptions.isLoading ||
-    summary.isLoading ||
-    events.isLoading ||
-    workflow.isLoading ||
-    workflowRequests.isLoading ||
-    interventions.isLoading;
+    (summary.isLoading && !summary.data) ||
+    (events.isLoading && !events.data) ||
+    (workflow.isLoading && !workflow.data) ||
+    (workflowRequests.isLoading && !workflowRequests.data) ||
+    (interventions.isLoading && !interventions.data);
   const isError =
     filterOptions.isError ||
     summary.isError ||
@@ -197,6 +201,7 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
             rows={workflowRows}
             total={workflowRequests.data?.total ?? 0}
             sort={workflowSort}
+            isFetching={workflowRequests.isFetching}
             onSort={(column) => setWorkflowSort((current) => nextSort(current, column))}
           />
           <EventMatrixTable
@@ -205,6 +210,7 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
             pageCount={pageCount}
             total={totalEvents}
             sort={eventSort}
+            isFetching={events.isFetching}
             onPageChange={setPage}
             onSelect={setSelectedRow}
             onSort={(column) => { setEventSort((current) => nextSort(current, column)); setPage(1); }}
@@ -310,27 +316,14 @@ function QualityPanel({
       ? [`${formatCount(weakOrUnmatched)} weak or unmatched reconciliation records require review before treating execution coverage as final.`]
       : []),
   ];
-  if (messages.length === 0) {
-    return (
-      <div className="mt-5 rounded-lg border border-emerald-300/20 bg-emerald-300/[0.045] p-4 text-sm text-emerald-100/70 transition duration-300 ease-out">
-        No Phase 4 data-quality limitations are reported for this scope.
-      </div>
-    );
-  }
   return (
-    <div className="mt-5 rounded-lg border border-[#6d5c32]/45 bg-[#3b3218]/20 p-4 text-sm text-[#bbaa83] transition duration-300 ease-out">
-      <div className="flex items-start gap-2">
-        <AlertTriangle className="mt-0.5 shrink-0" size={16} />
-        <div>
-          <p className="font-medium">Use this dashboard as auditable governance, not final truth, until open records are reviewed.</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            {Array.from(new Set(messages)).map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>
+    <WarningDisclosure
+      className="mt-5"
+      title="Execution evidence notes"
+      detail="Review before treating execution coverage as final"
+      items={messages}
+      emptyLabel="No Phase 4 data-quality limitations are reported for this scope"
+    />
   );
 }
 
@@ -420,6 +413,7 @@ function EventMatrixTable({
   pageCount,
   total,
   sort,
+  isFetching = false,
   onPageChange,
   onSelect,
   onSort,
@@ -429,12 +423,14 @@ function EventMatrixTable({
   pageCount: number;
   total: number;
   sort: SortState<ExecutionSortKey>;
+  isFetching?: boolean;
   onPageChange: (page: number) => void;
   onSelect: (row: ExecutionEventRow) => void;
   onSort: (column: ExecutionSortKey) => void;
 }) {
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card relative">
+      <TableLoadingOverlay isFetching={isFetching} label="Refreshing execution rows" />
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 p-4">
         <div>
           <h2 className="font-medium">Event execution matrix</h2>
@@ -525,9 +521,22 @@ function EventMatrixTable({
   );
 }
 
-function WorkflowRequestTable({ rows, total, sort, onSort }: { rows: WorkflowRequestRow[]; total: number; sort: SortState<WorkflowSortKey>; onSort: (column: WorkflowSortKey) => void }) {
+function WorkflowRequestTable({
+  rows,
+  total,
+  sort,
+  isFetching = false,
+  onSort,
+}: {
+  rows: WorkflowRequestRow[];
+  total: number;
+  sort: SortState<WorkflowSortKey>;
+  isFetching?: boolean;
+  onSort: (column: WorkflowSortKey) => void;
+}) {
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card relative">
+      <TableLoadingOverlay isFetching={isFetching} label="Refreshing workflow rows" />
       <div className="flex items-center justify-between border-b border-zinc-800 p-4">
         <div>
           <h2 className="font-medium">Workflow request drilldown</h2>

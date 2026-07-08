@@ -58,11 +58,11 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
         className={`ai-drawer-toggle ${open ? "ai-drawer-toggle-open" : ""}`}
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        aria-controls="grounded-ai-drawer"
-        aria-label={open ? "Close Grounded AI" : "Open Grounded AI"}
+        aria-controls="exec-ai-drawer"
+        aria-label={open ? "Close ExecAI" : "Open ExecAI"}
       >
         {open ? <ChevronRight className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
-        <span className="hidden sm:inline">Grounded AI</span>
+        <span className="hidden sm:inline">ExecAI</span>
       </button>
 
       <div
@@ -72,7 +72,7 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
       />
 
       <aside
-        id="grounded-ai-drawer"
+        id="exec-ai-drawer"
         className={`ai-drawer ${open ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(100%+1.5rem)] opacity-0"}`}
         aria-hidden={!open}
       >
@@ -82,11 +82,11 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
               <div>
                 <div className="flex items-center gap-2 text-accent">
                   <Sparkles className="h-4 w-4" />
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em]">Grounded AI</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em]">ExecAI</p>
                 </div>
                 <h2 className="mt-2 text-lg font-semibold text-zinc-100">Ask the dashboard</h2>
                 <p className="mt-1 text-xs leading-5 text-zinc-500">
-                  Grounded assistant: plans the query, retrieves structured dashboard evidence, asks Gemini to explain it, then validates the answer against available data.
+                  Structured RAG assistant: plans the question, retrieves FastAPI/PostgreSQL evidence, asks Gemini to synthesize it, then validates the answer against available data.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -95,7 +95,7 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
                   type="button"
                   className="soft-button rounded-md p-2"
                   onClick={() => setOpen(false)}
-                  aria-label="Close Grounded AI"
+                  aria-label="Close ExecAI"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -215,7 +215,7 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
         <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.055] p-3">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-cyan-100">
             <ShieldCheck className="h-4 w-4" />
-            Grounded assistant workflow
+            ExecAI evidence workflow
           </div>
           <ol className="mt-2 space-y-1 text-xs leading-5 text-cyan-100/75">
             {agentSteps.map((step) => (

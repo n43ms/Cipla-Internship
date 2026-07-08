@@ -2,7 +2,9 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 
 import type { BudgetSummaryResponse, LocalCurrencyTotal } from "../../types/api";
 import { KpiCard } from "../common/DataStateComponents";
+import { TableLoadingOverlay } from "../common/TableLoadingOverlay";
 import { SortableHeader, type SortState, useSortableRows } from "../common/SortableTable";
+import { WarningDisclosure } from "../common/WarningDisclosure";
 
 const LOCAL_CURRENCY_SORT_ACCESSORS = {
   currency: (row: LocalCurrencyTotal) => row.currencyCode,
@@ -99,10 +101,25 @@ export function BudgetSpendChart({ data }: { data: BudgetSummaryResponse }) {
   );
 }
 
-export function BudgetGapTable({ data, page, sort, onPageChange, onSort }: { data: BudgetSummaryResponse; page: number; sort: SortState<BudgetGapSortKey>; onPageChange: (page: number) => void; onSort: (column: BudgetGapSortKey) => void }) {
+export function BudgetGapTable({
+  data,
+  page,
+  sort,
+  isFetching = false,
+  onPageChange,
+  onSort,
+}: {
+  data: BudgetSummaryResponse;
+  page: number;
+  sort: SortState<BudgetGapSortKey>;
+  isFetching?: boolean;
+  onPageChange: (page: number) => void;
+  onSort: (column: BudgetGapSortKey) => void;
+}) {
   const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
   return (
-    <div className="dashboard-card overflow-hidden">
+    <div className="dashboard-card relative overflow-hidden">
+      <TableLoadingOverlay isFetching={isFetching} label="Refreshing budget rows" />
       <div className="border-b border-zinc-800 p-4">
         <h2 className="font-semibold text-zinc-50">Event budget gaps and unmatched spend</h2>
         <p className="text-sm text-zinc-500">Showing {data.rows.length} of {data.total} rows. Matched gaps are grouped by plan event in summary totals.</p>
@@ -150,13 +167,19 @@ export function BudgetGapTable({ data, page, sort, onPageChange, onSort }: { dat
 }
 
 export function FxWarning({ data }: { data: BudgetSummaryResponse }) {
-  if (!data.missingFxCount && !data.provisionalFxCount && !data.btuBtcReconciliationIssueCount) return null;
+  const items = [
+    data.missingFxCount ? `${data.missingFxCount} rows have missing company FX and remain local-currency only.` : "",
+    data.provisionalFxCount ? `${data.provisionalFxCount} rows use provisional FX.` : "",
+    data.btuBtcReconciliationIssueCount ? `${data.btuBtcReconciliationIssueCount} rows have BTU/BTC reconciliation issues.` : "",
+  ].filter(Boolean);
   return (
-    <div className="dashboard-card border-amber-300/20 bg-amber-300/[0.045] p-4 text-sm text-amber-100/70">
-      {data.missingFxCount ? <p>{data.missingFxCount} rows have missing company FX and remain local-currency only.</p> : null}
-      {data.provisionalFxCount ? <p>{data.provisionalFxCount} rows use provisional FX.</p> : null}
-      {data.btuBtcReconciliationIssueCount ? <p>{data.btuBtcReconciliationIssueCount} rows have BTU/BTC reconciliation issues.</p> : null}
-    </div>
+    <WarningDisclosure
+      className="dashboard-card"
+      title="Budget quality notes"
+      detail="FX and BTU/BTC checks"
+      items={items}
+      emptyLabel="FX and BTU/BTC checks are clear"
+    />
   );
 }
 

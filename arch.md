@@ -124,7 +124,7 @@ Frontend pages:
 
 The frontend calls FastAPI only. It does not calculate core KPIs from raw rows.
 
-### 5. Grounded AI Assistant
+### 5. ExecAI Assistant
 
 The AI assistant is the last layer, not the source of truth.
 
@@ -305,7 +305,7 @@ The final dashboard should show:
 - ROI quadrant,
 - dark-horse doctors,
 - data-quality warnings,
-- grounded AI summaries.
+- ExecAI summaries.
 
 ## Why This Architecture Is Practical
 

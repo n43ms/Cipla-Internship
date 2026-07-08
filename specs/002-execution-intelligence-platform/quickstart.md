@@ -158,8 +158,8 @@ Expected outcome:
 
 - executive overview renders,
 - navigation exposes Execution, Budget, Doctor ROI, and Data Quality pages,
-- global freshness and warning banners load from API,
-- stale/weak/missing-data warnings are visible when applicable,
+- global freshness and compact warning disclosures load from API,
+- stale/weak/missing-data warnings are visible through expandable warning details when applicable,
 - execution matrix drills into event-level records,
 - budget page handles missing FX, provisional FX, unmatched spend, and BTU/BTC reconciliation states,
 - doctor ROI page handles no-RCPA states, deterministic segments, dark-horse rows, and doctor drilldowns,

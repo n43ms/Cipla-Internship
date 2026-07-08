@@ -35,7 +35,7 @@ Source Excel / XLSB files
   -> Materialized KPI views
   -> FastAPI read services
   -> React dashboard
-  -> Grounded AI assistant
+  -> ExecAI assistant
 ```
 
 The most important architectural decision is this: the app should not treat the monthly execution planner as the only source of truth. The yearly planner, consolidation report, execution planner, and RCPA files each describe part of the business reality. The system must reconcile them transparently.
@@ -1721,7 +1721,7 @@ Success:
 
 Deliver:
 
-- grounded AI query endpoint
+- ExecAI query endpoint
 - AI panel
 - suggested prompts
 - cited metrics and limitations
