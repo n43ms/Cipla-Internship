@@ -125,7 +125,7 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
           <div className="transition-all duration-700 hover:scale-y-[1.05] hover:opacity-90"><CiplaLogoPlaceholder size="lg"/></div>
           
           <p className="mt-8 text-sm font-semibold uppercase tracking-[0.24em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Cipla EMEU/PBP analytics</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">
+          <h1 className="mt-4 pb-[6px] max-w-4xl text-4xl font-semibold bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">
             Doctor ROI and Execution Intelligence for regional investment decisions.
           </h1>
           <p className="mt-5 max-w-3xl text-base leading-7 text-zinc-300">
