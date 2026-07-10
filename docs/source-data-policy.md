@@ -2,54 +2,79 @@
 
 ## Raw Workbook Handling
 
-Real Cipla Excel and XLSB files are confidential source evidence.
+Real Cipla Excel/XLSB/HTML-XLS files are confidential source evidence.
 
 Rules:
 
-- Store real workbooks in `data/raw/`.
-- Do not commit real `.xlsx`, `.xlsb`, `.xls`, `.csv`, or generated extracts.
-- Do not manually clean or reformat the source workbooks before ingestion.
-- Preserve original filenames when practical because filenames may contain period and market context.
+- Keep real source files in local ignored storage such as `files/`, `data/raw/`, or dashboard-generated `data/uploads/` batches.
+- Do not commit real `.xlsx`, `.xlsb`, `.xls`, `.csv`, generated extracts, `.env`, credentials, reports with business data, or processed outputs.
+- Do not manually clean, rename headers, delete columns, or reformat source workbooks before profiling.
+- Preserve original filenames when practical because filenames carry market, month, and source context.
 - Use synthetic fixtures under `ingestion/tests/fixtures/` for tests.
 
-## Raw Recurring Extracts Vs Cleaned Presentation Files
+## Received July 10 Package
 
-Treat raw recurring extracts and cleaned files differently:
+The received package is valid for profiling:
 
-- A raw recurring extract is the ingestion source of truth only if it is exported directly from the source system without deleted columns, renamed headers, or manual cleanup.
-- A cleaned/presentable file is useful for understanding business meaning, but it is not implementation evidence unless the business confirms it is the recurring file shape.
-- When both versions exist, run the raw-vs-cleaned comparison workflow before changing schema maps, loaders, migrations, APIs, frontend pages, or AI context.
-- If only a cleaned file arrives, profile it and record it as `presentation source`; do not build recurring ingestion around it without confirmation.
-- If no data arrives, only readiness tooling and documentation may be built.
+- raw consolidated Smart Contract report,
+- raw doctor-wise Smart Contract reports,
+- cleaned presentable reports,
+- historical smart-contract ERS workbook,
+- historical RCPA XLSB workbooks,
+- unified monthly all-BU RCPA workbook,
+- MSL doctor master.
+
+The app phase still uses manual batch upload. SharePoint is only the business storage/export location, not an integration target.
+
+Dashboard uploads save files under `data/uploads/<batch-id>/`, generate a manifest for accepted
+files, and write an upload summary. These generated batch folders are confidential local artifacts
+and must not be committed.
+
+## Raw Vs Cleaned Files
+
+- Raw exports are ingestion source of truth.
+- Cleaned/presentable files are comparison and validation evidence only.
+- When both variants exist, compare them before schema-map, loader, migration, API, UI, or AI work.
+- If a cleaned file has useful derived fields, document the transformation instead of treating the cleaned workbook as raw truth.
+
+## FX Policy
+
+Use only company-provided FX values:
+
+| Market | 1 USD equals |
+|---|---:|
+| Sri Lanka | 368.90 |
+| Nepal | 89 |
+| Oman | 0.46 |
+| UAE | 1.00 |
+| Myanmar | 4300 |
+| Malaysia | 4.39 |
+
+Internet/public FX rates are not allowed for this phase.
 
 ## Why Originals Stay Dirty
 
-The ingestion layer is responsible for explaining and normalizing messy source files:
+The ingestion layer must handle:
 
 - header detection,
+- CRM HTML-XLS exports,
 - sheet selection,
 - alias mapping,
 - month parsing,
-- Pcode normalization,
+- P-code normalization,
 - financial mapping,
 - validation errors,
-- row counts and skipped row reporting.
+- duplicate detection,
+- row counts and skipped-row reporting.
 
-Cleaning source workbooks manually would make ingestion non-reproducible and weaken auditability.
+Manual cleanup would make ingestion non-reproducible and weaken auditability.
 
-## Readiness MVP Validation
+## Git Safety Check
 
-The sponsorship readiness MVP intentionally avoids committing real workbooks, generated extracts, or secrets. Before completing readiness work, run:
+Before committing readiness or implementation work, run:
 
 ```powershell
 git status --short
 ```
 
-Confirm that no real `.xlsx`, `.xlsb`, `.xls`, `.csv`, generated report, `.env`, or processed extract has been added.
-
-Latest readiness MVP review:
-
-```text
-No real workbooks, generated extracts, generated reports, or secrets were added.
-Only synthetic fixture workbooks under ingestion/tests/fixtures/xlsx are part of the readiness test surface.
-```
+Confirm no real workbook, generated extract, generated report, `.env`, credential, or processed output is staged.

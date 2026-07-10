@@ -8,7 +8,7 @@ from ingestion.config import get_settings
 from ingestion.database import session_scope
 from ingestion.file_registry import SourceFile, discover_source_files
 from ingestion.loaders import load_consolidation, load_execution_snapshot, load_planner, load_rcpa
-from ingestion.models import LoadResult, WorkbookProfile
+from ingestion.models import BatchValidationResult, LoadResult, WorkbookProfile
 from ingestion.processed_exports import export_rcpa_detail_records
 from ingestion.profiler import profile_source_file
 from ingestion.reconciliation.event_matcher import EventMatcher
@@ -17,6 +17,7 @@ from ingestion.repositories.audit_repository import AuditRepository
 from ingestion.repositories.canonical_repository import CanonicalRepository
 from ingestion.repositories.event_match_repository import EventMatchRepository
 from ingestion.repositories.rcpa_repository import RcpaRepository
+from ingestion.source_manifest import load_source_manifest, validate_source_manifest
 
 LOADERS = {
     "planner": load_planner,
@@ -46,11 +47,21 @@ class IngestionSummary:
 
     @property
     def warning_count(self) -> int:
-        return sum(1 for result in self.load_results for issue in result.issues if issue.severity == "warning")
+        return sum(
+            1
+            for result in self.load_results
+            for issue in result.issues
+            if issue.severity == "warning"
+        )
 
     @property
     def error_count(self) -> int:
-        return sum(1 for result in self.load_results for issue in result.issues if issue.severity == "error")
+        return sum(
+            1
+            for result in self.load_results
+            for issue in result.issues
+            if issue.severity == "error"
+        )
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -80,11 +91,81 @@ class IngestionSummary:
         }
 
 
-def profile_workbooks(data_dir: Path | None = None, *, source: str = "all") -> list[WorkbookProfile]:
+@dataclass(frozen=True)
+class BatchProfileSummary:
+    validation: BatchValidationResult
+    profiles: list[WorkbookProfile]
+
+    @property
+    def accepted_count(self) -> int:
+        return len(self.validation.accepted_files)
+
+    @property
+    def quarantined_count(self) -> int:
+        return len(self.validation.quarantined_files)
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "manifest": str(self.validation.manifest.path),
+            "received_package_path": str(self.validation.manifest.received_package_path),
+            "accepted_count": self.accepted_count,
+            "quarantined_count": self.quarantined_count,
+            "files": [
+                {
+                    "label": file_result.entry.label,
+                    "path": str(file_result.entry.path),
+                    "declared_source_type": file_result.entry.source_type,
+                    "fingerprint_source_type": (
+                        file_result.fingerprint.inferred_source_type
+                        if file_result.fingerprint
+                        else None
+                    ),
+                    "file_hash": file_result.file_hash,
+                    "accepted": file_result.accepted,
+                    "issues": [issue.error_code for issue in file_result.issues],
+                }
+                for file_result in self.validation.files
+            ],
+            "profiles": [profile.to_json() for profile in self.profiles],
+        }
+
+
+def profile_workbooks(
+    data_dir: Path | None = None,
+    *,
+    source: str = "all",
+) -> list[WorkbookProfile]:
     settings = get_settings()
     root = data_dir or settings.data_dir
-    source_files = _filter_sources(discover_source_files(root, require_gitignored_path=data_dir is None), source)
+    source_files = _filter_sources(
+        discover_source_files(root, require_gitignored_path=data_dir is None),
+        source,
+    )
     return [profile_source_file(source_file) for source_file in source_files]
+
+
+def profile_manifest_batch(manifest_path: Path) -> BatchProfileSummary:
+    manifest = load_source_manifest(manifest_path)
+    validation = validate_source_manifest(manifest)
+    profiles = []
+    for file_result in validation.accepted_files:
+        if not file_result.file_hash:
+            continue
+        profiles.append(
+            profile_source_file(
+                SourceFile(
+                    path=file_result.entry.path,
+                    original_filename=file_result.entry.path.name,
+                    file_hash=file_result.file_hash,
+                    file_type=file_result.entry.path.suffix.lower().lstrip("."),
+                    source_type=file_result.entry.source_type,
+                    country_scope=", ".join(file_result.entry.country_scope) or None,
+                    period_start=file_result.entry.period_start,
+                    period_end=file_result.entry.period_end,
+                )
+            )
+        )
+    return BatchProfileSummary(validation=validation, profiles=profiles)
 
 
 def load_profiles(profiles: list[WorkbookProfile], *, source: str = "all") -> list[LoadResult]:
@@ -99,10 +180,18 @@ def load_profiles(profiles: list[WorkbookProfile], *, source: str = "all") -> li
     return results
 
 
-def ingest_workbooks(data_dir: Path | None = None, *, source: str = "all", dry_run: bool = False) -> IngestionSummary:
+def ingest_workbooks(
+    data_dir: Path | None = None,
+    *,
+    source: str = "all",
+    dry_run: bool = False,
+) -> IngestionSummary:
     settings = get_settings()
     root = data_dir or settings.data_dir
-    source_files = _filter_sources(discover_source_files(root, require_gitignored_path=data_dir is None), source)
+    source_files = _filter_sources(
+        discover_source_files(root, require_gitignored_path=data_dir is None),
+        source,
+    )
     profiles = [profile_source_file(source_file) for source_file in source_files]
     load_results = load_profiles(profiles, source=source)
     summary = IngestionSummary(profiles=profiles, load_results=load_results, dry_run=dry_run)
@@ -120,7 +209,10 @@ def _persist(
 ) -> None:
     settings = get_settings()
     source_by_hash = {source_file.file_hash: source_file for source_file in source_files}
-    result_by_type_and_path = {(result.source_type, str(profile.path)): result for profile, result in zip(profiles, load_results, strict=False)}
+    result_by_type_and_path = {
+        (result.source_type, str(profile.path)): result
+        for profile, result in zip(profiles, load_results, strict=False)
+    }
     with session_scope() as session:
         audit = AuditRepository(session)
         canonical = CanonicalRepository(session)
@@ -175,7 +267,10 @@ def _persist(
                 request_ids = canonical.insert_execution_requests(
                     ingestion_run_id=run_id, source_file_id=source_file_id, records=result.records
                 )
-                canonical.insert_request_doctors(request_ids, result.summaries.get("request_doctors", []))
+                canonical.insert_request_doctors(
+                    request_ids,
+                    result.summaries.get("request_doctors", []),
+                )
                 derived_snapshots = derive_sri_lanka_may_snapshots(result.records)
                 if derived_snapshots:
                     canonical.insert_execution_snapshots(

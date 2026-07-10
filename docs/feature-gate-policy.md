@@ -2,106 +2,79 @@
 
 ## Purpose
 
-This policy prevents placeholder sponsorship, contract, accommodation, territory, and AI implementation before real source evidence exists.
+This policy prevents brittle sponsorship, contract, territory, RCPA, and AI implementation. The received files are sufficient to begin profiling, but source-specific code still requires profile evidence and synthetic fixtures.
 
-## Forbidden Pre-Data Work
+## Always Out Of Scope For This Phase
 
-Do not build these until gates pass:
+- SFTP automation.
+- SharePoint folder polling.
+- Automatic discovery across the CRM/data-lake report universe.
+- Direct Power BI productionization.
+- AI answers over raw workbook rows.
+- Fake sponsorship or territory frontend pages before deterministic backend data exists.
+- Internet-sourced FX fallback.
 
-- sponsorship database tables,
-- sponsorship normalizer with final business labels,
-- doctor contract loader,
-- territory assignment tables,
-- accommodation model,
-- sponsorship or territory materialized views,
-- sponsorship or territory FastAPI routers,
-- sponsorship or territory frontend pages,
-- AI sponsorship or territory context,
-- suggested prompts for unavailable sponsorship or territory data.
+## Required Gates Before Source-Specific Implementation
 
-## Minimum Gates
+| Gate | Required Evidence |
+|---|---|
+| File identity | Source manifest entry with point number, path, source type, raw/cleaned status, country or BU scope, and cadence |
+| Profile complete | Workbook/table profile with header row, row count, sheet/table names, mapped fields, unknown fields, and sample values |
+| Synthetic fixture | Tiny non-confidential fixture matching observed structure |
+| Tests first | Failing tests for loader, classifier, reconciliation, or view behavior |
+| Stable joins | Request/intervention ID, country/P-code, contract ID where present, RCPA month grain, and territory grain |
+| Storage check | Database size/headroom reviewed before historical RCPA persistence |
 
-### No Data Arrives
+## Sponsorship Classification Gate
 
-Allowed:
+Allowed only after raw labels are observed:
 
-- data request package,
-- source intake contract,
-- generic profiler upgrades,
-- raw-vs-cleaned comparison tooling,
-- storage budget guard,
-- onboarding playbook.
+- `National Conference` -> sponsorship.
+- `International Conference` -> sponsorship.
+- `ERS` -> International evidence, not a standalone sponsorship root.
+- `No Fee Agreement` -> no-fee engagement evidence.
+- speaker, consultancy, advisory, honorarium -> paid/service engagement evidence.
 
-Blocked:
+## Doctor ROI Evidence Gate
 
-- all source-specific product features.
+Do not extend the Doctor ROI detail API/UI until these deterministic outputs exist:
 
-### Only Raw Consolidation Arrives
+- doctor-wise engagement facts,
+- FMV amount,
+- contracted amount,
+- contract ID when present,
+- BTC/BTU/expense facts,
+- sponsorship/engagement classification,
+- compact RCPA summaries,
+- confidence/caveat metadata.
 
-Allowed:
+## Territory Gate
 
-- profile file shape,
-- check existing consolidation schema-map coverage,
-- identify possible label columns,
-- create a synthetic fixture from observed structure,
-- write a post-data task file for proven loader/schema-map changes.
+Territory analysis can use:
 
-Blocked:
+- Smart Contract `FS HQ`,
+- RCPA `Location` and `PATCHNAME`,
+- MSL `Location`, `Territory Id`, `Patch`, and `Patchsname`.
 
-- final classifier rules,
-- sponsorship persistence,
-- sponsorship dashboard,
-- AI sponsorship answers.
+A standalone territory page remains blocked until source-level reconciliations prove the territory grain is reliable. Territory context can be added to Doctor ROI first.
 
-### Only Cleaned File Arrives
+## ExecAI Gate
 
-Allowed:
+ExecAI can be extended only after deterministic backend services return compact evidence. It must:
 
-- profile as a presentation source,
-- document business meaning,
-- request raw recurring extract.
-
-Blocked:
-
-- recurring ingestion assumptions,
-- database migrations based only on cleaned columns.
-
-### Only RCPA Arrives
-
-Allowed:
-
-- profile RCPA shape,
-- check P-code/month/brand coverage,
-- estimate storage impact,
-- verify whether current RCPA loader supports the shape.
-
-Blocked:
-
-- sponsorship outcome views without sponsorship facts.
-
-### Only Doctor/Territory Mapping Arrives
-
-Allowed:
-
-- profile identity and hierarchy fields,
-- document join keys,
-- document missing identifiers.
-
-Blocked:
-
-- territory opportunity view,
-- territory dashboard,
-- AI territory context.
+- use evidence references,
+- cap returned rows,
+- avoid causal uplift claims,
+- use association language,
+- never send raw workbook rows to the model.
 
 ## Gate Review Checklist
 
-- [ ] Real file is stored outside git.
-- [ ] Source intake contract is filled.
+- [ ] Source manifest exists.
 - [ ] Profile report exists.
-- [ ] Raw-vs-cleaned comparison exists when both variants are available.
-- [ ] Stable keys are identified.
-- [ ] Exact business labels are observed in source data.
-- [ ] Storage impact is estimated.
-- [ ] Synthetic fixture is created from observed shape.
+- [ ] Raw-vs-cleaned comparison exists when applicable.
+- [ ] Synthetic fixture exists.
 - [ ] Failing tests exist before implementation.
-- [ ] A new post-data task file exists for source-specific work.
+- [ ] Storage impact is reviewed for historical RCPA.
+- [ ] FX uses company-provided rates only.
+- [ ] No AI context is built before backend evidence exists.

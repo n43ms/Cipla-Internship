@@ -34,13 +34,14 @@ Runtime boundaries:
 - Workflow governance panels for request approval, request confirmation, post-event approval, post-event confirmation, current owner stage, pending requests, and pending reports.
 - Intervention mix analytics grouped from source intervention type and subtype values rather than hard-coded categories.
 - Data-quality layer for latest ingestion status, validation issues, match coverage, Pcode coverage, RCPA coverage, stale data, missing FX, provisional FX, BTU/BTC reconciliation issues, and unmatched records.
+- Dashboard upload flow for business users to submit new Excel files, validate workbook type, reject duplicates or unknown files, and generate a reviewable batch manifest before any ingestion write occurs.
 - ExecAI, an embedded structured RAG assistant that plans business questions, retrieves deterministic FastAPI/PostgreSQL context, asks Gemini to synthesize, validates evidence references, redacts sensitive query logs, and falls back to deterministic answers when provider calls fail.
 
 ## Data Trust and Confidentiality
 
 Real Cipla source workbooks are confidential local inputs. Keep them under `data/raw/` or another gitignored local folder. Do not commit raw workbooks, generated extracts, reports, `.env`, database credentials, Supabase service-role keys, or AI provider keys.
 
-The frontend never calls Supabase or the AI provider directly. Source-derived business facts are written only through the local ingestion CLI. Dashboard APIs are read-only except for sanitized ExecAI query logging.
+The frontend never calls Supabase or the AI provider directly. Source-derived business facts are written only through controlled ingestion paths. The dashboard upload endpoint stores uploaded Excel batches locally for validation and profiling; it does not mutate KPI tables until a reviewed ingestion run is executed.
 
 ## Scale Signals
 

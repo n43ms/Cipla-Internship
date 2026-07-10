@@ -14,6 +14,33 @@ These terms are intentionally not implemented as database entities until real so
 | territory opportunity | A territory-level opportunity segment based on official territory mapping and deterministic metrics | Requires official territory/patch/region/cluster mapping |
 | manual P-code provenance | Evidence that P-codes were manually mapped or source-supplied | Requires actual provenance fields in RCPA or doctor master source |
 
+## Sponsorship ROI Phase Terms
+
+These terms are clarified by the July 10 source package and should be used consistently in source contracts, loaders, views, APIs, UI, and ExecAI.
+
+| Term | Meaning | Source Evidence |
+|---|---|---|
+| manual batch upload | User-controlled refresh of the known workbook package; no SFTP or SharePoint polling in this phase | Received raw reports and Abhijeet clarification |
+| raw consolidated intervention report | Smart Contract event/intervention spine with expense, request, expected/actual P-code, and HQ fields | `files/Raw Reports -Point 1/Consolidated Raw Report/` |
+| raw doctor-wise intervention report | CRM HTML-XLS export with doctor-level Smart Contract economics | `files/Raw Reports -Point 1/Doctor Raw Report/` |
+| cleaned presentable report | Business-facing comparison file; not ingestion source of truth | `files/Cleaned Presentable Version - Point 2/` |
+| sponsorship | National Conference or International Conference only by default | `INTERVENTION TYPE`, `Type of intervention`, cleaned `TYPE` |
+| ERS | International conference evidence, not a separate sponsorship root category | `files/Historical Smart Contracts-Point 5/ERS.xlsx` |
+| no-fee engagement | Free service/agreement evidence, usually after prior sponsorship/agreement but not proof by itself | source labels after profiling |
+| paid/service engagement | Speaker, consultancy, advisory, honorarium, or similar paid/service activity | doctor-wise/cleaned contract fields |
+| FMV amount | Fair-market-value amount used for economics/negotiation comparison | doctor-wise `FMV amount` |
+| contracted amount | Contracted value actually agreed/paid for the doctor engagement | doctor-wise `Contracted Amount` |
+| contract saving | `FMV amount - Contracted Amount`; negotiation efficiency, not prescription ROI | derived from doctor-wise report |
+| BTC/BTU expense | Expense components used for travel/accommodation/total expense handling | consolidated and doctor-wise expense fields |
+| official company FX | Company-provided rates only; no internet fallback | Sri Lanka 368.90, Nepal 89, Oman 0.46, UAE 1.00, Myanmar 4300, Malaysia 4.39 |
+| cumulative monthly RCPA | Unified all-BU monthly workbook that includes cumulative months and must be upserted/replaced idempotently | `RCPA Report All Bu's Apr'26 - 03 Jul'26.xlsx` |
+| historical RCPA backfill | Confirmed historical RCPA XLSB files used for older prescription context | root-level historical RCPA `.xlsb` files |
+| manual-before-1-Nov P-code mapping | Historical RCPA P-code mapping before 1 Nov is manual | Abhijeet clarification |
+| FS HQ | Smart Contract HQ/territory field; equivalent to meeting/email `FQ HQ` wording | raw consolidated and doctor-wise reports |
+| RCPA Location | RCPA territory/location field | monthly RCPA `Location` |
+| RCPA PATCHNAME | RCPA patch field | monthly RCPA `PATCHNAME` |
+| MSL Location/Patch | Optional doctor master territory enrichment | MSL `Location`, `Territory Id`, `Patch`, `Patchsname` |
+
 ## Phase 3 Source Workbooks
 
 Real workbooks live locally in `data/raw/` and are not committed.

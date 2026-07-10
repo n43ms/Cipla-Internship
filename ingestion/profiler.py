@@ -252,6 +252,8 @@ def profile_source_file(source_file: SourceFile) -> WorkbookProfile:
         detected_sheet_count=len(workbook.sheets),
         canonical_sheets=canonical_sheets,
         sheets=sheet_profiles,
+        period_start=source_file.period_start,
+        period_end=source_file.period_end,
         warnings=warnings,
     )
 

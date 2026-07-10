@@ -1,8 +1,10 @@
-# Sponsorship And Territory Implementation Readiness Plan
+# Sponsorship ROI And Batch Upload Implementation Plan
 
 **Feature Context**: Extension of `002-execution-intelligence-platform`
 
 **Created**: 2026-07-04
+
+**Last Updated**: 2026-07-10
 
 **Primary Inputs**:
 
@@ -12,780 +14,1161 @@
 - `ingestion_sponsorship.md`
 - `files/transcript3.txt`
 - `files/transcript4.txt`
+- `files/transcript5.txt`
+- Abhijeet email response from 2026-07-10
+- received workbook package under `files/`
 - current repository architecture
 - current Supabase database footprint
 
-**Purpose**:
+## Purpose
 
-This is a supplemental implementation plan for the sponsorship, repeated-ingestion, historical RCPA, territory, accommodation, and AI-extension work discussed after the original execution-intelligence scope was implemented.
+This plan updates the sponsorship, RCPA, territory, expense, and AI-extension roadmap after the July 9, 2026 clarification call with Abhijeet.
 
-It does not replace the original `plan.md`. It exists because the original `tasks.md` is mostly complete for the current product surface, while the new sponsorship/territory work depends on data that has not arrived yet. The correct engineering approach is to prepare the architecture and intake process now, then implement each source-specific slice only after real source files prove the schema.
+The key change is that the next phase is no longer a broad speculative discovery effort. The business objective and source strategy are now clear:
+
+```text
+North Star: keep Doctor ROI quadranting as the core product.
+Method: refresh the system through manual batch upload of known raw Excel reports.
+Business value: explain why a doctor belongs in a quadrant using sponsorship history, paid engagement economics, RCPA trend, spend, contract evidence, and territory context.
+```
+
+The clarification files have now arrived under `files/`. Source-specific code still should not be finalized until the actual workbooks are profiled and synthetic fixtures are created from observed schemas. The correct engineering approach is to register the received package, profile it, then build vertical slices from observed columns rather than from transcript assumptions.
 
 ## Executive Decision
 
-Build the next phase as an evidence-gated vertical-slice program.
+Build the next phase as a manual-batch, evidence-gated vertical slice.
 
-Do not build a full set of fake sponsorship, accommodation, doctor-contract, and territory modules before the data arrives. That would create speculative schema, unused APIs, brittle placeholder UI, and rework when the real files differ.
+Do not pursue live SFTP, SharePoint folder polling, or data-lake automation in this project phase. Abhijeet clarified that the current CRM/data-lake environment contains roughly 128 reports across departments, many with similar names and different cadences. A direct automated connector would be brittle, hard to validate, and not worth the complexity for the remaining internship timeline.
 
-Do build the data-agnostic readiness layer now:
+Do build a robust manual upload pipeline:
 
 ```text
-source intake checklist
-schema drift profiling
-raw-vs-cleaned comparison workflow
-storage budget checks
-source contract templates
-synthetic fixture pattern
-implementation gates
-feature-flag boundaries
+business user exports exact raw reports
+  -> user uploads workbook batch
+  -> ingestion profiler validates source type and schema
+  -> deterministic loaders normalize known fields
+  -> compact canonical facts and KPI views refresh
+  -> dashboard preserves Doctor ROI quadrant workflow
+  -> ExecAI summarizes only deterministic backend context
 ```
 
-Then, when each real data source arrives:
+This gives the business control over the exact files being refreshed while still making the application reusable.
+
+## Final Deliverable Contract
+
+The final deliverable is not just file upload, profiling, or a separate sponsorship page. The final deliverable is a complete refreshable Doctor ROI evidence workflow:
 
 ```text
-profile source
-record actual schema
-write tiny synthetic fixture
-implement loader
-persist compact canonical facts
-build or extend materialized view
-expose typed backend service/API
-render frontend surface
-add grounded AI context only after deterministic service output is stable
+1. Business user uploads the latest Excel/XLSB/CRM HTML-XLS files from the dashboard.
+2. The system validates the batch and clearly rejects wrong, duplicate, unreadable, or unknown files.
+3. Accepted files are ingested through deterministic loaders into Supabase compact canonical facts.
+4. Materialized views refresh from Supabase.
+5. Existing dashboard pages reload API data and reflect the new source package.
+6. Doctor ROI calculations include source-backed sponsorship and engagement investment where available.
+7. Doctor detail views explain sponsorship, paid engagement, no-fee, FMV, contracted value, expense, RCPA, and caveat evidence.
+8. Data Quality explains any weak joins, missing P-codes, missing economics, manual RCPA mapping periods, or upload issues.
+9. ExecAI answers only from the refreshed backend evidence, never directly from raw workbook rows.
 ```
 
-This minimizes credit burn, prevents architectural drift, and keeps the system understandable.
+The deliverable is complete only when a non-technical business user can upload the agreed file package, run or trigger the accepted-batch refresh, and see Doctor ROI evidence updated in the dashboard after the Supabase write and view refresh.
 
-## Current System Baseline
+### Required User-Visible Outcomes
 
-### Existing Runtime Boundaries
-
-The repo already has the right high-level architecture:
+After the final refresh workflow is implemented:
 
 ```text
-local raw workbooks
-  -> ingestion CLI
-  -> workbook profiling
-  -> deterministic normalization
-  -> canonical Supabase Postgres tables
-  -> materialized KPI/data-quality views
-  -> FastAPI repositories/services/routers
-  -> React dashboard
-  -> backend-grounded AI assistant
+Doctor ROI table:
+  shows current ROI plus sponsorship/engagement summary signals.
+
+Doctor ROI detail drawer:
+  shows full doctor-level sponsorship, paid engagement, no-fee, FMV, contracted value, expense, RCPA, and caveat history.
+
+Data Quality page:
+  shows upload/ingestion status, rejected files, weak joins, missing P-codes, missing FMV/contracted value, missing spend, and manual mapping caveats.
+
+ExecAI:
+  can explain why a doctor is in a quadrant using deterministic sponsorship, engagement, spend, and RCPA evidence.
 ```
 
-Existing critical layers:
+### Doctor ROI Calculation Contract
+
+Doctor ROI must not treat missing sponsorship history as true zero investment.
+
+The investment side of Doctor ROI must include, when source-backed and linked to the doctor:
 
 ```text
-ingestion/
-  main.py
-  orchestrator.py
-  file_registry.py
-  profiler.py
-  workbook_reader.py
-  schema_maps.py
-  loaders/
-  normalizers/
-  validators/
-  repositories/
-
-database/
-  migrations/
-  views/
-
-backend/app/
-  repositories/
-  services/
-  routers/
-  schemas/
-  services/ai/
-
-frontend/src/
-  api/
-  pages/
-  components/
-  types/
+current execution spend
+sponsorship spend
+paid engagement spend
+contracted amount
+FMV amount
+doctor-attributable BTU/BTC/actual expenses
 ```
 
-This is the right base. The next phase should extend these boundaries, not bypass them.
-
-### Completed Product Capabilities
-
-Based on `tasks.md`, the existing platform already has:
+The return/context side must include:
 
 ```text
-planner ingestion
-execution snapshot ingestion
-consolidation ingestion
-request doctor splitting
-RCPA compact summary ingestion
-event reconciliation
-budget utilization
-workflow governance
-intervention mix
-doctor ROI and quadrant logic
-data quality page
-backend services and routers
-frontend dashboard pages
-grounded AI panel
-Gemini/test/null provider abstraction
-AI redaction and deterministic fallback
+RCPA prescription quantity
+RCPA prescription value if available
+Cipla versus competitor share
+pre/post or historical trend windows where coverage is sufficient
 ```
 
-Therefore the next plan should not duplicate these foundations. It should add sponsorship and territory support through the same architectural pattern.
-
-### Current Database Constraint
-
-Current Supabase database size was checked through Postgres:
+Required zero-spend behavior:
 
 ```text
-current database size: 321 MB
-Supabase Free database limit: 500 MB
-remaining budget: ~179 MB
+If no spend and no sponsorship/engagement evidence exists:
+  show zero spend with normal caveat rules.
+
+If sponsorship/engagement evidence exists and amount is known:
+  include the known amount in investment metrics and show source evidence.
+
+If sponsorship/engagement evidence exists but amount is missing:
+  do not show a misleading plain zero; show "prior sponsorship/engagement found, amount unavailable" and exclude the missing amount from numeric spend totals.
+
+If linkage is weak:
+  show evidence with confidence/caveat and do not overstate ROI precision.
 ```
 
-The largest current objects are RCPA summaries:
+The system may describe association between sponsorship/engagement and prescription movement, but must not claim causal uplift unless a future validated methodology explicitly supports it.
+
+### Non-Ambiguous Product Decisions
+
+These decisions are final for this phase unless Abhijeet provides a new written correction:
 
 ```text
-rcpa_doctor_month_summary   ~190 MB
-rcpa_doctor_brand_summary    ~73 MB
-doctors                      ~13 MB
-mv_doctor_roi                ~9 MB
+Upload is the business-user refresh entry point.
+Upload validation alone does not update KPI data.
+Dashboard data changes only after accepted-batch ingestion writes Supabase facts and refreshes views.
+Raw reports are source of truth.
+Cleaned/presentable reports are comparison and validation evidence only.
+Historical RCPA supplies prescription baseline and trend context, not sponsorship spend.
+Sponsorship/engagement spend comes from consolidated intervention, doctor-wise contract, ERS/conference, FMV, contracted amount, and expense fields.
+National Conference and International Conference are sponsorship.
+ERS is international-conference evidence, not a separate sponsorship root.
+No Fee Agreement is engagement/no-fee evidence, not sponsorship by default.
+Missing sponsorship amount is not numeric zero.
+Known sponsorship amount is credited into Doctor ROI investment.
+Weak doctor/P-code joins must be visible as caveats.
 ```
 
-This means the sponsorship plan is feasible on the current architecture only if Supabase remains a compact dashboard-serving database.
+### Batch Refresh State Machine
 
-The next phase must not store:
+Accepted uploaded batches must move through explicit states:
 
 ```text
-raw workbooks
-full raw RCPA rows
-unbounded SKU-level detail
-large per-row source JSON blobs
-duplicated RCPA snapshots across many materialized views
-unbounded AI/query/audit history
+uploaded
+validated
+accepted_for_ingestion
+quarantined
+ingestion_running
+ingestion_failed
+supabase_written
+views_refreshed
+dashboard_refreshed
 ```
 
-Supabase should store:
+Every user-facing upload result should map to one of these states. Ambiguous labels such as "done" or "processed" are not sufficient.
+
+### Source-To-Dashboard Traceability
+
+Every displayed sponsorship/engagement/RCPA fact must retain enough provenance to answer:
 
 ```text
-canonical compact facts
-doctor/month and doctor/brand summaries
-sponsorship facts
-doctor-sponsorship bridges
-territory summaries
-materialized dashboard views
-ingestion audit metadata
+which source file supplied it
+which source sheet supplied it
+which source row or row group supplied it where practical
+which doctor/P-code it joined to
+which intervention/request/contract it joined to
+which caveats affect it
 ```
 
-## Constitution Check
+This provenance does not require storing unbounded raw rows in Supabase. Compact source references, file hashes, row numbers, aggregate counts, and local generated extracts are acceptable where storage budget requires them.
 
-This plan is checked against `.specify/memory/constitution.md`.
+## Received Package Status
 
-### I. Trusted Data Before Dashboards
+The July 10 package is now sufficient to start the profiling and source-contract finalization phase.
 
-**Status**: PASS
-
-No dashboard implementation is allowed before source files are profiled, source contracts are recorded, and quality gates exist. Raw-vs-cleaned schema drift is treated as a first-class risk.
-
-### II. Explicit Reconciliation, Not Hidden Guesswork
-
-**Status**: PASS
-
-Doctor sponsorship, doctor contract, no-fee service, RCPA movement, and territory joins must be queryable and auditable. Name-based matching is not allowed as a silent primary join.
-
-### III. Deterministic Business Logic And Grounded AI
-
-**Status**: PASS
-
-Sponsorship classification, pre/post RCPA windows, territory segments, and free-service counts must be deterministic SQL/Python/service logic. AI may summarize these outputs only after they exist as backend service context.
-
-### IV. Testable Ingestion, APIs, And User Journeys
-
-**Status**: PASS
-
-Every source-specific implementation requires synthetic fixtures based on actual observed schemas, plus ingestion, database, API, frontend, and AI tests where applicable.
-
-### V. Deployable, Secure, And Product-Grade UX
-
-**Status**: PASS
-
-Raw data remains local or in approved business storage. Secrets stay server-side. New UI must include loading, empty, error, partial-data, stale-data, and low-confidence states.
-
-## Planning Principle: Evidence-Gated Vertical Slices
-
-The core rule for this phase:
+Received folders and files:
 
 ```text
-No real source-specific schema, migration, loader, dashboard, or AI context is final until at least one real source sample has been profiled.
+files/Raw Reports -Point 1/
+  Consolidated Raw Report/
+    Consolidate report All Bu's Nov'25 - 9 Jul'26.xlsx
+  Doctor Raw Report/
+    Doctor Wise Intervention Report - Nepal.xls
+    Doctor Wise Intervention Report - Oman.xls
+    Doctor Wise Intervention Report - UAE.xls
+    Doctor Wise Intervention Report -Malaysia.xls
+    Doctor Wise Intervention Report -Sri Lanka.xls
+    Consolidated Intervention Report - Myanmar.xls
+
+files/Cleaned Presentable Version - Point 2/
+  Intervention till 8 Jul'26.xlsx
+  Malaysia Intervention till 8 Jul'26.xlsx
+  Myanmar Intervention till 8 Jul'26.xlsx
+  Nepal Intervention till 8 Jul'26.xlsx
+  Oman Intervention till 8 jul'26.xlsx
+  Sri lanka intervention till 8 jul'26.xlsx
+
+files/Historical Smart Contracts-Point 5/
+  ERS.xlsx
+
+files/MSL Doctor Master File Point 7/
+  MSL.xlsx
+
+files/RCPA Report All Bu's Apr'26 - 03 Jul'26.xlsx
 ```
 
-This prevents bad assumptions around:
+Confirmed historical RCPA backfill workbooks also exist under `files/`:
 
 ```text
-actual column names
-contract ID availability
-sponsorship labels
-no-fee labels
-accommodation structure
-territory hierarchy
-monthly RCPA shape
-manual P-code mapping columns
-file cadence
-file naming
-duplicate keys
+Nepal & Myanmar Apr'24-Mar'25 RCPA report.xlsb
+Nepal & Myanmar RCPA Report Apr'25-mar'26.xlsb
+Sri Lanka RCPA Report Apr'25 - Mar'26.xlsb
 ```
 
-## What To Build Before Data Arrives
+These are part of the intended historical RCPA backfill package.
 
-Only build durable, data-agnostic infrastructure.
-
-### 1. Source Intake Contract Template
-
-Create a machine-readable and human-readable source contract template, but do not lock final contracts.
-
-Recommended file:
+Confirmed business answers:
 
 ```text
-specs/002-execution-intelligence-platform/contracts/source-intake-contract.md
+National Conference and International Conference are sponsored by Cipla.
+ERS is not a separate sponsorship category; it is part of International.
+No Fee Agreement usually means free work after prior sponsorship/agreement, but charity/philanthropy or other reasons can exist.
+Accommodation and travel are under expenses.
+BTC / BTU = total expense basis for accommodation/travel handling.
+Doctor-level contract report is part of Point 1, so no separate doctor-contract file is expected.
+Territory is in the consolidated report as the highlighted HQ column and in MSL as Location.
+MSL Doctor Master has been provided, though it remains optional unless report-level territory is insufficient.
+Monthly RCPA has a standard format, headers stay the same, P-code is always present, and files are cumulative.
+Monthly RCPA arrives around the 3rd of each month.
+Daily extracts are saved in SharePoint, but this app phase still uses manual batch upload.
+```
+
+Official FX rates versus 1 USD:
+
+```text
+Sri Lanka: 368.90
+Nepal: 89
+Oman: 0.46
+UAE: 1.00
+Myanmar: 4300
+Malaysia: 4.39
+```
+
+Resolved clarifications:
+
+```text
+root-level historical RCPA XLSB files are in scope for the historical backfill.
+RCPA Report All Bu's Apr'26 - 03 Jul'26.xlsx is the unified all-BU monthly workbook provided for convenience.
+No external Varad validation output is required for this implementation phase.
+FQ HQ in the transcript/email is equivalent to the observed FS HQ field; it was a transcription/reference mismatch.
+FX conversion must use only the company-provided official values listed above, with no internet-rate fallback.
+```
+
+## Clarified Product Scope
+
+### Core Objective
+
+The core product remains the four-quadrant Doctor ROI model:
+
+```text
+identify doctors worth more attention
+identify doctors receiving spend without enough value
+identify transactional doctors
+identify dark-horse or underserved opportunities
+```
+
+Sponsorship, contracts, RCPA, spend, and territory data are supporting evidence for the quadrant, not separate replacement products.
+
+### Primary Next-Phase User Questions
+
+The next phase should answer:
+
+```text
+Which doctors were sponsored for National or International conferences?
+Which doctors later performed no-fee, speaker, consultancy, advisory, or other services?
+How much did Cipla spend on the doctor across fees and expenses?
+What was the fair-market-value amount versus contracted amount?
+Did prescriptions move before or after the engagement window?
+Is the doctor a high-value relationship, a transactional paid relationship, or a poor ROI case?
+Are there territory-level underserved or overserved patterns?
+What evidence explains why the doctor is in a given quadrant?
+```
+
+The UI priority is:
+
+```text
+Doctor ROI detail enrichment first
+Sponsorship/engagement economics next
+Territory intelligence later as bonus or second page
+ExecAI context last, after deterministic services exist
+```
+
+## Clarified Source Strategy
+
+### Source 1: Raw Consolidated Intervention Report
+
+Status:
+
+```text
+received
+raw export from CRM / Smart Contract reporting
+one of the two primary recurring reports
+manual batch upload source
+path: files/Raw Reports -Point 1/Consolidated Raw Report/Consolidate report All Bu's Nov'25 - 9 Jul'26.xlsx
+observed shape: one sheet, 3,568 rows, 87 columns
 ```
 
 Purpose:
 
 ```text
-document expected source name
-business owner
-source system
-cadence
-file naming pattern
-sheet names
-required fields
-optional fields
-identity fields
-date fields
-money fields
-doctor fields
-known labels
-quality risks
+intervention/event spine
+event name
+intervention number or request identifier
+intervention type and subtype
+approval and execution metadata where useful
+expense headers
+travel/accommodation expense evidence
+BTU/BTC and billed-to-company or billed-to-user expense breakdowns if present
+total expenses if present
+local currency amounts
+country and period scope
 ```
 
-This is safe to build now because it documents questions rather than assuming answers.
-
-### 2. Schema Drift Profiling Plan
-
-Enhance or plan enhancements to the existing profiler so every incoming file can produce:
+Observed priority fields:
 
 ```text
-detected source type
+DIVISION
+FS HQ
+REQ_ID
+Intervention Start Date
+Intervention End Date
+INTERVENTION DATE
+Month
+Venue
+INTERVENTION NAME
+INTERVENTION TYPE
+INTERVENTION SUB TYPE
+ME LOCATION
+TOTAL BTC
+EXPECTED BTU
+APPROVE/CONFIRMED TOTAL INTERVENTION
+TOTAL ACTUAL EXPENSES FOR INTERVENTION
+ACTUAL EXPENSE AGAINST BTU
+TOTAL ACTUAL BTC EXPENSE
+Association Contract ID
+Association Amount
+Expected PCODE
+Actual PCODE
+ACTUAL DATE OF INTERVENTION
+```
+
+Known caveats:
+
+```text
+may not contain all doctor-level contract economics
+may lack contract ID
+type and subtype can look repetitive
+some fields are good-to-know but not insight-driving
+BTU/build-to-user values may be test or rare in real business flow
+```
+
+### Source 2: Raw Doctor-Wise Intervention Report
+
+Status:
+
+```text
+received
+raw export from CRM / Smart Contract reporting
+preferred source for doctor-level ROI economics
+one of the two primary recurring reports
+manual batch upload source
+path: files/Raw Reports -Point 1/Doctor Raw Report/
+format: CRM HTML exports saved with .xls extension
+real header row begins after title/filter preamble
+```
+
+Purpose:
+
+```text
+doctor name
+P-code
+doctor segment
+intervention/request identifier
+intervention/event name
+contract type or agreement type
+amount paid
+fair market value amount
+contracted value amount
+local currency
+doctor-level fee or honorarium evidence
+```
+
+Observed priority fields from the Sri Lanka doctor-wise report:
+
+```text
+Division name
+Region
+TERRITORY_CODE
+FS HQ
+Request Date
+Expected Intervention date
+Intervention No.
+Type of intervention
+INTERVENTION SUBTYPE
+Intervention Name
+DR code
+Doctor Segment
+Doctor Name
+Estimated Intervention Amount
+BTU Expense
+Expense Against Advance
+BTC Expense
+Total Actual intervention Exp Amt
+FMV Speciality
+FMV Tier
+FMV Role
+FMV amount
+Contract ID
+Contracted Amount
+Status
+```
+
+Critical business decision:
+
+```text
+FMV amount and contracted value amount are the holy-grail fields for ROI economics.
+```
+
+The system should compute:
+
+```text
+contract_saving_local = fair_market_value_amount - contracted_value_amount
+contract_saving_usd after official FX conversion
+paid engagement ROI using contracted value, expenses, and RCPA movement
+```
+
+Do not treat FMV saving as prescription ROI. It is negotiation or contracting efficiency. It can become a useful secondary KPI after the core Doctor ROI path is stable.
+
+### Source 3: Clean Business Report
+
+Status:
+
+```text
+received
+single cleaned/presentable report used for business reporting
+comparison source only
+path: files/Cleaned Presentable Version - Point 2/
+```
+
+Purpose:
+
+```text
+compare business-facing reporting against raw source exports
+identify manually removed, renamed, grouped, or highlighted fields
+validate that raw ingestion reproduces business-visible totals
+```
+
+Rule:
+
+```text
+Cleaned reports are not the recurring source of truth unless Abhijeet explicitly confirms a cleaned report is the only maintained source.
+```
+
+### Source 4: Historical RCPA Backfill
+
+Status:
+
+```text
+received and confirmed
+one-time backfill
+approximately two years if available
+manual batch upload
+confirmed files: root-level historical RCPA XLSB files
+related historical smart-contract file: files/Historical Smart Contracts-Point 5/ERS.xlsx
+```
+
+Purpose:
+
+```text
+historical prescription quantity
+doctor P-code where available
+date/month
+patch
+territory
+therapy/brand/product dimensions if available
+pre/post sponsorship and engagement movement
+```
+
+Known caveats:
+
+```text
+records before the system cutoff around November may be manual or legacy-mapped.
+records after system rollout are expected to have stronger P-code support.
+Abhijeet clarified anything before 1st Nov is manual for P-code mapping.
+ERS.xlsx is received as historical smart-contract / ERS conference data, not a full RCPA replacement by itself.
+competitor-filtering assumptions must come from the delivered source files and documented business fields, not external validation output.
+```
+
+Implementation implication:
+
+```text
+RCPA mapping provenance must be stored or derived as system_supplied, manual_legacy, source_supplied, or unknown.
+```
+
+### Source 5: Future Monthly RCPA Refresh
+
+Status:
+
+```text
+received standard raw report sample
+manual batch upload
+generated around the 3rd of every month
+cumulative, not a one-month delta
+headers expected to remain the same
+path: files/RCPA Report All Bu's Apr'26 - 03 Jul'26.xlsx
+observed sheets: Malaysia, Myanmar, Nepal, Oman, Sri Lanka, UAE
+this unified all-BU workbook represents the monthly sample set for convenience
+```
+
+Purpose:
+
+```text
+refresh RCPA coverage with the added latest month
+update Doctor ROI baselines and sponsorship movement
+support idempotent reruns
+```
+
+Observed priority fields:
+
+```text
+BU
+Location
+Month
+Doctor Name
+Pcode
+Customer Type
+Speciality
+Class
+PATCHNAME
+```
+
+Critical implementation rule:
+
+```text
+Monthly RCPA loads must be replacement/upsert by source grain, not blind append.
+```
+
+The loader must detect the covered month range and avoid duplicate summaries when a cumulative file is uploaded again.
+
+### Source 6: Territory Fields
+
+Status:
+
+```text
+received in multiple places
+consolidated/doctor-wise reports expose HQ fields such as FS HQ
+monthly RCPA exposes Location and PATCHNAME
+MSL Doctor Master is received and exposes Location, Territory Id, Patch, and Patchsname
+```
+
+Purpose:
+
+```text
+patch
+territory
+country
+possibly region, cluster, rep, or task force if present
+self-serving territory candidates
+underserved or overserved territory candidates
+untapped opportunity analysis
+```
+
+Priority:
+
+```text
+territory intelligence is valuable but secondary.
+finish core Doctor ROI and sponsorship evidence first.
+```
+
+### Source 7: Accommodation And Travel
+
+Status:
+
+```text
+not a separate source unless real files prove otherwise
+confirmed under expenses in the consolidated and doctor-wise reports
+BTC / BTU are the expense basis
+```
+
+Purpose:
+
+```text
+travel, taxi, venue, accommodation, and related expenses
+total cost of engagement
+full doctor/activity investment view
+```
+
+Do not design an accommodation entity before profiling the expense columns.
+
+### Source 8: Official FX Rates
+
+Status:
+
+```text
+received for all six markets in Abhijeet's July 10 email
+```
+
+Purpose:
+
+```text
+convert local FMV, contracted value, honorarium, and expenses to USD or reporting currency
+make country comparisons defensible
+remove internet-sourced FX assumptions
+```
+
+## Sponsorship And Engagement Semantics
+
+### Sponsorship Definition
+
+Abhijeet clarified that true sponsorship means:
+
+```text
+National Conference
+International Conference
+```
+
+These are the only categories that should be classified as sponsorship by default.
+
+ERS and other large respiratory congresses should not become separate hard-coded source categories until observed in the files. Treat them as possible subtypes or named events under International Conference if the raw data supports that mapping.
+
+### Non-Sponsorship Engagements
+
+Other activities are not sponsorship by default. They may still be important ROI evidence:
+
+```text
+No Fee Agreement
+Speaker Agreement
+Consultancy Agreement
+Advisory Board
+video, podcast, editorial, or other business-requested services
+paid honorarium engagements
+```
+
+These should be modeled as engagement/service evidence, not sponsorship events.
+
+### No-Fee Interpretation
+
+No-fee activity often indicates prior value exchange, such as an earlier sponsorship, but it is not proof by itself.
+
+The system must avoid causal overclaiming:
+
+```text
+good: "Doctor completed no-fee activity after prior sponsorship."
+good: "No-fee activity may indicate a prior engagement relationship."
+bad: "The sponsorship caused this prescription uplift."
+bad: "All no-fee activity is caused by prior sponsorship."
+```
+
+Outliers such as charity, philanthropy, or unrelated business reasons must remain possible data-quality caveats.
+
+### Paid Engagement Interpretation
+
+Abhijeet introduced a second ROI theory:
+
+```text
+Some doctors may not want conference sponsorship.
+They may instead prefer paid, transactional engagements such as advisory boards or speaker agreements.
+Those paid engagements may still correlate with strong prescription behavior.
+```
+
+Therefore the model must support both:
+
+```text
+sponsorship ROI
+paid engagement ROI
+```
+
+Do not collapse everything into a sponsorship bucket.
+
+## Architecture Decisions
+
+### Runtime Boundary
+
+The architecture remains a controlled batch-refresh pipeline:
+
+```text
+business user opens React dashboard
+  -> user clicks "Upload new data/files"
+  -> user uploads Excel/XLSB/CRM HTML-XLS workbook batch
+  -> FastAPI stores the batch in gitignored local upload storage
+  -> source fingerprinting accepts or quarantines each file
+  -> profiler records schema, row counts, sheets, and warnings
+  -> approved batch is ingested by deterministic loaders
+  -> Supabase receives compact canonical facts and summaries
+  -> materialized KPI views refresh
+  -> FastAPI read services expose updated Doctor ROI evidence
+  -> React dashboard reflects the refreshed data
+  -> ExecAI explains only deterministic backend context after refresh
+```
+
+The upload step is not the final business-data mutation by itself. It is the business-user entry
+point for a refresh. The dashboard should make the next state explicit:
+
+```text
+uploaded and rejected
+uploaded and accepted for ingestion review
+ingestion running
+Supabase updated
+views refreshed
+dashboard data refreshed
+```
+
+When the loader phases are complete, accepted uploaded files must be able to drive the same
+canonical update path as CLI-based ingestion. The source of truth after ingestion is Supabase,
+not the uploaded workbook folder.
+
+### Out Of Scope For This Phase
+
+The following are explicitly out of scope:
+
+```text
+SFTP automation
+SharePoint folder polling
+automatic discovery across 128 CRM/data-lake reports
+direct Power BI productionization
+fake sponsorship pages before data
+AI answers over raw workbook rows
+unbounded storage of raw RCPA detail in Supabase
+```
+
+Power BI may become the later mass-production environment with Anil, but this repo should focus on a correct, reusable prototype and batch-refresh pipeline.
+
+## Database And Storage Strategy
+
+Current known database constraint:
+
+```text
+current database size: 321 MB
+Supabase Free database limit: 500 MB
+remaining budget: about 179 MB
+```
+
+Hard storage rules:
+
+```text
+raw workbooks remain local and gitignored
+RCPA detailed rows stay local unless explicit storage budget is approved
+Supabase stores compact canonical facts and KPI-ready summaries
+materialized views must not duplicate full RCPA summaries unnecessarily
+source-row JSON must be bounded or avoided
+database size must be measured before and after historical RCPA loads
+```
+
+Preferred canonical facts after source profiling:
+
+```text
+source_file_batches
+source_file_profiles
+intervention_events
+doctor_engagements
+doctor_contract_economics
+doctor_expense_facts
+doctor_sponsorship_facts
+rcpa_doctor_month_summary
+rcpa_doctor_brand_summary
+doctor_territory_observations
+```
+
+These names are planning-level only. Final migrations must follow the actual observed schema and existing database naming conventions.
+
+## Source-To-Model Mapping
+
+The implementation should follow this mapping unless profiling proves a field is unavailable or unsafe:
+
+| Source | Primary Use | Canonical Facts | Dashboard Surface |
+|---|---|---|---|
+| Raw consolidated intervention report | Event/request spine, intervention type/subtype, dates, FS HQ, BTC/BTU/actual expenses | intervention events, expense facts, workflow/evidence references | Doctor ROI evidence, budget, workflow, data quality |
+| Raw doctor-wise intervention reports | Doctor/P-code engagement rows, FMV, contracted amount, contract ID, status | doctor engagements, contract economics, doctor-contract links | Doctor ROI table/detail, sponsorship evidence |
+| Cleaned presentable reports | Comparison-only validation and business-readable cross-checks | no source-of-truth facts unless explicitly approved | data-quality/comparison reports only |
+| ERS workbook | International conference evidence | sponsorship/engagement facts with ERS as subtype/evidence | Doctor ROI detail, sponsorship history |
+| Historical RCPA XLSB files | Two-year prescription baseline/backfill | compact doctor-month and doctor-brand summaries with mapping provenance | Doctor ROI calculation and caveats |
+| Monthly cumulative RCPA workbook | Recurring RCPA refresh | replace/upsert compact doctor-month and doctor-brand summaries | Doctor ROI and data freshness |
+| MSL doctor master | Doctor/P-code/territory reference if report fields are insufficient | doctor master/reference and territory mapping | Doctor ROI joins, territory caveats |
+
+## Implementation Acceptance Gates
+
+Each implementation phase must close with a runnable acceptance check:
+
+```text
+Upload gate:
+  at least one valid mixed workbook batch can be uploaded from the dashboard and produces accepted/rejected file results.
+
+Ingestion gate:
+  accepted uploaded files can be ingested into Supabase through deterministic loaders without hand-editing the files.
+
+View refresh gate:
+  materialized views refresh after ingestion and expose changed evidence through FastAPI.
+
+Doctor ROI gate:
+  Doctor ROI calculation includes sponsorship/engagement investment where source-backed and exposes amount-missing caveats where not.
+
+Frontend gate:
+  Doctor ROI table/detail and Data Quality page visibly change after refreshed API data is returned.
+
+ExecAI gate:
+  ExecAI can explain the refreshed doctor evidence using backend context with no raw-workbook hallucination.
+```
+
+Any phase that cannot satisfy its gate must leave a documented blocker in the task file or runbook before moving forward.
+
+## Data Arrival Gates
+
+Every source must pass these gates before implementation.
+
+### Gate A: File Identity Confirmed
+
+Each file must be labeled by Abhijeet or the sender:
+
+```text
+point number from request
+business source name
+raw or cleaned
+country or market scope
+period coverage
+export date
+owner
+```
+
+This is required because several reports can look similar at the surface level.
+
+### Gate B: Raw Export Preserved
+
+Accepted source files must be:
+
+```text
+exactly downloaded from the system
+not manually filtered
+not manually renamed
+not manually deleted
+not converted into a presentation-only format
+```
+
+If top blank/comment rows exist, the profiler should detect and report the header row rather than requiring manual deletion.
+
+### Gate C: Profile Complete
+
+Each file must produce:
+
+```text
 sheet names
-detected header row
+header row
 raw columns
 mapped canonical fields
-required fields present/missing
-known optional fields present/missing
-unknown extra columns
+unknown columns
 empty columns
-data type samples
+sample values for label columns
 row count
-source period
-source country
+country scope
+period scope
 file hash
 profile timestamp
 ```
 
-This belongs near:
+### Gate D: Business Semantics Confirmed
 
-```text
-ingestion/profiler.py
-ingestion/schema_maps.py
-ingestion/report.py
-ingestion/tests/test_profiler.py
-```
-
-Important boundary:
-
-```text
-Do not add sponsorship-specific required fields until real files confirm them.
-```
-
-### 3. Raw-Vs-Cleaned Comparison Workflow
-
-The transcript revealed that the business shared cleaned/presentable files, while recurring extracts may include extra columns.
-
-Build or plan a comparison report:
-
-```text
-raw file columns
-cleaned file columns
-columns removed by business cleanup
-columns renamed
-columns newly present
-columns absent from recurring raw extract
-columns that map to existing schema
-columns requiring business decision
-```
-
-This can be implemented generically against two workbook profiles without knowing sponsorship schema.
-
-### 4. Storage Budget Report
-
-Because the database is already 321 MB, add a repeatable database-size check before and after large ingestion runs.
-
-Recommended output:
-
-```text
-database size
-largest tables
-largest materialized views
-estimated free-tier headroom
-RCPA summary row counts
-AI log size
-source/audit table size
-```
-
-This can be a docs/runbook task or a small script.
-
-Potential location:
-
-```text
-docs/storage-budget.md
-scripts/db_size_report.ps1
-```
-
-Do not build paid-infra assumptions into the app. Keep compact mode as the default.
-
-### 5. Feature Flags / Disabled Navigation Strategy
-
-Prepare a clean way to hide incomplete pages without placeholder UI.
-
-Recommended principle:
-
-```text
-Do not show Sponsorship or Territory pages until API data exists.
-Do not add dummy cards or fake empty tables.
-```
-
-If feature flags are needed:
-
-```text
-VITE_ENABLE_SPONSORSHIP=false
-VITE_ENABLE_TERRITORY=false
-```
-
-But do not add these until there is a concrete frontend route to guard.
-
-### 6. Synthetic Fixture Strategy
-
-Define the fixture policy now:
-
-```text
-Every real source sample produces a tiny synthetic fixture.
-No real Cipla data enters git.
-Fixtures must cover the exact observed edge case.
-```
-
-Examples once data arrives:
-
-```text
-national conference row
-international conference row
-no-fee agreement row
-doctor contract row with contract ID
-doctor contract row missing P-code
-RCPA monthly row with manual P-code
-territory row with patch/cluster
-accommodation row if present
-```
-
-Do not create fake fixtures for labels that have not been confirmed.
-
-## What Not To Build Before Data Arrives
-
-Avoid these until source samples are profiled:
-
-```text
-final sponsorship_events migration
-final sponsorship_doctors migration
-doctor_contracts loader
-territory_mapping loader
-accommodation loader
-sponsorship materialized views
-territory materialized views
-sponsorship backend router
-territory backend router
-sponsorship frontend page
-territory frontend page
-AI sponsorship context
-AI territory context
-hard-coded National/International/ERS/no-fee rules beyond documented draft
-```
-
-Rationale:
-
-These depend on exact real-world labels, columns, identifiers, and cardinality. Guessing them now creates rework.
-
-## Data Arrival Gates
-
-Each source must pass these gates before implementation.
-
-### Gate A: File Is Real Recurring Source
-
-Acceptable:
-
-```text
-raw exported Excel/XLSB/CSV exactly as generated by the system
-not manually deleted columns
-not renamed headers
-not Power BI-only transformed data
-```
-
-If only cleaned data is available, mark it as:
-
-```text
-presentation source, not recurring source of truth
-```
-
-### Gate B: Source Profile Complete
-
-The file must have:
-
-```text
-profile report
-sheet names
-headers
-row counts
-mapped fields
-unknown fields
-required/missing fields
-sample values for labels
-source period and country scope
-```
-
-### Gate C: Business Labels Confirmed
-
-Required before classifier logic:
+Before classification logic is finalized, confirm:
 
 ```text
 exact National Conference label
 exact International Conference label
-exact ERS label if present
-exact No Fee Agreement label
-exact accommodation/travel labels
-exact sponsorship/consultancy/speaker/advisory labels
+ERS is part of International; still confirm how ERS appears in raw fields
+exact no-fee label
+exact speaker, consultancy, advisory, and paid-service labels
+FMV amount column
+contracted value amount column
+expense amount columns
+official FX rate by market already provided; use only the company-provided values during implementation
+no internet or market-rate fallback is allowed
 ```
 
-### Gate D: Stable Keys Identified
+### Gate E: Join Keys Confirmed
 
-Required before persistence:
+Before persistence and views:
 
 ```text
-request/intervention ID behavior known
-contract ID availability known
-country + P-code uniqueness confirmed
-doctor contract join key confirmed
-monthly RCPA replacement grain confirmed
-territory effective-date behavior known
+request/intervention ID behavior
+country + P-code behavior
+contract ID availability
+event name stability
+doctor-wise to consolidated join grain
+RCPA doctor/month replacement grain
+territory/patch grain
 ```
 
-### Gate E: Storage Impact Estimated
+### Gate F: Storage Impact Estimated
 
-Before loading into Supabase:
+Before loading historical RCPA or broad sponsorship history:
 
 ```text
 expected row count
+expected summary row count
 expected table size
-materialized view size estimate
-retention policy
-compact-vs-detail decision
+expected materialized-view size
+free-tier headroom
+retention and compact-mode decision
 ```
 
-If projected storage exceeds free-tier headroom, keep detail local and store only compact summaries.
+## Implementation Roadmap
 
-## Full Implementation Roadmap
+### Phase 0: Source Intake And Batch Upload Readiness
 
-### Phase 0: Readiness Work Before Data Arrives
+**Trigger**: Received package exists under `files/`.
 
-**Goal**: Prepare intake, profiling, and decision gates without assuming source details.
+**Goal**: Prepare the intake path without assuming final source schemas.
 
-Allowed work:
-
-```text
-write source intake contract template
-write storage budget runbook or script
-define raw-vs-cleaned comparison workflow
-define feature flag policy
-document vertical-slice implementation rules
-review current data dictionary for extension points
-prepare task backlog, but do not mark source-specific tasks as implementation-ready
-```
-
-Blocked work:
+Work:
 
 ```text
-source-specific migrations
-source-specific loaders
-source-specific API endpoints
-source-specific dashboards
-source-specific AI contexts
+source intake contract
+batch upload source manifest format
+schema profiling
+raw-vs-cleaned comparison
+storage budget report
+official FX intake slot
+synthetic fixture policy
+feature gate policy
 ```
 
 Exit criteria:
 
 ```text
-business knows exactly what data to send
-engineer has an intake checklist
-incoming files can be profiled before code decisions
-storage budget can be measured before and after loads
+incoming files can be registered, profiled, and rejected safely
+no real workbook enters git
+no source-specific loader runs before profile approval
 ```
 
-### Phase 1: Raw Consolidation / Smart-Contract Intake
+### Phase 1: Profile The Expected File Package
 
-**Trigger**: Abhijeet/Anil provides 3-5 raw recurring extracts plus a cleaned comparison file.
+**Trigger**: Start immediately from the July 10 received package.
 
-**Goal**: Determine whether current consolidation ingestion can support daily refresh and sponsorship classification.
+**Goal**: Convert the transcript clarifications into observed source contracts.
 
-Steps:
+Received package to profile:
 
 ```text
-1. Profile each raw extract.
-2. Profile matching cleaned/presentable file.
-3. Generate raw-vs-cleaned diff.
-4. Map raw columns to existing CONSOLIDATION_SCHEMA.
-5. Identify columns currently ignored but business-relevant.
-6. Identify sponsorship/no-fee/conference labels in actual data.
-7. Identify whether contract ID is present in this source.
-8. Create tiny synthetic fixture matching observed raw shape.
-9. Add tests for newly observed aliases or required fields.
-10. Only then extend loader/schema maps if needed.
+raw consolidated intervention report
+raw doctor-wise intervention report
+clean business report
+historical smart-contract ERS file
+confirmed historical RCPA backfill files
+monthly cumulative RCPA sample
+official FX rate list
+MSL/doctor master
 ```
 
-Potential implementation files:
+Work:
 
 ```text
-ingestion/schema_maps.py
-ingestion/loaders/consolidation.py
-ingestion/normalizers/sponsorship.py
-ingestion/tests/loaders/test_consolidation_loader.py
-ingestion/tests/loaders/test_sponsorship_classification.py
-```
-
-Do not create sponsorship database tables in this phase unless the real raw data proves classification fields and doctor linkage are usable.
-
-Exit criteria:
-
-```text
-raw recurring consolidation file can be ingested or rejected with explicit validation
-known schema drift is documented
-sponsorship/no-fee candidate labels are known
-contract ID availability is known
-```
-
-### Phase 2: Sponsorship Classification Slice
-
-**Trigger**: Phase 1 confirms sponsorship labels and doctor linkage.
-
-**Goal**: Create deterministic sponsorship facts from actual observed source rows.
-
-Implementation sequence:
-
-```text
-1. Add sponsorship normalizer rules from confirmed labels.
-2. Add synthetic fixtures for each confirmed label.
-3. Add ingestion tests first.
-4. Add minimal database migration for sponsorship facts.
-5. Extend canonical persistence.
-6. Add data-quality warnings for missing P-code, missing date, missing contract ID.
-7. Create compact sponsorship summary view.
-8. Add backend read service only after view compiles and tests pass.
-```
-
-Recommended first schema should be minimal:
-
-```text
-sponsorship_events
-  execution_request_id
-  country_id
-  calendar_month_id
-  request_uid
-  req_id
-  contract_id nullable
-  association_contract_id nullable
-  sponsorship_category
-  sponsorship_reason
-  sponsorship_confidence
-  event_date
-  intervention_name/type/subtype
-  amount fields already available from execution_requests or copied only if needed
-  source references
-
-sponsorship_doctors
-  sponsorship_event_id
-  request_doctor_id nullable
-  country_id
-  pcode_raw
-  pcode_normalized
-  doctor_name_raw
-  doctor_role nullable
-  link_status
-  source_position
-```
-
-Keep the first migration compact. Do not add accommodation, territory, or outcome columns until those sources are confirmed.
-
-Exit criteria:
-
-```text
-National/International/other confirmed sponsorship rows are stored deterministically
-doctor links are visible and auditable
-missing P-code rows are preserved as low-confidence/unlinked
-no dashboard claims causal prescription impact yet
-```
-
-### Phase 3: Doctor-Level Contract Report Slice
-
-**Trigger**: Separate doctor-level contract report is provided.
-
-**Goal**: Attach contract IDs and doctor-level agreement evidence to sponsorship/activity facts.
-
-Steps:
-
-```text
-1. Profile doctor contract report.
-2. Confirm join keys: request ID, contract ID, P-code, country, date.
-3. Decide whether this is a new source type.
-4. Create synthetic fixture.
-5. Implement loader only after schema is known.
-6. Add reconciliation table or extend sponsorship_doctors with contract references.
-7. Add unmatched-contract data-quality output.
-```
-
-Preferred join order:
-
-```text
-request_id + country + pcode
-contract_id + pcode
-country + pcode + month + event name similarity only as explicit weak match
-```
-
-Name-only matching is not allowed as an automatic confident join.
-
-Exit criteria:
-
-```text
-contract ID coverage is measurable
-unmatched contract rows are visible
-doctor-level agreement evidence can enrich detail views
-```
-
-### Phase 4: Historical RCPA Backfill Hardening
-
-**Trigger**: Historical RCPA files with P-codes arrive.
-
-**Goal**: Load historical RCPA without breaking free-tier storage or corrupting doctor identity.
-
-Steps:
-
-```text
-1. Profile historical RCPA file 1.
-2. Profile historical RCPA file 2.
-3. Compare against current RCPA_SCHEMA.
-4. Confirm monthly replacement grain.
-5. Confirm manual P-code mapping fields, if any.
-6. Estimate storage before load.
-7. Load to compact summaries only.
-8. Keep detailed evidence local under data/processed.
-9. Refresh doctor ROI view.
-10. Report coverage window and P-code coverage.
-```
-
-Storage rules:
-
-```text
-Do not store raw RCPA detail online.
-Do not store detailed SKU-level rows online unless storage budget is explicitly approved.
-Prefer compact doctor-month, doctor-brand, and country-brand-month summaries.
-Track database size before and after load.
-```
-
-If manual P-code mapping fields exist, add them to audit/provenance. If they do not exist, do not invent precision; mark mapping provenance as unknown/source_supplied.
-
-Exit criteria:
-
-```text
-historical RCPA extends doctor ROI baseline
-latest RCPA coverage window is visible
-manual/unknown P-code mapping limitations are visible
-database remains below storage budget
-```
-
-### Phase 5: Monthly RCPA Refresh Slice
-
-**Trigger**: 2-3 monthly RCPA refresh samples arrive.
-
-**Goal**: Support repeatable monthly updates safely.
-
-Steps:
-
-```text
-1. Profile each monthly sample.
-2. Compare monthly sample shape to historical backfill shape.
-3. Confirm whether files contain one month or rolling history.
-4. Confirm whether monthly load should replace month or append new month.
-5. Add idempotency tests for rerun behavior.
-6. Add clear ingestion summary for replaced/inserted rows.
+profile each file
+compare raw consolidated and raw doctor-wise fields
+compare raw reports to cleaned business report
+identify National and International labels
+identify paid engagement labels
+identify FMV and contracted value fields
+identify expense fields
+identify P-code coverage
+identify territory/patch coverage
+identify RCPA competitor-filtering caveat from delivered columns or documented source notes
+record that the unified all-BU workbook is the monthly sample package
+write source-specific profile summary
 ```
 
 Exit criteria:
 
 ```text
-same monthly RCPA file can be re-run without duplicates
-new month updates doctor ROI and RCPA freshness
-partial month/missing P-code issues are visible
+actual schemas are documented
+implementation blockers are known
+synthetic fixtures can be created from observed shapes
 ```
 
-### Phase 6: Sponsorship Outcome Views
+### Phase 2: Manual Batch Upload Pipeline
 
-**Trigger**: Sponsorship facts and sufficient RCPA history are loaded.
+**Trigger**: File profiles are complete.
 
-**Goal**: Create deterministic outcomes without causal overclaiming.
+**Goal**: Make repeatable upload practical without SFTP.
 
-Views should be built only after source coverage is strong enough:
+Work:
 
 ```text
-mv_doctor_sponsorship_outcomes
-mv_sponsorship_kpis
-extensions to mv_doctor_roi
-extensions to mv_data_quality
+upload or CLI batch manifest
+source type detection
+file hash and duplicate detection
+batch audit summary
+per-file validation result
+safe rerun behavior
+failure report with missing required fields
 ```
 
-Metrics:
+Exit criteria:
+
+```text
+same file cannot silently duplicate facts
+wrong report type is rejected or quarantined
+business user can refresh by uploading the known file set
+```
+
+### Phase 3: Intervention And Doctor Engagement Spine
+
+**Trigger**: Consolidated and doctor-wise schemas are confirmed.
+
+**Goal**: Normalize interventions, doctors, and engagement economics.
+
+Work:
+
+```text
+load consolidated intervention event facts
+load doctor-wise engagement facts
+join doctor-wise rows to intervention spine
+preserve P-code and doctor name evidence
+persist contract type or agreement type
+persist FMV amount and contracted value amount
+persist paid amount or honorarium if present
+persist expense categories from consolidated report
+convert local currency using official FX
+```
+
+Exit criteria:
+
+```text
+doctor-level spend and contract economics are queryable
+FMV-vs-contracted saving can be calculated
+unjoined doctor/event rows are visible as data-quality output
+```
+
+### Phase 4: Sponsorship And Engagement Classification
+
+**Trigger**: Label columns and sample values are confirmed.
+
+**Goal**: Classify source rows without over-broad sponsorship logic.
+
+Rules:
+
+```text
+National Conference -> sponsorship
+International Conference -> sponsorship
+ERS or similar congress -> subtype or named international conference only if observed
+No Fee Agreement -> no-fee engagement, not sponsorship
+Speaker Agreement -> paid or service engagement, not sponsorship
+Consultancy Agreement -> paid or service engagement, not sponsorship
+Advisory Board -> paid engagement, not sponsorship
+```
+
+Work:
+
+```text
+deterministic classifier
+classification reason
+confidence
+unclassified candidate bucket
+tests for every observed label
+```
+
+Exit criteria:
+
+```text
+only true sponsorship categories enter sponsorship facts
+paid and no-fee engagements remain separately analyzable
+classification is auditable from raw labels
+```
+
+### Phase 5: Historical RCPA Backfill
+
+**Trigger**: Confirmed historical RCPA files are profiled.
+
+**Goal**: Extend Doctor ROI baselines without corrupting identity or storage.
+
+Work:
+
+```text
+profile RCPA shape
+capture competitor-drug filtering caveats from source fields or documented file notes
+confirm manual/legacy mapping cutoff around November
+load compact doctor-month and doctor-brand summaries
+store mapping provenance
+store territory/patch observations if present
+refresh Doctor ROI views
+measure database size before and after
+```
+
+Exit criteria:
+
+```text
+two-year or available RCPA window improves Doctor ROI context
+manual mapping caveats are visible
+competitor-filter caveat is documented
+storage remains within budget
+```
+
+### Phase 6: Monthly Cumulative RCPA Refresh
+
+**Trigger**: Standard monthly RCPA sample is received.
+
+**Goal**: Support future refreshes by upload.
+
+Work:
+
+```text
+detect covered month range
+compare headers to historical backfill
+upsert or replace summaries by month grain
+make reruns idempotent
+show latest RCPA freshness
+flag partial or missing months
+```
+
+Exit criteria:
+
+```text
+cumulative monthly files can be uploaded repeatedly without duplicate summaries
+latest month updates Doctor ROI and data-quality metadata
+```
+
+### Phase 7: Sponsorship And Engagement Outcome Views
+
+**Trigger**: Engagement facts and sufficient RCPA history are loaded.
+
+**Goal**: Explain doctor quadrant membership with historical evidence.
+
+Views should support:
 
 ```text
 sponsorship count
-first/last sponsorship date
-conference type counts
-sponsorship spend
-free/no-fee services after sponsorship
+first and latest sponsorship date
+National and International conference counts
+paid engagement count
+no-fee engagement count
+speaker/consultancy/advisory count
+FMV amount
+contracted amount
+contract saving
+fees and honorarium
+expenses
+total investment
 pre-window Cipla Rx
 post-window Cipla Rx
-Rx delta
-Rx delta percentage
-months observed before/after
-outcome confidence
-data-quality flags
+Rx movement
+months observed before and after
+confidence and caveats
 ```
 
-Default comparison window should not be hard-coded as final until business confirms it. Initial implementation can support configurable windows:
-
-```text
-SPONSORSHIP_PRE_WINDOW_MONTHS=6
-SPONSORSHIP_POST_WINDOW_MONTHS=6
-```
-
-But labels must say:
+Labels must use association language:
 
 ```text
 post-sponsorship movement
+post-engagement movement
 associated movement
 not causal uplift
 ```
@@ -793,480 +1176,213 @@ not causal uplift
 Exit criteria:
 
 ```text
-doctor-level sponsorship outcomes are deterministic and explainable
-insufficient RCPA windows lower confidence
-causal language is avoided
+Doctor ROI can explain why a doctor is high value, transactional, underinvested, or low ROI
+data limitations are explicit
 ```
 
-### Phase 7: Doctor ROI Detail Extension
+### Phase 8: Doctor ROI Detail Extension
 
-**Trigger**: Sponsorship outcome service exists.
+**Trigger**: Outcome service exists.
 
-**Goal**: Add sponsorship background to existing doctor detail drawer.
-
-This directly satisfies the transcript requirement:
-
-```text
-when clicking a quadrant/doctor, show background like sponsored for international conference ABC
-```
-
-Implementation sequence:
-
-```text
-1. Extend backend doctor detail schema.
-2. Add repository query for sponsorship timeline.
-3. Add service limitations.
-4. Add frontend detail section.
-5. Add tests for populated, empty, and low-confidence states.
-```
+**Goal**: Put sponsorship and engagement evidence where the workflow already exists.
 
 UI sections:
 
 ```text
 Sponsorship background
-Free/no-fee services after sponsorship
-RCPA movement after sponsorship
+Paid engagement economics
+No-fee service history
+FMV vs contracted value
+Expense breakdown
+RCPA movement
+Territory or patch context if available
 Data caveats
 ```
 
-Do not create a separate Sponsorship page before this extension unless leadership explicitly wants a separate workflow first. Doctor detail is the lowest-risk visible integration because it reuses the existing Doctor ROI page.
-
 Exit criteria:
 
 ```text
-doctor drawer shows sponsorship evidence when available
-no-sponsorship and missing-link states are clear
-existing Doctor ROI page remains stable
+clicking a quadrant doctor shows the history behind the quadrant
+one internationally sponsored doctor can be validated manually
+low-confidence rows do not overclaim
 ```
 
-### Phase 8: Sponsorship Intelligence Page
+### Phase 9: Territory Intelligence
 
-**Trigger**: Doctor detail extension is stable and portfolio-level KPIs are validated.
+**Trigger**: Territory/patch fields are confirmed in reports, or MSL/doctor master is provided.
 
-**Goal**: Add a leadership sponsorship workflow.
+**Goal**: Add territory opportunity only after core Doctor ROI is stable.
 
-Recommended route:
-
-```text
-frontend/src/pages/SponsorshipIntelligence.tsx
-```
-
-Recommended backend:
+Work:
 
 ```text
-backend/app/schemas/sponsorship.py
-backend/app/repositories/sponsorship_repository.py
-backend/app/services/sponsorship_service.py
-backend/app/routers/sponsorship.py
-```
-
-Dashboard sections:
-
-```text
-summary cards
-sponsored doctor table
-sponsorship event table
-outcome matrix
-data-quality warnings
-doctor drilldown link
+profile territory fields
+decide whether report fields are enough or MSL master is required
+build territory observations
+define underserved, overserved, and self-serving rules from distributions
+validate output against source-level reconciliations and selected business spot checks only if available
 ```
 
 Exit criteria:
 
 ```text
-leadership can answer who was sponsored, what evidence exists, what happened after, and where data is weak
+territory labels are deterministic
+one self-serving or underserved territory can be validated manually
+territory page is added only if there is enough reliable data
 ```
 
-### Phase 9: Territory Intelligence Slice
+### Phase 10: ExecAI Extension
 
-**Trigger**: MSL/doctor master or territory mapping data arrives.
+**Trigger**: Deterministic services exist for sponsorship, paid engagement, RCPA movement, and optionally territory.
 
-**Goal**: Build territory analytics only after territory hierarchy is real.
+**Goal**: Let ExecAI explain evidence, not invent it.
 
-Do not infer territory semantics from a loose `patch_name` string if the business expects region/cluster decisions.
-
-Steps:
+Supported topics:
 
 ```text
-1. Profile MSL/doctor master or territory mapping.
-2. Confirm fields: territory, patch, region, cluster, task force, rep.
-3. Confirm whether assignments change over time.
-4. Create territory assignment model only after effective-date behavior is known.
-5. Build compact territory opportunity view.
-6. Add API and frontend surface.
-```
-
-Potential view:
-
-```text
-mv_territory_opportunity
-```
-
-Metrics:
-
-```text
-doctor count
-active doctor count
-Cipla Rx quantity
-competitor Rx quantity
-Cipla share
-engagement count
-spend
-Rx per engagement
-Rx per spend
-high-value unengaged doctors
-self-serving candidates
-underserved candidates
-data coverage
-```
-
-Territory classification must be deterministic and configurable. Do not hard-code business thresholds until data distribution is reviewed.
-
-Exit criteria:
-
-```text
-territory labels are explainable
-territory coverage is visible
-resource-deployment questions are answerable without AI guessing
-```
-
-### Phase 10: AI Extension
-
-**Trigger**: Sponsorship and/or territory services are deterministic and tested.
-
-**Goal**: Let AI explain sponsorship and territory outputs using compact backend context.
-
-Modify:
-
-```text
-backend/app/services/ai/query_planner.py
-backend/app/services/ai/context_builder.py
-backend/app/services/ai/answer_policy.py
-backend/app/services/ai/response_contract.py
-backend/app/services/ai/redaction.py
-frontend/src/components/ai/AiAssistantPanel.tsx
-frontend/src/api/ai.ts
-```
-
-Supported topic additions:
-
-```text
-sponsorship
-conference
-no-fee/free service
-accommodation only if data exists
-territory
-underserved
-self-serving
-field resource deployment
+why this doctor is in this quadrant
+what drugs or therapy areas drive the prescription trend
+prior sponsorships
+paid engagements
+no-fee services
+FMV vs contracted value
+expenses
+territory opportunity if available
 ```
 
 Context rules:
 
 ```text
-send summary rows only
-send top-N doctors/territories only
-send limitations
-never send raw workbook rows
-never send unbounded doctor lists
-redact P-codes, doctor names, money, and contract IDs if enabled
+send compact backend summaries only
+send evidence references
+cap top-N rows
+redact sensitive identifiers where configured
+fallback deterministically when provider fails
+refuse or qualify causal questions
 ```
 
 Exit criteria:
 
 ```text
-AI can answer sponsorship/territory questions with evidence refs
-unsupported questions are refused or qualified
-provider failure falls back deterministically
+ExecAI can explain a doctor's quadrant using grounded evidence
+unsupported claims are qualified
+no raw workbook rows are sent to the model
 ```
 
-## Data Model Decisions
+## Testing And Validation Strategy
 
-### Decisions Already Safe
-
-These are stable because existing repo/data already support them:
-
-```text
-country + pcode_normalized is the safe doctor identity boundary
-request_uid is safer than assuming req_id is globally unique
-raw files stay local
-RCPA detail stays local/processed, compact summaries go online
-dashboard APIs read typed backend services
-AI summarizes backend service context only
-```
-
-### Decisions Deferred Until Data Arrives
-
-These must not be finalized yet:
-
-```text
-whether sponsorship_events needs a separate table or can be derived from execution_requests initially
-whether doctor contract report is a new source type
-whether contract_id is available in recurring extracts
-whether accommodation is a separate entity
-whether territory is patch only or a hierarchy
-whether legacy code should be first-class in joins
-exact no-fee agreement labels
-exact national/international/ERS labels
-pre/post RCPA comparison window
-retention policy for older RCPA summaries
-```
-
-### Likely Future Entities
-
-These are likely but still data-gated:
-
-```text
-sponsorship_events
-sponsorship_doctors
-doctor_contract_observations
-doctor_identity_observations
-doctor_territory_assignments
-accommodation_records
-```
-
-Do not create them until the source samples prove the fields.
-
-## API Contract Strategy
-
-Do not expose final sponsorship APIs before the backing views exist.
-
-Draft route families:
-
-```text
-GET /api/sponsorship/summary
-GET /api/sponsorship/events
-GET /api/sponsorship/doctors
-GET /api/sponsorship/doctors/{countryCode}/{pcode}
-GET /api/territories/opportunities
-```
-
-Implementation order:
-
-```text
-doctor detail sponsorship extension first
-sponsorship summary/events next
-territory route later
-AI context last
-```
-
-Rationale:
-
-The existing Doctor ROI page already has the user workflow where sponsorship background is needed. A separate page before the data is stable adds product surface area and test cost too early.
-
-## Frontend Strategy
-
-Frontend should not contain placeholder pages with fake copy.
-
-Allowed before data:
-
-```text
-document navigation placement
-document component contracts
-prepare feature-flag approach if needed
-```
-
-Blocked before data:
-
-```text
-SponsorshipIntelligence page
-TerritoryIntelligence page
-fake cards
-fake charts
-empty routes visible in nav
-AI prompts for unavailable data
-```
-
-First real frontend change after backend support:
-
-```text
-extend Doctor ROI detail drawer with sponsorship background
-```
-
-Then:
-
-```text
-Sponsorship Intelligence page
-Territory Intelligence page
-AI suggested prompts
-```
-
-## Testing Strategy
-
-Every implementation slice follows this order:
+Every implementation slice follows:
 
 ```text
 profile real file
-write synthetic fixture
-write failing test
-implement normalizer/loader/repository/view/API/UI
+record actual schema
+write tiny synthetic fixture
+write failing tests
+implement loader/service/view/UI
 run focused tests
-run affected integration tests
-record data-quality behavior
+compare to source-level reconciliations and selected business spot checks only if available
+record caveats
 ```
 
-### Required Test Families
-
-Ingestion:
+Required validation examples:
 
 ```text
-schema drift report tests
-raw-vs-cleaned comparison tests
-sponsorship label classification tests
-doctor contract report loader tests
-RCPA monthly refresh idempotency tests
-territory mapping loader tests
-accommodation loader tests only if data exists
+one doctor sponsored for an international conference
+one doctor with no-fee activity after prior sponsorship if present
+one paid advisory/speaker/consultancy doctor if present
+one FMV greater than contracted value example
+one cumulative RCPA refresh rerun
+one self-serving or underserved territory if data supports it
+Sri Lanka Q1 execution sanity check if the cleaned report includes it
 ```
 
-Database:
+Known business benchmark from transcript:
 
 ```text
-sponsorship events persistence
-sponsorship doctor bridge uniqueness
-free-service-after-sponsorship window
-pre/post RCPA movement
-missing P-code quality flags
-contract ID coverage
-territory opportunity classification
-storage impact smoke checks
+Sri Lanka Q1 planned doctors: 2,126
+Sri Lanka Q1 engaged doctors: 2,382
+doctor engagement execution: 112%
+planned events: 67
+raised/executed events: 38
+event execution: 57%
 ```
 
-API:
-
-```text
-sponsorship summary
-sponsorship doctor rows
-sponsorship event rows
-doctor detail sponsorship timeline
-territory opportunities
-invalid filters
-pagination and sorting
-limitations and data-quality flags
-```
-
-Frontend:
-
-```text
-doctor detail sponsorship section
-sponsorship page loading/error/empty/partial states
-territory page loading/error/empty/partial states
-quality warnings
-AI sponsorship prompt behavior
-```
-
-AI:
-
-```text
-query planner routes sponsorship questions
-context builder caps sponsorship context
-answer policy refuses unsupported causal claims
-response contract validates sponsorship evidence refs
-redaction masks contract IDs if required
-```
-
-## Storage And Free-Tier Control Plan
-
-### Current Constraint
-
-```text
-Database: 321 MB
-Free limit: 500 MB
-Headroom: ~179 MB
-```
-
-### Storage Rules
-
-Hard rules:
-
-```text
-raw files do not enter Supabase
-large detailed RCPA does not enter Supabase
-RCPA SKU detail stays local under data/processed
-only compact sponsorship/territory facts go online
-avoid duplicating full RCPA summaries in new materialized views
-prune AI query logs if needed
-measure table sizes after each large load
-```
-
-Preferred env/runtime controls:
-
-```text
-INGESTION_STORAGE_MODE=compact
-RCPA_ONLINE_MONTHS=24
-STORE_RCPA_DETAIL_ONLINE=false
-STORE_SOURCE_ROW_JSON=false
-AI_LOG_RETENTION_DAYS=30
-```
-
-Do not implement these env vars until they are needed, but design new code so this policy is easy to add.
+Use this only as a validation benchmark if the delivered files cover the same period and scope.
 
 ## Risk Register
 
-### Risk: Raw reports differ from cleaned reports
+### Risk: Wrong report uploaded
 
 Mitigation:
 
 ```text
-profile raw files first
-compare raw vs cleaned
-make loader accept raw shape, not presentation shape
+source manifest
+file labels from Abhijeet
+source fingerprinting
+required-column validation
+wrong-source quarantine
 ```
 
-### Risk: Contract ID is not in the main consolidation report
+### Risk: Treating all engagements as sponsorship
 
 Mitigation:
 
 ```text
-do not require contract_id for first sponsorship fact table
-use request_uid as operational spine
-add doctor contract report slice when file arrives
-show missing contract ID as data quality flag
+classify only National and International as sponsorship
+model paid and no-fee services separately
+store classification reason and raw label
 ```
 
-### Risk: Sponsorship labels are inconsistent
+### Risk: No-fee activity is overinterpreted
 
 Mitigation:
 
 ```text
-do not hard-code final labels until observed
-store classification reason
-store confidence
-keep unclassified candidate rows visible
+use "possible prior engagement evidence" language
+track no-fee separately
+show outlier caveats such as charity or philanthropy
 ```
 
-### Risk: Manual P-code backfill introduces false precision
+### Risk: RCPA historical data is partially manual
 
 Mitigation:
 
 ```text
-track mapping provenance if source provides it
-flag unknown/manual mappings
+store mapping provenance
+separate legacy/manual and system-supported periods
+profile and document competitor-filtering assumptions from the delivered source files
 avoid name-only confident joins
-show identity limitations
 ```
 
-### Risk: RCPA backfill exceeds storage
+### Risk: Cumulative monthly RCPA duplicates data
 
 Mitigation:
 
 ```text
-pre-load size estimate
-compact summary only
-local detailed extracts
-storage report before and after ingestion
-avoid redundant materialized views
+detect covered months
+replace/upsert by doctor/month/brand grain
+idempotency tests
+file hash audit
 ```
 
-### Risk: Territory hierarchy is unclear
+### Risk: Local currency comparisons are misleading
 
 Mitigation:
 
 ```text
-do not infer hierarchy from patch string alone
-ask for official MSL/territory mapping
-store source/effective date if available
-keep territory page blocked until hierarchy is known
+use only the official company FX rates provided for all six markets
+store local amount and converted amount
+flag missing FX as data quality issue
+```
+
+### Risk: Territory data is not complete enough
+
+Mitigation:
+
+```text
+derive territory only from confirmed fields
+use the received MSL/doctor master only if needed
+keep territory page gated until validation examples exist
 ```
 
 ### Risk: AI overclaims causality
@@ -1274,197 +1390,100 @@ keep territory page blocked until hierarchy is known
 Mitigation:
 
 ```text
+deterministic service context first
+evidence references required
 answer policy uses association language
-system prompt forbids causal claims
-evidence refs required
-unsupported causality questions are qualified/refused
+causal prompts are refused or qualified
 ```
 
-## Implementation Backlog With Gates
+## Updated Backlog With Gates
 
-### Ready Now
-
-These can be turned into tasks before new data arrives:
+### Ready Now With Received Files
 
 ```text
-R0. Create source intake contract template.
-R1. Document raw-vs-cleaned comparison workflow.
-R2. Add or document database storage budget report.
-R3. Document next-phase feature flag policy.
-R4. Add sponsorship/territory implementation notes to data dictionary as "planned, data-gated" definitions.
-R5. Prepare email/data request checklist for Abhijeet/Anil/Varad.
+R0. Register the received file inventory and source labels.
+R1. Build or document manual batch upload manifest expectations.
+R2. Profile the raw consolidated report, doctor-wise HTML exports, cleaned reports, ERS workbook, MSL workbook, and RCPA workbook.
+R3. Compare raw reports against cleaned presentable reports.
+R4. Build storage budget report before loading historical RCPA.
+R5. Record that historical RCPA scope and monthly unified workbook scope are confirmed.
+R6. Define source-based validation checks; external Varad output is not required.
 ```
 
-### Ready After Raw Consolidation Samples
+### Ready After Raw Consolidated And Doctor-Wise Profiles Pass
 
 ```text
-C1. Profile raw extracts.
-C2. Compare raw vs cleaned extracts.
-C3. Update CONSOLIDATION_SCHEMA aliases if real columns differ.
-C4. Add observed sponsorship/no-fee classification tests.
-C5. Add sponsorship normalizer from confirmed labels.
-C6. Decide whether sponsorship facts need new table immediately.
+C1. Profile both raw reports.
+C2. Compare raw reports to the clean business report.
+C3. Create source-specific synthetic fixtures.
+C4. Implement intervention and doctor engagement loaders.
+C5. Add FMV, contracted value, expense, and official FX handling.
+C6. Add classification tests for observed labels.
 ```
 
-### Ready After Doctor Contract Report
+### Ready After Sponsorship Labels Are Observed
 
 ```text
-D1. Profile doctor contract report.
-D2. Define join key strategy.
-D3. Add loader if report is recurring source.
-D4. Add unmatched contract quality output.
-D5. Enrich sponsorship doctor links with contract evidence.
+S1. Classify National and International as sponsorship.
+S2. Classify no-fee, speaker, consultancy, and advisory as engagement/service evidence.
+S3. Persist classification reason and confidence.
+S4. Build sponsorship and engagement summary views.
 ```
 
-### Ready After Historical RCPA Files
+### Ready After Historical RCPA Scope Is Confirmed And Profiled
 
 ```text
-H1. Profile historical RCPA files.
-H2. Confirm manual P-code provenance fields.
-H3. Estimate storage impact.
-H4. Load compact summaries only.
-H5. Extend coverage metrics.
-H6. Recompute doctor ROI baseline.
+H1. Profile historical RCPA.
+H2. Capture competitor-filtering caveats from delivered source fields.
+H3. Confirm manual/system mapping provenance.
+H4. Estimate storage.
+H5. Load compact summaries.
+H6. Refresh Doctor ROI baseline.
 ```
 
-### Ready After Monthly RCPA Samples
+### Ready After Monthly RCPA Sample Profile Passes
 
 ```text
-M1. Profile monthly refresh shape.
-M2. Confirm replacement grain.
-M3. Add monthly refresh idempotency tests.
-M4. Add latest RCPA month freshness output.
+M1. Profile cumulative monthly format.
+M2. Confirm headers match historical shape or document drift.
+M3. Implement cumulative replacement/upsert.
+M4. Add idempotency tests.
+M5. Add latest RCPA freshness metadata.
 ```
 
-### Ready After Territory/Doctor Master Data
+### Ready After Outcome Views Are Stable
 
 ```text
-T1. Profile MSL/territory mapping.
-T2. Decide patch vs territory vs region/cluster model.
-T3. Add territory assignment persistence.
-T4. Build territory opportunity view.
-T5. Add territory API/UI.
-T6. Add AI territory context.
+O1. Extend Doctor ROI detail schema and API.
+O2. Add sponsorship and engagement evidence to Doctor ROI drawer.
+O3. Add validation against one known sponsored doctor.
+O4. Extend ExecAI context and answer policy.
 ```
 
-### Ready After Sponsorship Outcomes Are Stable
+### Ready After Territory Fields Are Confirmed
 
 ```text
-S1. Extend doctor detail endpoint.
-S2. Extend Doctor ROI drawer.
-S3. Add sponsorship summary API.
-S4. Add Sponsorship Intelligence page.
-S5. Add AI sponsorship context.
-```
-
-## Success Criteria
-
-### Before Data Arrives
-
-Success means:
-
-```text
-no speculative migrations
-no fake pages
-no dead placeholder code
-clear data request exists
-source intake gates are documented
-storage constraint is known
-implementation slices are sequenced
-```
-
-### After First Raw Consolidation Data
-
-Success means:
-
-```text
-raw recurring extract can be profiled
-raw-vs-cleaned drift is understood
-current loader either supports it or has exact changes needed
-sponsorship labels are observed or explicitly absent
-```
-
-### After Sponsorship Slice
-
-Success means:
-
-```text
-sponsorship facts are deterministic
-doctor linkage is P-code-based and auditable
-missing P-code/contract evidence is visible
-doctor detail can show sponsorship background
-```
-
-### After RCPA Backfill
-
-Success means:
-
-```text
-doctor ROI baseline improves without breaching storage budget
-historical coverage window is visible
-manual P-code limitations are visible
-monthly refresh remains idempotent
-```
-
-### After Territory Slice
-
-Success means:
-
-```text
-territory analytics use official or confirmed mapping
-self-serving and underserved labels are deterministic
-AI can summarize territory outputs without inventing facts
+T1. Profile territory/patch fields.
+T2. Decide whether MSL/doctor master is needed.
+T3. Build territory observations.
+T4. Define underserved, overserved, and self-serving rules.
+T5. Add territory UI only after validation examples pass.
 ```
 
 ## Final Recommendation
 
-The cleanest path is:
+The cleanest execution path is:
 
 ```text
-Do readiness work now.
-Do not build speculative feature surfaces.
-When data arrives, implement one source at a time as a vertical slice.
-Start with raw consolidation because it unlocks sponsorship classification.
-Next do doctor contract linkage if the file exists.
-Then harden historical/monthly RCPA.
-Then add sponsorship outcomes.
-Then add doctor-detail UI.
-Then add standalone sponsorship page.
-Then add territory intelligence.
-Then extend AI.
+1. Finish batch-upload readiness and source profiling.
+2. Profile Abhijeet's labeled file package as soon as it arrives.
+3. Build intervention and doctor engagement spine from the two raw reports.
+4. Add sponsorship and paid/no-fee engagement classification.
+5. Load historical RCPA compact summaries.
+6. Add cumulative monthly RCPA refresh.
+7. Extend Doctor ROI detail with sponsorship, engagement, spend, FMV, and RCPA evidence.
+8. Add ExecAI evidence summaries.
+9. Add territory intelligence only after core Doctor ROI is finalized.
 ```
 
-This keeps the product serious:
-
-```text
-trusted data first
-explicit reconciliation
-deterministic calculations
-compact Supabase storage
-typed APIs
-polished frontend
-grounded AI only after stable services exist
-```
-
-It also protects development time and credits:
-
-```text
-no guessing
-no fake placeholders
-no rework-heavy migrations
-no UI before data
-no AI context before deterministic service output
-```
-
-## Optional Spec Kit Hook
-
-The project has an optional `after_plan` hook:
-
-```text
-extension: agent-context
-command: /speckit-agent-context-update
-description: Refresh agent context after planning
-```
-
-This supplemental plan intentionally does not replace `specs/002-execution-intelligence-platform/plan.md`, so the main `AGENTS.md` Spec Kit pointer should remain unchanged unless this plan becomes the primary active feature plan.
-
+This matches the transcript's priority: finalize the core Doctor ROI product before adding territory and other bells and whistles.

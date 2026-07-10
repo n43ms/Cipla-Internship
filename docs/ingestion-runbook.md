@@ -60,6 +60,7 @@ Output:
 
 ```text
 data/reports/workbook-profile-report.md
+data/reports/workbook-profile-report.json
 ```
 
 Use this before ingestion to verify:
@@ -70,6 +71,120 @@ Use this before ingestion to verify:
 - required-column coverage is acceptable
 - unexpected sheets are documented but not loaded
 - schema drift sections show mapped, unknown, missing, empty, and sample-value metadata
+- JSON output carries the same profile evidence for automated comparison or review gates
+
+## Manual Batch Upload Manifest
+
+For the sponsorship ROI phase, use a labeled manifest before profiling received files from
+SharePoint or email. The manifest is the handoff contract: it tells the system what each workbook
+is supposed to be, while fingerprinting verifies the claim from file type, filename, and headers.
+
+## Dashboard Upload For Business Users
+
+The React dashboard exposes **Upload new data/files** in the top navigation. This is the preferred
+business-user entry point for new Excel packages.
+
+What it does:
+
+- accepts `.xlsx`, `.xlsb`, and CRM HTML `.xls` exports
+- saves the uploaded batch under `data/uploads/<batch-id>/`
+- fingerprints each workbook from file format, filename, and headers
+- rejects duplicates, unknown files, unsupported formats, and unreadable files
+- writes a generated `source-manifest.json` for accepted files
+- writes `batch-upload-summary.json` with accepted and rejected file results
+
+What it does not do:
+
+- it does not mutate dashboard KPI tables
+- it does not write source facts into Supabase
+- it does not clean or rewrite source workbooks
+- it does not bypass profiling, loader, or data-quality gates
+
+Final intended refresh workflow after loader gates pass:
+
+```text
+Upload new data/files
+  -> accepted batch
+  -> run accepted-batch ingestion
+  -> write compact canonical facts into Supabase
+  -> refresh materialized KPI views
+  -> reload dashboard API data
+  -> Doctor ROI, sponsorship/engagement, RCPA, and data-quality panels reflect the new files
+```
+
+Until the source-specific loaders are complete, upload remains an intake and validation step. After
+those loaders are complete, accepted uploaded batches should be the normal business-user path for
+refreshing dashboard data.
+
+Backend endpoint:
+
+```text
+POST /api/ingestion/upload-batch
+multipart field: files
+```
+
+Use this flow when the person uploading files should not have to create a manifest manually.
+
+Example:
+
+```json
+{
+  "received_package_path": "files",
+  "owner": "Abhijeet Mudila/EMEU/PBP",
+  "files": [
+    {
+      "label": "raw_consolidated_all_bu",
+      "path": "Raw Reports -Point 1/Consolidated Raw Report/Consolidate report All Bu's Nov'25 - 9 Jul'26.xlsx",
+      "source_type": "consolidation",
+      "raw_or_cleaned": "raw",
+      "country_scope": ["Sri Lanka", "Nepal", "Oman", "UAE", "Myanmar", "Malaysia"],
+      "period_start": "2025-11-01",
+      "period_end": "2026-07-09",
+      "export_timestamp": "2026-07-10T12:20:00+05:30"
+    },
+    {
+      "label": "monthly_cumulative_rcpa_all_bu",
+      "path": "RCPA Report All Bu's Apr'26 - 03 Jul'26.xlsx",
+      "source_type": "rcpa",
+      "raw_or_cleaned": "raw",
+      "country_scope": ["Sri Lanka", "Nepal", "Oman", "UAE", "Myanmar", "Malaysia"],
+      "period_start": "2026-04-01",
+      "period_end": "2026-07-03"
+    },
+    {
+      "label": "msl_doctor_master",
+      "path": "MSL Doctor Master File Point 7/MSL.xlsx",
+      "source_type": "msl_doctor_master",
+      "raw_or_cleaned": "reference",
+      "country_scope": ["Sri Lanka", "Nepal", "Oman", "UAE", "Myanmar", "Malaysia"]
+    }
+  ]
+}
+```
+
+Run batch validation and profiling:
+
+```powershell
+python -m ingestion.main batch-profile --manifest files/source-manifest.json
+```
+
+Output:
+
+```text
+data/reports/batch-profile-report.json
+```
+
+The batch report separates accepted files from quarantined files. Quarantine reasons include:
+
+- missing file path
+- duplicate file hash
+- unsupported or unreadable workbook format
+- declared source type that does not match the observed fingerprint
+- invalid `raw_or_cleaned` value
+- invalid period range
+
+Accepted files may still need source-specific loader work. The batch profile step only proves that
+the labeled package is internally consistent enough to profile safely.
 
 ## Comparing Raw And Cleaned Workbooks
 

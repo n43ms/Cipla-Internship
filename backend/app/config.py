@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     demo_shared_password: str = Field(default="", alias="DEMO_SHARED_PASSWORD")
     company_lkr_per_usd: float = Field(default=310.0, alias="COMPANY_LKR_PER_USD")
     data_freshness_max_age_days: int = Field(default=14, alias="DATA_FRESHNESS_MAX_AGE_DAYS")
+    upload_data_dir: str = Field(default="data/uploads", alias="UPLOAD_DATA_DIR")
     ai_provider: str = Field(default="null", alias="AI_PROVIDER")
     ai_api_key: str = Field(default="", alias="AI_API_KEY")
     ai_model: str = Field(default="gemini-2.5-flash-lite", alias="AI_MODEL")

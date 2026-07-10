@@ -1,369 +1,449 @@
-# Tasks: Sponsorship And Territory Readiness
+# Tasks: Sponsorship ROI And Batch Upload Readiness
 
-**Input**: Design documents from `specs/002-execution-intelligence-platform/`, current completed `tasks.md`, `ingestion_sponsorship.md`, and `sponsorship-readiness-plan.md`
+**Input**: `sponsorship-readiness-plan.md`, `ingestion_sponsorship.md`, `files/transcript5.txt`, existing `spec.md`, `plan.md`, `tasks.md`, and current repository architecture.
 
-**Prerequisites**: `plan.md`, `spec.md`, `tasks.md`, `data-model.md`, `contracts/`, `quickstart.md`, `ingestion_sponsorship.md`, `sponsorship-readiness-plan.md`
+**Scope Boundary**: These tasks update the next phase around the clarified July 9 transcript and the July 10 received workbook package under `files/`. Source-specific production loaders, migrations, APIs, frontend pages, and AI context are not implementation-ready until the actual workbook profiles pass the gates in `sponsorship-readiness-plan.md`.
 
-**Tests**: Required for ingestion/profiling code, schema-drift comparison, CLI behavior, and storage-report scripting. Documentation-only tasks require reviewable checklists instead of automated tests.
+**Tests**: Required for profiling, source classification, batch upload validation, RCPA idempotency, storage-budget scripts, and deterministic classification. Documentation-only tasks require explicit checklist sections.
 
-**Scope Boundary**: These tasks are intentionally limited to work that is safe before new business data arrives. Do not create sponsorship/accommodation/territory database tables, loaders, routers, frontend pages, or AI context until actual source files have passed the data-arrival gates in `sponsorship-readiness-plan.md`.
+**Core Clarification**: The next phase is manual batch upload, not SFTP or SharePoint polling. The core product remains Doctor ROI quadranting. Sponsorship, engagement economics, RCPA history, and territory are evidence layers that explain the quadrant. The required source package is present and the previously open scope questions are resolved.
 
-**Organization**: Tasks are grouped by independently testable readiness stories.
+**End-To-End Refresh Requirement**: The user-facing workflow must be: business user uploads Excel files through **Upload new data/files** in the React dashboard, FastAPI validates and stages the batch, deterministic ingestion writes accepted source facts into Supabase, materialized views refresh, and the dashboard reflects the refreshed Doctor ROI, sponsorship/engagement, RCPA, data-quality, and ExecAI evidence. Upload-only validation is an intermediate gate, not the final product state.
+
+**Final Deliverable Definition**: The feature is complete only when an accepted dashboard-uploaded batch can update Supabase-backed canonical facts, refresh materialized views, and visibly update Doctor ROI evidence in the frontend. Doctor ROI investment must include source-backed sponsorship and engagement value where available, and must show caveats instead of a misleading zero where sponsorship/engagement exists but amount is missing.
+
+**Required Traceability**: Every new dashboard-visible sponsorship, engagement, economics, and RCPA metric must be traceable to source file identity, source type, doctor/P-code join, period, and relevant caveats. Do not store unbounded raw workbook rows in Supabase to achieve this; use compact facts, hashes, row references, aggregate counts, and local generated extracts where needed.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Can run in parallel because it touches separate files or has no dependency on incomplete tasks.
+- **[P]**: Can run in parallel because it touches separate files or independent test areas.
 - **[Story]**: User story label for traceability.
-- Every task includes an exact file path.
+- Every implementation task includes an exact file path.
 
 ---
 
-## Phase 1: Setup (Shared Planning Artifacts)
+## Phase 1: Received Package Registration And Planning Refresh
 
-**Purpose**: Create the non-code artifacts that make the next phase executable without guessing source schemas.
+**Purpose**: Align project docs with the transcript5 clarifications and the actual July 10 workbook package before source-specific code changes start.
 
-- [ ] T001 Create the source intake contract template in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
-- [ ] T002 [P] Create the business data request package in `docs/sponsorship-data-request.md`
-- [ ] T003 [P] Create the feature gate policy for unavailable sponsorship/territory surfaces in `docs/feature-gate-policy.md`
-- [ ] T004 [P] Create the storage budget runbook in `docs/storage-budget.md`
-- [ ] T005 Update the source data policy with raw-recurring-extract and raw-vs-cleaned comparison rules in `docs/source-data-policy.md`
+- [X] T001 Record the received file inventory, source labels, and known open questions in `docs/source-onboarding-playbook.md`
+- [X] T002 [P] Update the source intake contract for the received file package in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
+- [X] T003 [P] Update the feature-gate policy to make SFTP, SharePoint polling, fake pages, and AI-over-raw-data explicitly out of scope in `docs/feature-gate-policy.md`
+- [X] T004 [P] Update the source data policy with manual batch upload, SharePoint-as-source-location, labeled-file, and no-real-workbooks-in-git requirements in `docs/source-data-policy.md`
+- [X] T005 [P] Update the data dictionary with clarified terms for sponsorship, engagement, FMV, contracted value, no-fee activity, paid engagement, cumulative RCPA, FS HQ, Location, PATCHNAME, and MSL territory in `docs/data-dictionary.md`
+- [X] T006 Add official FX rates for Sri Lanka, Nepal, Oman, UAE, Myanmar, and Malaysia to the source contract and cross-link `files/transcript5.txt`, `sponsorship-readiness-plan.md`, and this task file from `docs/architecture.md`
 
-**Checkpoint**: Business stakeholders can understand exactly what data to send, and engineering has written rules preventing speculative implementation.
-
----
-
-## Phase 2: Foundational (Blocking Prerequisites)
-
-**Purpose**: Add generic profiling/comparison foundations that every later data-source slice needs.
-
-**CRITICAL**: No source-specific sponsorship, doctor-contract, accommodation, or territory implementation should begin until this phase is complete.
-
-- [ ] T006 [P] Add schema-drift fixture builders for raw and cleaned workbook variants in `ingestion/tests/fixtures/build_fixtures.py`
-- [ ] T007 [P] Add schema-drift fixture documentation in `ingestion/tests/fixtures/README.md`
-- [ ] T008 [P] Add tests for profile fields covering mapped columns, unknown columns, empty columns, required missing fields, and sample value capture in `ingestion/tests/test_profile_schema_drift.py`
-- [ ] T009 [P] Add tests for raw-vs-cleaned workbook comparison output in `ingestion/tests/test_workbook_compare.py`
-- [ ] T010 [P] Add tests for profile and comparison CLI behavior in `ingestion/tests/test_cli_schema_readiness.py`
-- [ ] T011 Extend profile models with mapped, unknown, missing, empty, and sample-value metadata in `ingestion/models.py`
-- [ ] T012 Extend workbook profiling to populate schema-drift metadata without adding sponsorship-specific required fields in `ingestion/profiler.py`
-- [ ] T013 Implement a generic raw-vs-cleaned workbook comparison utility in `ingestion/workbook_compare.py`
-- [ ] T014 Extend profile report markdown with schema-drift and unknown-column sections in `ingestion/report.py`
-- [ ] T015 Add profile comparison CLI command for raw-vs-cleaned reports in `ingestion/main.py`
-
-**Checkpoint**: Any incoming raw file can be profiled and compared against a cleaned file before changing loaders or schema maps.
+**Checkpoint**: A reviewer can see that the July 9 decisions and July 10 files are the new source of truth.
 
 ---
 
-## Phase 3: User Story 1 - Request A Complete Data Package (Priority: P1) MVP
+## Phase 2: Batch Upload And Source Intake Foundation
 
-**Goal**: Give Abhijeet/Anil/Varad a precise, implementation-friendly data request and source contract so the team sends data that can be used without manual cleanup.
+**Purpose**: Build the reusable intake path for manually uploaded raw files without assuming final schemas.
 
-**Independent Test**: A reviewer can open the data request and source intake contract and verify that every source needed by `ingestion_sponsorship.md` has owner, cadence, fields, file-shape, identity, money, doctor, territory, and validation-example requirements.
+### Tests
 
-### Tests for User Story 1
+- [X] T007 [P] Add source manifest parser tests for labeled workbook batches in `ingestion/tests/test_source_manifest.py`
+- [X] T008 [P] Add source fingerprint tests for received consolidated XLSX, doctor-wise HTML-XLS exports, cleaned presentable XLSX reports, ERS workbook, MSL workbook, unified monthly RCPA workbook, and confirmed historical RCPA XLSB files in `ingestion/tests/test_source_fingerprints.py`
+- [X] T009 [P] Add duplicate-file/hash validation tests in `ingestion/tests/test_batch_upload_validation.py`
+- [X] T010 [P] Add wrong-report quarantine tests in `ingestion/tests/test_batch_upload_validation.py`
 
-- [ ] T016 [P] [US1] Add a documentation completeness checklist for the business data request in `docs/sponsorship-data-request.md`
-- [ ] T017 [P] [US1] Add a source contract review checklist in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
+### Implementation
 
-### Implementation for User Story 1
+- [X] T011 Add source manifest models for file label, source type, raw-vs-cleaned, country scope, period scope, owner, export timestamp, and received package path in `ingestion/models.py`
+- [X] T012 Implement source manifest loading and validation in `ingestion/source_manifest.py`
+- [X] T013 Add source fingerprint rules for XLSX, XLSB, and CRM HTML-XLS files without hard-coding final business logic in `ingestion/source_fingerprints.py`
+- [X] T014 Add duplicate-file and wrong-source validation to the ingestion orchestrator in `ingestion/orchestrator.py`
+- [X] T015 Add a batch profile command that accepts a source manifest in `ingestion/main.py`
+- [X] T016 Document the manual batch upload workflow and example manifest in `docs/ingestion-runbook.md`
+- [X] T016A Add business-user dashboard upload flow backed by batch fingerprint validation in `backend/app/routers/ingestion.py`, `backend/app/services/ingestion_upload_service.py`, `frontend/src/components/ingestion/DataUploadPanel.tsx`, and `frontend/src/App.tsx`
+- [ ] T016B Add backend ingestion trigger/status workflow for an accepted uploaded batch so validated files can move from `data/uploads/<batch-id>/` into Supabase canonical tables after loader gates pass in `backend/app/routers/ingestion.py` and `backend/app/services/`
+- [ ] T016C Add frontend post-upload states for accepted-for-review, ingestion-running, Supabase-updated, views-refreshed, and dashboard-data-refreshed in `frontend/src/components/ingestion/DataUploadPanel.tsx`
+- [ ] T016D Add integration tests proving an accepted dashboard-uploaded batch can be ingested, refresh materialized views, and update dashboard-visible API responses after source-specific loaders are implemented in `backend/tests/api/` and `frontend/tests/`
 
-- [ ] T018 [US1] Fill the source intake contract with sections for raw consolidation, cleaned consolidation, doctor contract report, historical RCPA, monthly RCPA, MSL doctor master, territory mapping, accommodation/travel, sponsorship labels, and validation examples in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
-- [ ] T019 [US1] Fill the business request with concise priority order, exact field lists, preferred formats, and non-negotiable raw-file rules in `docs/sponsorship-data-request.md`
-- [ ] T020 [US1] Add a Teams-message and email-outline appendix for requesting the data package in `docs/sponsorship-data-request.md`
-- [ ] T021 [US1] Cross-link the source intake contract and data request from the ingestion runbook in `docs/ingestion-runbook.md`
-
-**Checkpoint**: The data request can be sent without requiring additional context from chat history.
-
----
-
-## Phase 4: User Story 2 - Profile And Compare New Files Before Coding (Priority: P1)
-
-**Goal**: Make it possible to inspect incoming raw and cleaned files, detect schema drift, and produce an engineering decision report before writing source-specific loaders or migrations.
-
-**Independent Test**: Running the profile and comparison tests against synthetic raw/cleaned fixtures produces a report with mapped columns, unknown columns, missing required columns, removed columns, renamed candidates, and action-required fields.
-
-### Tests for User Story 2
-
-- [ ] T022 [P] [US2] Add failing profiler assertions for mapped canonical fields and unknown raw columns in `ingestion/tests/test_profile_schema_drift.py`
-- [ ] T023 [P] [US2] Add failing profiler assertions for empty columns and representative sample values in `ingestion/tests/test_profile_schema_drift.py`
-- [ ] T024 [P] [US2] Add failing comparison assertions for raw-only, cleaned-only, shared, and renamed-candidate columns in `ingestion/tests/test_workbook_compare.py`
-- [ ] T025 [P] [US2] Add failing CLI assertions that comparison reports write markdown and JSON outputs in `ingestion/tests/test_cli_schema_readiness.py`
-
-### Implementation for User Story 2
-
-- [ ] T026 [US2] Implement mapped canonical field capture and unknown column capture in `ingestion/profiler.py`
-- [ ] T027 [US2] Implement missing required field and empty column capture in `ingestion/profiler.py`
-- [ ] T028 [US2] Implement bounded representative sample values for risky columns in `ingestion/profiler.py`
-- [ ] T029 [US2] Implement raw-only, cleaned-only, shared, and normalized-header comparison logic in `ingestion/workbook_compare.py`
-- [ ] T030 [US2] Add JSON serialization support for profile comparison output in `ingestion/workbook_compare.py`
-- [ ] T031 [US2] Add markdown rendering for profile comparison reports in `ingestion/report.py`
-- [ ] T032 [US2] Wire the comparison command into the ingestion CLI without changing existing ingest behavior in `ingestion/main.py`
-- [ ] T033 [US2] Document the profile-and-compare workflow with example commands and expected outputs in `docs/ingestion-runbook.md`
-
-**Checkpoint**: New data can be inspected safely before modifying any source-specific ingestion code.
+**Checkpoint**: Abhijeet or another business user can upload the file package from the dashboard, see accepted/rejected files, and, after loader gates pass, run a controlled refresh that updates Supabase and dashboard-visible Doctor ROI evidence.
 
 ---
 
-## Phase 5: User Story 3 - Protect Supabase Free-Tier Storage Before New Loads (Priority: P2)
+## Phase 3: Schema Profiling And Raw-Vs-Cleaned Comparison
 
-**Goal**: Make database size visible before and after large RCPA/sponsorship/territory experiments, so compact-mode decisions are enforced before storage is exhausted.
+**Purpose**: Safely inspect the incoming file package before loader, schema, or UI work.
 
-**Independent Test**: Running the storage script or documented SQL returns total database size, largest tables/views, RCPA summary sizes, AI log size, and free-tier headroom without printing secrets.
+### Tests
 
-### Tests for User Story 3
+- [X] T017 [P] Add profiler tests for mapped fields, unknown columns, empty columns, header-row detection, row counts, country scope, period scope, and sample values across received XLSX, XLSB, and HTML-XLS files in `ingestion/tests/test_profile_schema_drift.py`
+- [X] T018 [P] Add comparison tests for `Raw Reports -Point 1/Consolidated Raw Report` vs `Cleaned Presentable Version - Point 2` in `ingestion/tests/test_workbook_compare.py`
+- [X] T019 [P] Add comparison tests for `Raw Reports -Point 1/Doctor Raw Report` vs `Cleaned Presentable Version - Point 2` in `ingestion/tests/test_workbook_compare.py`
+- [X] T020 [P] Add CLI report-output tests for JSON and markdown profile reports in `ingestion/tests/test_cli_schema_readiness.py`
 
-- [ ] T034 [P] [US3] Add script-output contract tests for storage report parsing in `backend/tests/database/test_storage_budget_report.py`
-- [ ] T035 [P] [US3] Add documentation verification checklist for pre-load and post-load storage checks in `docs/storage-budget.md`
+### Implementation
 
-### Implementation for User Story 3
+- [X] T021 Extend workbook profiling metadata in `ingestion/profiler.py`
+- [X] T022 Extend profile models with mapped, unknown, missing, empty, sample-value, and header-row fields in `ingestion/models.py`
+- [X] T023 Implement raw-vs-cleaned comparison utility in `ingestion/workbook_compare.py`
+- [X] T024 Render profile and comparison reports in `ingestion/report.py`
+- [X] T025 Wire profile comparison command into `ingestion/main.py`
+- [X] T026 Document expected outputs and decision rules in `docs/ingestion-runbook.md`
 
-- [ ] T036 [US3] Add a PowerShell database size report script that reads `DATABASE_URL` safely and prints size/headroom/table breakdowns in `scripts/db_size_report.ps1`
-- [ ] T037 [US3] Add SQL snippets for total size, top relations, RCPA summaries, materialized views, and AI logs in `docs/storage-budget.md`
-- [ ] T038 [US3] Document compact-mode storage rules and explicit no-raw-RCPA-online rules in `docs/storage-budget.md`
-- [ ] T039 [US3] Link the storage budget runbook from `docs/ingestion-runbook.md`
-
-**Checkpoint**: Before a large file is loaded, the engineer can measure whether Supabase has enough room and decide compact/local storage behavior.
-
----
-
-## Phase 6: User Story 4 - Gate Future Sponsorship, Contract, RCPA, Territory, And AI Work (Priority: P2)
-
-**Goal**: Prevent accidental placeholder implementation by documenting exact gates and deferred tasks for each future source-specific slice.
-
-**Independent Test**: A reviewer can verify that each future implementation area has required data-arrival gates, forbidden pre-data work, allowed post-data work, and acceptance criteria.
-
-### Tests for User Story 4
-
-- [ ] T040 [P] [US4] Add a gate review checklist for raw consolidation, sponsorship classification, doctor contract report, historical RCPA, monthly RCPA, territory, accommodation, and AI extension in `docs/feature-gate-policy.md`
-- [ ] T041 [P] [US4] Add a data-gated glossary checklist for sponsorship and territory planned terms in `docs/data-dictionary.md`
-
-### Implementation for User Story 4
-
-- [ ] T042 [US4] Document forbidden pre-data work including sponsorship tables, loaders, routers, frontend pages, and AI context in `docs/feature-gate-policy.md`
-- [ ] T043 [US4] Document allowed post-data vertical-slice order for raw consolidation, doctor contract report, RCPA backfill, monthly RCPA, sponsorship outcomes, doctor detail, sponsorship page, territory, and AI in `docs/feature-gate-policy.md`
-- [ ] T044 [US4] Add planned data-gated definitions for sponsorship event, sponsorship doctor, no-fee service, post-sponsorship movement, accommodation support, territory opportunity, and manual P-code provenance in `docs/data-dictionary.md`
-- [ ] T045 [US4] Add implementation-ready task templates for future post-data slices in `specs/002-execution-intelligence-platform/sponsorship-readiness-tasks.md`
-- [ ] T046 [US4] Cross-link `sponsorship-readiness-plan.md`, `sponsorship-readiness-tasks.md`, and `ingestion_sponsorship.md` from `docs/architecture.md`
-
-**Checkpoint**: Anyone continuing the project knows exactly what is safe now and what is blocked until real files arrive.
+**Checkpoint**: Incoming files can be accepted, rejected, or queued for loader work based on observed schema evidence.
 
 ---
 
-## Phase 7: User Story 5 - Prepare Source-Specific Onboarding Playbooks Without Implementing Them (Priority: P3)
+## Phase 4: Clarified Business Source Contracts
 
-**Goal**: Create operational playbooks for how to implement each future slice after data arrives, without adding speculative source-specific code.
+**Purpose**: Convert transcript decisions into reviewable source contracts before implementation.
 
-**Independent Test**: Each playbook explains trigger data, profiling commands, fixture creation, tests to add, implementation files to touch, storage checks, and acceptance criteria.
+- [X] T027 [US1] Add raw consolidated intervention report contract with observed fields including `FS HQ`, `REQ_ID`, intervention dates, intervention type/subtype, BTC/BTU expenses, Association Contract ID, Expected PCODE, and Actual PCODE in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
+- [X] T028 [US1] Add raw doctor-wise intervention report contract with HTML-XLS preamble/header-row handling and observed fields including `DR code`, doctor name, doctor segment, FS HQ, FMV amount, Contract ID, Contracted Amount, and Status in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
+- [X] T029 [US1] Add clean business report contract as comparison-only source with `CON_AMOUNT`, `FMVROLE`, `TYPE`, and `SUBTYPE` handling in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
+- [X] T030 [US1] Add historical smart-contract ERS contract and confirmed historical RCPA backfill contract for the root-level historical RCPA XLSB files in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
+- [X] T031 [US1] Add monthly cumulative RCPA contract with 3rd-of-month cadence, same-header expectation, cumulative coverage, six-BU sheet handling, `Pcode`, `Location`, and `PATCHNAME` requirements in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
+- [X] T032 [US1] Add official FX rate contract for Sri Lanka 368.90, Nepal 89, Oman 0.46, UAE 1.00, Myanmar 4300, and Malaysia 4.39 in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
+- [X] T033 [US1] Add MSL doctor-master contract with `Pcode`, `Location`, `Territory Id`, `Patch`, `Patchsname`, and `Legacy Code` handling in `specs/002-execution-intelligence-platform/contracts/source-intake-contract.md`
 
-### Tests for User Story 5
-
-- [ ] T047 [P] [US5] Add onboarding checklist validation sections for each future source in `docs/source-onboarding-playbook.md`
-
-### Implementation for User Story 5
-
-- [ ] T048 [US5] Create the source onboarding playbook covering raw consolidation and sponsorship classification in `docs/source-onboarding-playbook.md`
-- [ ] T049 [US5] Extend the source onboarding playbook with doctor contract report and contract-ID reconciliation steps in `docs/source-onboarding-playbook.md`
-- [ ] T050 [US5] Extend the source onboarding playbook with historical RCPA and monthly RCPA refresh steps in `docs/source-onboarding-playbook.md`
-- [ ] T051 [US5] Extend the source onboarding playbook with MSL/doctor master and territory mapping steps in `docs/source-onboarding-playbook.md`
-- [ ] T052 [US5] Extend the source onboarding playbook with accommodation/travel handling rules that remain blocked until data proves a separate source in `docs/source-onboarding-playbook.md`
-- [ ] T053 [US5] Extend the source onboarding playbook with AI-extension readiness rules requiring deterministic backend services first in `docs/source-onboarding-playbook.md`
-
-**Checkpoint**: When Abhijeet sends data, the next engineer can follow a deterministic playbook instead of improvising.
+**Checkpoint**: The source contract reflects the actual planned file package and does not ask for broad unnecessary data.
 
 ---
 
-## Final Phase: Polish & Cross-Cutting Validation
+## Phase 5: Intervention And Doctor Engagement Spine
 
-**Purpose**: Verify the readiness work is coherent, non-speculative, and connected to existing project docs.
+**Trigger**: Received consolidated XLSX and doctor-wise HTML-XLS reports are profiled and source contracts pass review.
 
-- [ ] T054 [P] Run focused ingestion tests for profiler and comparison behavior and record commands in `docs/ingestion-runbook.md`
-- [ ] T055 [P] Run the storage budget script against the configured database and record a sanitized example output in `docs/storage-budget.md`
-- [ ] T056 Review `git status` to confirm no real workbooks, generated extracts, reports, or secrets were added and document the result in `docs/source-data-policy.md`
-- [ ] T057 Review `sponsorship-readiness-tasks.md` to confirm no task creates speculative sponsorship/accommodation/territory migrations, loaders, frontend pages, or AI contexts before data arrives in `specs/002-execution-intelligence-platform/sponsorship-readiness-tasks.md`
-- [ ] T058 Update `README.md` with a short pointer to the sponsorship readiness docs and data request package
+**Goal**: Normalize the operational spine that all sponsorship and ROI evidence depends on.
+
+### Tests
+
+- [ ] T034 [P] [US2] Add synthetic raw consolidated fixture from observed columns, including FS HQ and BTC/BTU expense fields, in `ingestion/tests/fixtures/build_fixtures.py`
+- [ ] T035 [P] [US2] Add synthetic raw doctor-wise HTML-XLS fixture from observed row-4 headers, including FMV amount and Contracted Amount, in `ingestion/tests/fixtures/build_fixtures.py`
+- [ ] T036 [P] [US2] Add consolidated loader tests for intervention ID, event name, type, subtype, expenses, country, and period fields in `ingestion/tests/loaders/test_consolidated_intervention_loader.py`
+- [ ] T037 [P] [US2] Add doctor-wise loader tests for doctor name, P-code, doctor segment, intervention ID, FMV amount, contracted value amount, amount paid, and contract type in `ingestion/tests/loaders/test_doctor_wise_intervention_loader.py`
+- [ ] T038 [P] [US2] Add join/reconciliation tests between doctor-wise rows and consolidated intervention rows in `ingestion/tests/test_intervention_doctor_reconciliation.py`
+
+### Implementation
+
+- [ ] T039 [US2] Add observed aliases to schema maps for consolidated and doctor-wise reports in `ingestion/schema_maps.py`
+- [ ] T040 [US2] Implement consolidated intervention loader in `ingestion/loaders/consolidated_intervention.py`
+- [ ] T041 [US2] Implement doctor-wise intervention loader in `ingestion/loaders/doctor_wise_intervention.py`
+- [ ] T042 [US2] Implement doctor-to-intervention reconciliation in `ingestion/normalizers/intervention_reconciliation.py`
+- [ ] T043 [US2] Persist compact canonical intervention and doctor engagement facts in `ingestion/repositories/`
+- [ ] T044 [US2] Add data-quality output for missing P-code, missing intervention ID, missing FMV, missing contracted value, and unjoined rows in `ingestion/report.py`
+- [ ] T044A [US2] Add accepted-upload-batch ingestion path that consumes `data/uploads/<batch-id>/source-manifest.json` and writes consolidated intervention plus doctor engagement facts to Supabase after validation in `ingestion/orchestrator.py` and `backend/app/services/ingestion_upload_service.py`
+- [ ] T044B [US2] Add integration test proving a dashboard-uploaded accepted synthetic consolidated plus doctor-wise batch reaches canonical Supabase-facing repositories without hand-editing files in `backend/tests/api/test_ingestion_upload_api.py`
+
+**Checkpoint**: Doctor-level engagement and event facts are queryable and auditable before sponsorship classification starts.
 
 ---
 
-## Blocked Future Work: Do Not Start Until Data Gates Pass
+## Phase 6: FMV, Contracted Value, Expenses, And FX
 
-These are intentionally not implementation tasks yet. Convert them into a separate post-data task file only after real files are profiled and the relevant gates pass.
+**Trigger**: Doctor-wise economics and official FX fields are confirmed.
+
+**Goal**: Make ROI economics defensible across local currencies.
+
+### Tests
+
+- [ ] T045 [P] [US3] Add tests for local FMV, contracted value, and contract saving calculations in `ingestion/tests/test_contract_economics.py`
+- [ ] T046 [P] [US3] Add tests for expense category normalization from consolidated report columns in `ingestion/tests/test_expense_normalization.py`
+- [ ] T047 [P] [US3] Add tests for official FX conversion and missing-FX quality flags in `ingestion/tests/test_fx_conversion.py`
+
+### Implementation
+
+- [ ] T048 [US3] Add contract economics normalizer in `ingestion/normalizers/contract_economics.py`
+- [ ] T049 [US3] Add expense normalizer for travel, accommodation, venue, taxi, BTU, BTC, total expenses, and observed expense headers in `ingestion/normalizers/expenses.py`
+- [ ] T050 [US3] Add official FX intake and conversion handling in `ingestion/normalizers/fx.py`
+- [ ] T051 [US3] Add compact persistence for local and converted economics fields in `ingestion/repositories/`
+- [ ] T052 [US3] Add FMV-vs-contracted savings to reporting output in `ingestion/report.py`
+- [ ] T052A [US3] Define and test Doctor ROI investment calculation rules that include source-backed sponsorship spend, paid engagement spend, contracted value, FMV, and doctor-attributable BTC/BTU/actual expenses without treating missing amounts as zero in `backend/tests/database/test_doctor_roi_view.py`
+- [ ] T052B [US3] Add amount-missing caveat propagation for doctors with sponsorship or engagement evidence but no reliable spend amount in `ingestion/report.py` and `backend/app/services/doctor_service.py`
+
+**Checkpoint**: The system can distinguish doctor fee/honorarium, expenses, contracted value, FMV value, and negotiated saving.
+
+---
+
+## Phase 7: Sponsorship And Engagement Classification
+
+**Trigger**: Actual label values are observed in the profiled raw reports.
+
+**Goal**: Classify only true sponsorship as sponsorship and preserve other engagements separately.
+
+### Tests
+
+- [ ] T053 [P] [US4] Add classifier tests for National Conference and International Conference as sponsorship in `ingestion/tests/test_sponsorship_classification.py`
+- [ ] T054 [P] [US4] Add classifier tests for ERS/ATS/World Asthma/World COPD as observed international subtypes or event names, not independent hard-coded sponsorship roots, in `ingestion/tests/test_sponsorship_classification.py`
+- [ ] T055 [P] [US4] Add classifier tests for No Fee Agreement as no-fee engagement, not sponsorship, in `ingestion/tests/test_engagement_classification.py`
+- [ ] T056 [P] [US4] Add classifier tests for speaker, consultancy, advisory board, and paid honorarium engagements in `ingestion/tests/test_engagement_classification.py`
+- [ ] T057 [P] [US4] Add tests that classification records raw label, normalized class, reason, and confidence in `ingestion/tests/test_engagement_classification.py`
+
+### Implementation
+
+- [ ] T058 [US4] Implement deterministic sponsorship classifier in `ingestion/normalizers/sponsorship.py`
+- [ ] T059 [US4] Implement deterministic engagement/service classifier in `ingestion/normalizers/engagements.py`
+- [ ] T060 [US4] Persist sponsorship facts and non-sponsorship engagement facts compactly after observed schemas justify migrations in `database/migrations/`
+- [ ] T061 [US4] Add or extend materialized views for sponsorship and engagement summaries in `database/views/`
+- [ ] T062 [US4] Add data-quality warnings for unclassified labels, missing P-code, missing date, and missing economics fields in `ingestion/report.py`
+
+**Checkpoint**: Sponsorship, no-fee, paid speaker, consultancy, advisory, and other services are separately analyzable.
+
+---
+
+## Phase 8: Historical RCPA Backfill
+
+**Trigger**: Confirmed historical RCPA files are profiled.
+
+**Goal**: Improve Doctor ROI baselines without overloading Supabase or hiding manual mapping caveats.
+
+### Tests
+
+- [ ] T063 [P] [US5] Add historical RCPA fixture from confirmed historical RCPA columns, not from ERS smart-contract rows alone, in `ingestion/tests/fixtures/build_fixtures.py`
+- [ ] T064 [P] [US5] Add loader tests for prescription quantity, month/date, P-code, patch, territory, brand/therapy dimensions, and competitor-filter metadata in `ingestion/tests/loaders/test_historical_rcpa_loader.py`
+- [ ] T065 [P] [US5] Add mapping-provenance tests for system-supplied, manual/legacy, source-supplied, and unknown P-code periods in `ingestion/tests/test_rcpa_mapping_provenance.py`
+- [ ] T066 [P] [US5] Add storage-budget tests or script-output checks before and after historical load in `backend/tests/database/test_storage_budget_report.py`
+
+### Implementation
+
+- [ ] T067 [US5] Implement historical RCPA loader after profiling the confirmed historical RCPA package in `ingestion/loaders/historical_rcpa.py`
+- [ ] T068 [US5] Implement mapping provenance logic in `ingestion/normalizers/rcpa_provenance.py`
+- [ ] T069 [US5] Persist compact doctor-month and doctor-brand summaries only in `ingestion/repositories/rcpa_repository.py`
+- [ ] T070 [US5] Refresh Doctor ROI materialized views after historical load in `database/views/`
+- [ ] T071 [US5] Add RCPA coverage, competitor-filter caveat, and manual-mapping caveat to ingestion reports in `ingestion/report.py`
+- [ ] T072 [US5] Document historical RCPA scope, manual-before-1-Nov mapping rule, and source-derived caveats in `docs/source-onboarding-playbook.md`
+
+**Checkpoint**: Historical RCPA improves Doctor ROI context while preserving provenance and storage discipline.
+
+---
+
+## Phase 9: Monthly Cumulative RCPA Refresh
+
+**Trigger**: Received standard monthly cumulative RCPA workbook is profiled.
+
+**Goal**: Make RCPA refresh idempotent for manual uploads.
+
+### Tests
+
+- [ ] T073 [P] [US6] Add monthly cumulative RCPA fixture from observed six-BU workbook columns, including `Pcode`, `Location`, and `PATCHNAME`, in `ingestion/tests/fixtures/build_fixtures.py`
+- [ ] T074 [P] [US6] Add tests that detect covered month range from cumulative files in `ingestion/tests/test_monthly_rcpa_refresh.py`
+- [ ] T075 [P] [US6] Add tests that rerunning the same cumulative file does not duplicate doctor-month summaries in `ingestion/tests/test_monthly_rcpa_refresh.py`
+- [ ] T076 [P] [US6] Add tests for partial-month and missing-P-code freshness flags in `ingestion/tests/test_monthly_rcpa_refresh.py`
+
+### Implementation
+
+- [ ] T077 [US6] Implement monthly cumulative RCPA loader or mode in `ingestion/loaders/monthly_rcpa.py`
+- [ ] T078 [US6] Implement replacement/upsert behavior by doctor/month/brand grain in `ingestion/repositories/rcpa_repository.py`
+- [ ] T079 [US6] Add latest RCPA freshness metadata to backend response meta in `backend/app/services/`
+- [ ] T080 [US6] Add ingestion summary output for inserted, replaced, skipped, and duplicate rows in `ingestion/report.py`
+
+**Checkpoint**: Monthly RCPA files can be uploaded repeatedly without corrupting Doctor ROI.
+
+---
+
+## Phase 10: Sponsorship And Engagement Outcome Views
+
+**Trigger**: Engagement facts and RCPA summaries are loaded.
+
+**Goal**: Explain Doctor ROI quadrants with deterministic post-engagement evidence.
+
+### Tests
+
+- [ ] T081 [P] [US7] Add database/view tests for sponsorship count, paid engagement count, no-fee count, spend, FMV, contracted value, expenses, and contract saving in `backend/tests/database/test_sponsorship_outcome_views.py`
+- [ ] T082 [P] [US7] Add database/view tests for pre-window and post-window RCPA movement without causal wording in `backend/tests/database/test_sponsorship_outcome_views.py`
+- [ ] T083 [P] [US7] Add confidence and caveat tests for insufficient RCPA windows and manual mapping periods in `backend/tests/database/test_sponsorship_outcome_views.py`
+
+### Implementation
+
+- [ ] T084 [US7] Add or extend materialized view for doctor sponsorship and engagement outcomes in `database/views/`
+- [ ] T085 [US7] Extend Doctor ROI backend repository queries with sponsorship, engagement, economics, and RCPA evidence in `backend/app/repositories/doctor_roi_repository.py`
+- [ ] T086 [US7] Extend Doctor ROI service limitations and confidence output in `backend/app/services/doctor_roi_service.py`
+- [ ] T087 [US7] Extend Doctor ROI schemas with sponsorship and engagement evidence contracts in `backend/app/schemas/doctor_roi.py`
+- [ ] T087A [US7] Add backend contract tests proving refreshed Supabase views expose updated sponsorship/engagement/RCPA evidence through Doctor ROI APIs after accepted-batch ingestion in `backend/tests/api/test_doctor_api.py`
+- [ ] T087B [US7] Add view/query tests proving prior sponsorship or engagement changes Doctor ROI investment metrics where amount is known and creates an explicit caveat where amount is missing in `backend/tests/database/test_sponsorship_outcome_views.py`
+
+**Checkpoint**: The backend can answer why a doctor is in a quadrant using deterministic evidence.
+
+---
+
+## Phase 11: Doctor ROI Detail UI Extension
+
+**Trigger**: Outcome API contract exists.
+
+**Goal**: Add the evidence to the existing Doctor ROI workflow before creating a separate page.
+
+### Tests
+
+- [ ] T088 [P] [US8] Add frontend tests for sponsorship background in the Doctor ROI detail drawer in `frontend/tests/doctor-roi.test.tsx`
+- [ ] T089 [P] [US8] Add frontend tests for paid engagement economics, no-fee history, FMV-vs-contracted value, expenses, RCPA movement, and caveats in `frontend/tests/doctor-roi.test.tsx`
+- [ ] T090 [P] [US8] Add empty and low-confidence state tests for missing sponsorship or missing RCPA evidence in `frontend/tests/doctor-roi.test.tsx`
+
+### Implementation
+
+- [ ] T091 [US8] Extend Doctor ROI API types in `frontend/src/types/api.ts`
+- [ ] T092 [US8] Extend Doctor ROI detail API client handling in `frontend/src/api/doctorRoi.ts`
+- [ ] T093 [US8] Add sponsorship and engagement evidence sections to the Doctor ROI detail drawer in `frontend/src/pages/DoctorRoi.tsx`
+- [ ] T094 [US8] Add reusable economics and evidence components in `frontend/src/components/doctors/DoctorRoiComponents.tsx`
+- [ ] T095 [US8] Ensure wording uses association language, not causal uplift, in `frontend/src/pages/DoctorRoi.tsx`
+- [ ] T095A [US8] Add Doctor ROI table and detail states that distinguish true zero spend, prior sponsorship with known amount, prior sponsorship with amount unavailable, and weak doctor/P-code linkage in `frontend/src/pages/DoctorRoi.tsx`
+- [ ] T095B [US8] Add frontend test proving a doctor with current zero execution spend but prior sponsorship evidence no longer appears as a plain zero-investment doctor in `frontend/tests/doctor-roi.test.tsx`
+
+**Checkpoint**: Clicking a doctor shows sponsorship, engagement, spend, and RCPA context without leaving the core Doctor ROI page.
+
+---
+
+## Phase 12: Territory Intelligence, Gated Add-On
+
+**Trigger**: Territory/patch fields are confirmed or an MSL/doctor master file is provided.
+
+**Goal**: Add territory opportunity only after core Doctor ROI is stable.
+
+### Tests
+
+- [ ] T096 [P] [US9] Add territory field profiling tests in `ingestion/tests/test_territory_profile.py`
+- [ ] T097 [P] [US9] Add territory observation loader tests for country, patch, territory, period, doctor count, prescription quantity, engagement count, and spend in `ingestion/tests/loaders/test_territory_loader.py`
+- [ ] T098 [P] [US9] Add deterministic tests for underserved, overserved, and self-serving territory labels in `backend/tests/database/test_territory_opportunity.py`
+
+### Implementation
+
+- [ ] T099 [US9] Implement territory observation extraction from confirmed report fields in `ingestion/normalizers/territory.py`
+- [ ] T100 [US9] Use the received MSL doctor master only if report-level territory fields are insufficient, documenting the decision in `docs/source-onboarding-playbook.md`
+- [ ] T101 [US9] Add compact territory opportunity view in `database/views/` after data quality is sufficient
+- [ ] T102 [US9] Add backend territory service and route only after view validation in `backend/app/services/` and `backend/app/routers/`
+- [ ] T103 [US9] Add a Territory Intelligence page only after validation examples pass in `frontend/src/pages/`
+
+**Checkpoint**: Territory remains a controlled add-on, not a distraction from finishing Doctor ROI.
+
+---
+
+## Phase 13: ExecAI Sponsorship And ROI Evidence Extension
+
+**Trigger**: Deterministic Doctor ROI evidence services exist.
+
+**Goal**: Let ExecAI explain evidence with grounded context.
+
+### Tests
+
+- [ ] T104 [P] [US10] Add query planner tests for doctor quadrant explanation, sponsorship history, paid engagements, no-fee services, FMV/contracted value, RCPA trend, and territory if available in `backend/tests/services/ai/test_query_planner.py`
+- [ ] T105 [P] [US10] Add context-builder cap tests for sponsorship and engagement evidence in `backend/tests/services/ai/test_context_builder.py`
+- [ ] T106 [P] [US10] Add answer-policy tests preventing causal uplift claims in `backend/tests/services/ai/test_answer_policy.py`
+- [ ] T107 [P] [US10] Add redaction tests for doctor names, P-codes, contract IDs, and sensitive money fields if configured in `backend/tests/services/ai/test_redaction.py`
+
+### Implementation
+
+- [ ] T108 [US10] Extend AI query planner topics in `backend/app/services/ai/query_planner.py`
+- [ ] T109 [US10] Extend context builder with compact sponsorship and engagement evidence in `backend/app/services/ai/context_builder.py`
+- [ ] T110 [US10] Extend answer policy with association-only language in `backend/app/services/ai/answer_policy.py`
+- [ ] T111 [US10] Extend response contract evidence references in `backend/app/services/ai/response_contract.py`
+- [ ] T112 [US10] Update ExecAI suggested prompts only after backend context passes tests in `frontend/src/components/ai/AiAssistantPanel.tsx`
+
+**Checkpoint**: ExecAI can explain a doctor's quadrant using grounded sponsorship, engagement, spend, RCPA, and optional territory evidence.
+
+---
+
+## Phase 14: Business Validation And Cross-Checks
+
+**Purpose**: Validate outputs against source-level reconciliations and selected business spot checks where available.
+
+- [ ] T113 [P] Validate one internationally sponsored doctor against business expectation and record the sanitized result in `docs/source-onboarding-playbook.md`
+- [ ] T114 [P] Validate one no-fee or prior-sponsorship doctor if present and record caveats in `docs/source-onboarding-playbook.md`
+- [ ] T115 [P] Validate one FMV greater than contracted value example and record expected saving math in `docs/source-onboarding-playbook.md`
+- [ ] T116 [P] Validate one cumulative RCPA rerun and record idempotency result in `docs/ingestion-runbook.md`
+- [ ] T117 [P] Validate one self-serving or underserved territory against source-level territory/RCPA/spend reconciliation if territory data is available in `docs/source-onboarding-playbook.md`
+- [ ] T118 [P] Run storage budget report before and after historical RCPA load and record sanitized output in `docs/storage-budget.md`
+- [ ] T119 [P] Compare selected Doctor ROI rankings against deterministic source-data reconciliation from the same dataset and record mismatches for review in `docs/source-onboarding-playbook.md`
+
+**Checkpoint**: The system is not just technically passing tests; it agrees with business-known examples or documents why it differs.
+
+---
+
+## Final Phase: Polish And Documentation
+
+- [ ] T120 Update `README.md` with the clarified batch-upload source strategy and sponsorship ROI scope
+- [ ] T121 Update `docs/architecture.md` with manual batch upload, source profiling, and deterministic evidence boundaries
+- [ ] T121A Update dashboard refresh documentation to state that uploaded files update visible data only after accepted-batch ingestion writes Supabase facts and refreshes materialized views in `docs/ingestion-runbook.md` and `docs/architecture.md`
+- [ ] T122 Update `docs/storage-budget.md` with final compact-mode decisions after RCPA profiling
+- [ ] T123 Update `docs/source-data-policy.md` to confirm no real workbooks, generated extracts, reports, or secrets were added to git
+- [ ] T124 Run focused ingestion, backend, database, frontend, and AI tests touched by this phase and record commands in `docs/ingestion-runbook.md`
+- [ ] T125 Review this task file to confirm no remaining task asks for SFTP, SharePoint polling, fake pages, or AI over raw workbook rows
+
+---
+
+## Blocked Future Work
+
+Do not start these until their gates pass:
 
 ```text
-Blocked until raw consolidation samples:
-  - final sponsorship classifier rules
-  - sponsorship normalizer
-  - consolidation alias changes
+Blocked until actual consolidated and doctor-wise reports are profiled:
+  - production intervention loader
+  - production doctor-wise loader
+  - canonical migrations for engagement facts
 
-Blocked until doctor contract report:
-  - doctor contract loader
-  - contract-ID reconciliation
-  - unmatched contract data-quality output
+Blocked until actual labels are observed:
+  - final National/International sponsorship classifier
+  - no-fee/speaker/consultancy/advisory classifier
+  - ERS/ATS/special congress subtype mapping
 
-Blocked until historical RCPA files:
-  - manual P-code provenance persistence
-  - historical RCPA storage/retention policy changes
-  - sponsorship pre/post RCPA outcome views
+Blocked until company-provided official FX list is encoded:
+  - cross-market USD comparisons
+  - final FMV/contracted saving KPIs
 
-Blocked until monthly RCPA samples:
-  - monthly RCPA replacement/append logic changes
-  - recurring RCPA freshness rules beyond current data quality
+Blocked until confirmed historical RCPA package is profiled:
+  - two-year Doctor ROI backfill
+  - pre/post engagement movement views
+  - manual mapping provenance persistence
 
-Blocked until territory/doctor master data:
-  - territory assignment tables
-  - territory opportunity materialized view
-  - territory dashboard/API
+Blocked until monthly cumulative RCPA sample is profiled:
+  - recurring RCPA refresh mode
+  - cumulative replacement/upsert logic
 
-Blocked until deterministic services exist:
-  - sponsorship frontend page
-  - territory frontend page
-  - sponsorship/territory AI context
-  - AI suggested prompts for unavailable data
+Blocked until deterministic outcome services exist:
+  - Doctor ROI sponsorship evidence UI
+  - ExecAI sponsorship and engagement context
+
+Blocked until territory fields are confirmed and core Doctor ROI is stable:
+  - territory opportunity view
+  - territory API/UI
+  - territory AI context
 ```
 
 ---
 
-## Dependencies & Execution Order
+## Execution Order
 
-### Phase Dependencies
+1. Complete planning artifact refresh.
+2. Build dashboard batch upload and profiling foundations.
+3. Profile Abhijeet's labeled file package and accepted dashboard-uploaded batches.
+4. Implement accepted-batch ingestion trigger/status so uploaded files can move into Supabase after validation.
+5. Implement intervention and doctor engagement spine.
+6. Implement FMV, contracted value, expense, and FX handling.
+7. Implement sponsorship and engagement classification.
+8. Load historical RCPA compact summaries.
+9. Implement monthly cumulative RCPA refresh.
+10. Refresh Supabase materialized views and dashboard-visible API responses after successful batch ingestion.
+11. Build outcome views and Doctor ROI detail evidence.
+12. Extend ExecAI.
+13. Add territory only after core Doctor ROI is finalized and territory fields validate.
 
-- **Setup (Phase 1)**: No dependencies.
-- **Foundational (Phase 2)**: Depends on Phase 1 only for scope clarity; blocks source-specific data onboarding.
-- **US1 Data Package Request**: Can start after Setup.
-- **US2 Profile And Compare Tooling**: Depends on Foundational tests/fixtures and can proceed in parallel with US1 docs.
-- **US3 Storage Safeguards**: Can proceed in parallel with US1 and US2 after Setup.
-- **US4 Gates And Deferred Work**: Depends on Setup and should incorporate decisions from US1-US3.
-- **US5 Source Onboarding Playbooks**: Depends on US4 gates.
-- **Polish**: Depends on selected readiness stories being complete.
+## Final Workflow Acceptance Checklist
 
-### User Story Completion Order
-
-1. **US1 Data Package Request (P1)**: highest value immediately because it unblocks business data collection.
-2. **US2 Profile And Compare Tooling (P1)**: required before changing loaders for incoming raw files.
-3. **US3 Storage Safeguards (P2)**: required before large RCPA or new materialized views.
-4. **US4 Gates And Deferred Work (P2)**: prevents speculative implementation.
-5. **US5 Source Onboarding Playbooks (P3)**: makes post-data implementation repeatable.
-
-### MVP Scope
-
-The readiness MVP is:
-
-```text
-Phase 1 + Phase 2 + US1 + US2
-```
-
-This is enough to request data and safely inspect it when it arrives.
-
-### Full Pre-Data Scope
-
-The complete pre-data scope is:
-
-```text
-Phase 1 through Phase 7 + Final Phase
-```
-
-This leaves the repository ready for source-specific vertical slices without adding speculative implementation.
-
----
-
-## Parallel Execution Examples
-
-### Setup Parallel Work
-
-```text
-T002, T003, and T004 can run in parallel because they create separate docs.
-```
-
-### Foundational Parallel Work
-
-```text
-T006, T007, T008, T009, and T010 can run in parallel before implementation starts.
-T011-T015 should be done after tests are written.
-```
-
-### User Story 1 Parallel Work
-
-```text
-T016 and T017 can run in parallel.
-T018-T020 should be completed before T021 cross-links the runbook.
-```
-
-### User Story 2 Parallel Work
-
-```text
-T022, T023, T024, and T025 can run in parallel.
-T026-T028 touch profiler behavior and should be coordinated.
-T029 and T030 can run before T031.
-T032 should happen after comparison output exists.
-```
-
-### User Story 3 Parallel Work
-
-```text
-T034 and T035 can run in parallel.
-T036 and T037 can run in parallel after output expectations are defined.
-T039 depends on T037-T038.
-```
-
-### User Story 4 Parallel Work
-
-```text
-T040 and T041 can run in parallel.
-T042 and T043 both update feature-gate policy and should be serialized.
-T044 can run in parallel with T042-T043.
-T046 should run after cross-links exist.
-```
-
-### User Story 5 Parallel Work
-
-```text
-T048-T053 all update the same playbook and should be serialized for clarity.
-```
-
----
-
-## Implementation Strategy
-
-### Readiness MVP First
-
-1. Complete Setup.
-2. Complete Foundational profiling/comparison tests.
-3. Complete US1 data package request.
-4. Complete US2 profile/compare tooling.
-5. Stop and validate by running profiler/comparison commands against synthetic fixtures.
-
-### Full Pre-Data Delivery
-
-1. Add storage budget safeguards.
-2. Add feature-gate policy.
-3. Add source onboarding playbooks.
-4. Polish documentation links and verification notes.
-
-### Post-Data Delivery Strategy
-
-When real data arrives, do not continue from guesses. Create a new post-data task file using:
-
-```text
-profile results
-confirmed source labels
-confirmed join keys
-storage budget estimate
-synthetic fixture derived from real source shape
-```
-
-Then implement one vertical slice at a time:
-
-```text
-raw consolidation -> sponsorship classification -> doctor contract report -> RCPA backfill -> monthly RCPA refresh -> sponsorship outcomes -> doctor detail -> sponsorship page -> territory -> AI
-```
-
----
+- [ ] A user can upload the agreed Excel/XLSB/HTML-XLS file package from the dashboard without preparing a manifest manually.
+- [ ] The upload result clearly identifies accepted files, rejected files, duplicate files, unknown files, and unreadable files.
+- [ ] Accepted uploaded files can be ingested into Supabase through deterministic loaders.
+- [ ] Supabase canonical facts contain intervention, doctor engagement, economics, sponsorship/engagement classification, and compact RCPA summaries.
+- [ ] Materialized views refresh after ingestion and expose updated Doctor ROI evidence.
+- [ ] Doctor ROI calculation credits sponsorship/engagement investment when the amount is source-backed.
+- [ ] Doctors with prior sponsorship/engagement but missing amount are shown with an explicit caveat instead of a misleading plain zero.
+- [ ] Doctor ROI table shows summary evidence flags; Doctor ROI detail drawer shows full doctor history.
+- [ ] Data Quality shows upload, join, missing amount, missing P-code, and manual RCPA mapping caveats.
+- [ ] ExecAI answers sponsorship/engagement/RCPA questions from refreshed backend evidence only.
+- [ ] No raw workbook rows, generated upload batches, secrets, or generated reports are committed to git.
 
 ## Notes
 
 - All real workbooks stay out of git.
-- All source-specific implementation remains blocked until profile reports exist.
-- Do not add visible frontend navigation for data that does not exist.
-- Do not send sponsorship or territory prompts to AI until deterministic backend services exist.
-- Do not create database migrations for speculative entities before source schemas are confirmed.
-- KPI and classification logic must remain deterministic and test-covered.
-- Supabase remains the compact serving database, not the raw data lake.
-
+- Manual dashboard batch upload is the intended refresh mechanism for this phase.
+- Uploaded files must update dashboard data only through the accepted-batch ingestion path: validate, ingest to Supabase, refresh materialized views, then refresh frontend API data.
+- SFTP and SharePoint polling are explicitly out of scope.
+- National and International Conference are the only default sponsorship labels.
+- No-fee, speaker, consultancy, advisory, and paid honorarium are engagement evidence, not sponsorship by default.
+- FMV amount and contracted value amount are critical ROI economics fields.
+- Official FX rates have been provided and must be used as the only FX source; no internet-rate fallback is allowed.
+- Monthly RCPA is cumulative and must be loaded idempotently.
+- Historical RCPA scope is confirmed; ERS remains a separate historical smart-contract/conference input.
+- Territory is valuable but secondary to finishing the core Doctor ROI product.

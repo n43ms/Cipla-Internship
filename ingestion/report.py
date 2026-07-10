@@ -15,6 +15,18 @@ def write_profile_report(profiles: list[WorkbookProfile], output_path: Path) -> 
     output_path.write_text(profile_report_markdown(profiles), encoding="utf-8")
 
 
+def write_profile_reports(profiles: list[WorkbookProfile], output_dir: Path) -> tuple[Path, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    markdown_path = output_dir / "workbook-profile-report.md"
+    json_path = output_dir / "workbook-profile-report.json"
+    markdown_path.write_text(profile_report_markdown(profiles), encoding="utf-8")
+    json_path.write_text(
+        json.dumps([profile.to_json() for profile in profiles], indent=2),
+        encoding="utf-8",
+    )
+    return markdown_path, json_path
+
+
 def write_workbook_comparison_report(
     comparison: WorkbookComparison,
     output_dir: Path,

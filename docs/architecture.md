@@ -32,27 +32,46 @@ Phase 2 establishes:
 - shared constants and error schemas,
 - test harnesses and fixture structure.
 
-## Sponsorship Readiness MVP
+## Sponsorship ROI Batch Upload Phase
 
-The sponsorship readiness work is a pre-data inspection layer, not a product feature surface.
+The sponsorship ROI phase now has a received source package and should be implemented as a manual-batch, evidence-gated extension of the existing Doctor ROI platform.
 
-It extends only the safe front of the architecture:
+It extends the architecture through this path:
 
 ```text
-local source files
-  -> ingestion CLI
-  -> workbook profiling
+business user uploads known workbook package through React "Upload new data/files"
+  -> FastAPI stores accepted local batch under data/uploads/<batch-id>/
+  -> source manifest and fingerprinting
+  -> workbook/HTML-XLS profiling
   -> raw-vs-cleaned comparison
-  -> markdown/json decision reports
+  -> synthetic fixtures
+  -> deterministic loaders
+  -> compact canonical facts written to Supabase
+  -> materialized Doctor ROI and sponsorship evidence views refreshed
+  -> FastAPI read services
+  -> React dashboard reflects refreshed Doctor ROI/detail/data-quality evidence
+  -> ExecAI context only after deterministic services exist
 ```
 
-The following remain blocked until real source files are profiled and a separate post-data task file exists:
+The following remain blocked until profiles, fixtures, tests, and storage checks pass:
 
-- sponsorship and territory database tables,
-- source-specific sponsorship/contract/territory loaders,
-- sponsorship and territory backend routers,
-- sponsorship and territory frontend pages,
-- sponsorship and territory AI context.
+- production source-specific loaders,
+- canonical migrations for sponsorship/engagement/economics facts,
+- sponsorship/engagement outcome materialized views,
+- Doctor ROI detail API/UI enrichment,
+- standalone territory page,
+- ExecAI sponsorship/territory context.
+
+Manual dashboard upload is the target refresh mechanism for this project phase. SFTP, SharePoint polling, and CRM/data-lake auto-discovery are out of scope. Upload validation alone does not update live KPI data; the dashboard reflects new files only after accepted-batch ingestion writes Supabase facts and refreshes the materialized views.
+
+Source semantics:
+
+- National Conference and International Conference are sponsorship.
+- ERS is International evidence, not a separate sponsorship category.
+- No-fee, speaker, consultancy, advisory, and honorarium are engagement evidence.
+- FMV and contracted amount support economics/contracting efficiency.
+- RCPA files are cumulative and must be loaded idempotently.
+- FX uses only company-provided rates.
 
 Primary references:
 

@@ -338,6 +338,31 @@ export type IngestionLatestResponse = {
   errorCount: number;
 };
 
+export type UploadFileResult = {
+  originalFilename: string;
+  savedFilename: string | null;
+  status: "accepted" | "quarantined";
+  sourceType: string;
+  fileFormat: string;
+  confidence: number;
+  rowsSeen: number;
+  sheetCount: number;
+  canonicalSheets: string[];
+  warnings: string[];
+  reasons: string[];
+};
+
+export type UploadBatchResponse = {
+  batchId: string;
+  totalFiles: number;
+  acceptedCount: number;
+  quarantinedCount: number;
+  manifestPath: string | null;
+  summaryPath: string | null;
+  files: UploadFileResult[];
+  nextSteps: string[];
+};
+
 export type DataQualityResponse = {
   meta: ResponseMeta;
   latestIngestion: IngestionLatestResponse;

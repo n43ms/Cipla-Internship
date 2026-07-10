@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import typer
@@ -5,12 +6,12 @@ from sqlalchemy import text
 
 from ingestion.config import get_settings
 from ingestion.database import session_scope
-from ingestion.orchestrator import ingest_workbooks, profile_workbooks
+from ingestion.orchestrator import ingest_workbooks, profile_manifest_batch, profile_workbooks
 from ingestion.profiler import profile_path
 from ingestion.reconciliation.event_matcher import EventMatcher
 from ingestion.report import (
     write_ingestion_report,
-    write_profile_report,
+    write_profile_reports,
     write_workbook_comparison_report,
 )
 from ingestion.repositories.event_match_repository import EventMatchRepository
@@ -28,6 +29,7 @@ COMPARE_CLEANED_OPTION = typer.Option(
 COMPARE_OUTPUT_DIR_OPTION = typer.Option(
     None, help="Directory for comparison markdown/json reports."
 )
+MANIFEST_OPTION = typer.Option(..., "--manifest", help="Source manifest JSON path.")
 
 
 @app.command()
@@ -38,9 +40,23 @@ def profile(
     """Profile local source workbooks without writing business facts."""
     profiles = profile_workbooks(data_dir, source=source)
     settings = get_settings()
-    output_path = settings.reports_dir / "workbook-profile-report.md"
-    write_profile_report(profiles, output_path)
-    typer.echo(f"Profiled {len(profiles)} workbook(s). Report: {output_path}")
+    markdown_path, json_path = write_profile_reports(profiles, settings.reports_dir)
+    typer.echo(f"Profiled {len(profiles)} workbook(s). Reports: {markdown_path}, {json_path}")
+
+
+@app.command("batch-profile")
+def batch_profile(manifest: Path = MANIFEST_OPTION) -> None:
+    """Validate and profile a labeled manual upload batch."""
+    summary = profile_manifest_batch(manifest)
+    settings = get_settings()
+    output_path = settings.reports_dir / "batch-profile-report.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(summary.to_json(), indent=2), encoding="utf-8")
+    typer.echo(
+        f"Validated {len(summary.validation.files)} manifest file(s); "
+        f"accepted={summary.accepted_count}, quarantined={summary.quarantined_count}."
+    )
+    typer.echo(f"Report: {output_path}")
 
 
 @app.command("compare")

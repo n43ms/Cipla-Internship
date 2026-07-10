@@ -1,9 +1,11 @@
 import { lazy, Suspense, useState, type ReactNode } from "react";
-import { Activity, ArrowRight, DatabaseZap, LogOut, ShieldCheck, Sparkles, Stethoscope, WalletCards, type LucideIcon } from "lucide-react";
+import { Activity, ArrowRight, DatabaseZap, LogOut, Sparkles, Stethoscope, UploadCloud, WalletCards, type LucideIcon } from "lucide-react";
 
 import { AiAssistantPanel } from "./components/ai/AiAssistantPanel";
 import { DataFreshnessBanner, LoadingState } from "./components/common/DataStateComponents";
+import { SidePanel } from "./components/common/SidePanel";
 import { WarningCenterDock, WarningCenterProvider } from "./components/common/WarningCenter";
+import { DataUploadPanel } from "./components/ingestion/DataUploadPanel";
 import { useDashboardMeta } from "./hooks/useDashboardMeta";
 const BudgetUtilization = lazy(() => import("./pages/BudgetUtilization").then((module) => ({ default: module.BudgetUtilization })));
 const DataQuality = lazy(() => import("./pages/DataQuality").then((module) => ({ default: module.DataQuality })));
@@ -24,6 +26,7 @@ export default function App() {
   const [page, setPage] = useState<PageKey>("execution");
   const [entered, setEntered] = useState(false);
   const [entryExiting, setEntryExiting] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [aiContext, setAiContext] = useState<AiContext>({ pageContext: "execution", filters: {} });
   const meta = useDashboardMeta();
 
@@ -86,6 +89,16 @@ export default function App() {
               <div className="h-8 w-px shrink-0 bg-white/[0.08]" aria-hidden="true" />
               <button
                 type="button"
+                onClick={() => setUploadOpen(true)}
+                className="soft-button flex shrink-0 items-center gap-2 rounded-md border-accent/20 bg-accent/[0.07] px-3 py-2 text-sm text-cyan-100 hover:border-accent/40 hover:bg-accent/[0.13]"
+                aria-label="Upload new data files"
+                title="Upload new data/files"
+              >
+                <UploadCloud aria-hidden="true" className="h-4 w-4" />
+                Upload new data/files
+              </button>
+              <button
+                type="button"
                 onClick={returnToEntry}
                 className="soft-button flex shrink-0 items-center gap-2 rounded-md border-red-300/10 px-3 py-2 text-sm text-red-300/90 hover:border-red-300/25 hover:bg-red-400/[0.2] hover:text-red-50"
                 aria-label="Exit to loading screen"
@@ -111,6 +124,9 @@ export default function App() {
       </div>
       <WarningCenterDock />
       <AiAssistantPanel context={aiContext} />
+      <SidePanel open={uploadOpen} onClose={() => setUploadOpen(false)} widthClass="sm:max-w-2xl">
+        <DataUploadPanel onClose={() => setUploadOpen(false)} />
+      </SidePanel>
     </WarningCenterProvider>
   );
 }
