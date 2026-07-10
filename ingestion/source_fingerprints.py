@@ -49,8 +49,8 @@ FINGERPRINT_RULES = (
     ),
     FingerprintRule(
         source_type="ers_conference",
-        required_headers=("conference",),
-        filename_tokens=("ers",),
+        required_headers=("event code", "doctor name", "honorarium"),
+        filename_tokens=("ers", "conference"),
     ),
     FingerprintRule(
         source_type="cleaned_presentable",

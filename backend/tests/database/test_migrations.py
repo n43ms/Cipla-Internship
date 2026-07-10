@@ -21,9 +21,11 @@ def test_seed_files_exist() -> None:
 def test_official_lkr_company_rate_seed_is_present() -> None:
     seed_sql = Path("database/seeds/exchange_rates_static.sql").read_text(encoding="utf-8")
     assert "'LKR'" in seed_sql
-    assert "1.0 / 310.0" in seed_sql
+    assert "1.0 / 368.90" in seed_sql
+    assert "'NPR', 1.0 / 89.0" in seed_sql
     assert "'official'" in seed_sql
     assert "'company'" in seed_sql
+    assert "public_market_rate" not in seed_sql
 
 
 def test_phase_1_3_schema_completion_migration_contains_required_columns() -> None:

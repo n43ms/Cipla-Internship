@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, type ReactNode } from "react";
-import { Activity, ArrowRight, DatabaseZap, LogOut, Sparkles, Stethoscope, UploadCloud, WalletCards, type LucideIcon } from "lucide-react";
+import { Activity, ArrowRight, DatabaseZap, LogOut, MapPinned, Sparkles, Stethoscope, UploadCloud, WalletCards, type LucideIcon } from "lucide-react";
 
 import { AiAssistantPanel } from "./components/ai/AiAssistantPanel";
 import { DataFreshnessBanner, LoadingState } from "./components/common/DataStateComponents";
@@ -11,14 +11,16 @@ const BudgetUtilization = lazy(() => import("./pages/BudgetUtilization").then((m
 const DataQuality = lazy(() => import("./pages/DataQuality").then((module) => ({ default: module.DataQuality })));
 const DoctorRoi = lazy(() => import("./pages/DoctorRoi").then((module) => ({ default: module.DoctorRoi })));
 const ExecutionMatrix = lazy(() => import("./pages/ExecutionMatrix").then((module) => ({ default: module.ExecutionMatrix })));
+const TerritoryIntelligence = lazy(() => import("./pages/TerritoryIntelligence").then((module) => ({ default: module.TerritoryIntelligence })));
 
-type PageKey = "execution" | "budget" | "doctors" | "quality";
+type PageKey = "execution" | "budget" | "doctors" | "territory" | "quality";
 type AiContext = { pageContext: string; filters: Record<string, unknown> };
 
 const PAGES: Array<{ key: PageKey; label: string; icon: LucideIcon }> = [
   { key: "execution", label: "Execution", icon: Activity },
   { key: "budget", label: "Budget", icon: WalletCards },
   { key: "doctors", label: "Doctor ROI", icon: Stethoscope },
+  { key: "territory", label: "Territory", icon: MapPinned },
   { key: "quality", label: "Data Quality", icon: DatabaseZap },
 ];
 
@@ -119,6 +121,7 @@ export default function App() {
           {page === "execution" ? <ExecutionMatrix onAiContextChange={setAiContext} /> : null}
           {page === "budget" ? <BudgetUtilization onAiContextChange={setAiContext} /> : null}
           {page === "doctors" ? <DoctorRoi onAiContextChange={setAiContext} /> : null}
+          {page === "territory" ? <TerritoryIntelligence onAiContextChange={setAiContext} /> : null}
           {page === "quality" ? <DataQuality onAiContextChange={setAiContext} /> : null}
         </Suspense>
       </div>

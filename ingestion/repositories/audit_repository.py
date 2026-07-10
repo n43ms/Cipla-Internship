@@ -268,6 +268,11 @@ class AuditRepository:
                         where er.source_file_id = :source_file_id
                         union all
                         select cm.month_start_date
+                        from doctor_engagement_facts def
+                        join calendar_months cm on cm.id = def.calendar_month_id
+                        where def.source_file_id = :source_file_id
+                        union all
+                        select cm.month_start_date
                         from rcpa_doctor_month_summary rdm
                         join calendar_months cm on cm.id = rdm.calendar_month_id
                         where rdm.source_file_id = :source_file_id

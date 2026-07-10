@@ -6,7 +6,12 @@ from sqlalchemy import text
 
 from ingestion.config import get_settings
 from ingestion.database import session_scope
-from ingestion.orchestrator import ingest_workbooks, profile_manifest_batch, profile_workbooks
+from ingestion.orchestrator import (
+    ingest_manifest_batch,
+    ingest_workbooks,
+    profile_manifest_batch,
+    profile_workbooks,
+)
 from ingestion.profiler import profile_path
 from ingestion.reconciliation.event_matcher import EventMatcher
 from ingestion.report import (
@@ -57,6 +62,21 @@ def batch_profile(manifest: Path = MANIFEST_OPTION) -> None:
         f"accepted={summary.accepted_count}, quarantined={summary.quarantined_count}."
     )
     typer.echo(f"Report: {output_path}")
+
+
+@app.command("batch-ingest")
+def batch_ingest(
+    manifest: Path = MANIFEST_OPTION,
+    dry_run: bool = DRY_RUN_OPTION,
+) -> None:
+    """Ingest a labeled batch manifest through the same path used by dashboard uploads."""
+    summary = ingest_manifest_batch(manifest, dry_run=dry_run)
+    markdown_path, json_path = write_ingestion_report(summary, get_settings().reports_dir)
+    typer.echo(
+        f"Ingested manifest batch rows_loaded={summary.rows_loaded}; "
+        f"warnings={summary.warning_count}, errors={summary.error_count}, dry_run={dry_run}."
+    )
+    typer.echo(f"Reports: {markdown_path}, {json_path}")
 
 
 @app.command("compare")
@@ -126,6 +146,11 @@ def refresh_views() -> None:
         "mv_execution_event_matrix",
         "mv_workflow_governance",
         "mv_intervention_mix",
+        "mv_budget_utilization",
+        "mv_doctor_roi",
+        "mv_data_quality",
+        "mv_sponsorship_outcomes",
+        "mv_territory_opportunity",
     ]
     with session_scope() as session:
         for view_name in view_names:

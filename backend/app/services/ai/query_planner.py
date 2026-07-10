@@ -19,6 +19,23 @@ TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "dark horse",
         "quadrant",
         "pcode",
+        "sponsorship",
+        "sponsored",
+        "paid engagement",
+        "no fee",
+        "no-fee",
+        "fmv",
+        "contracted",
+        "contract value",
+    ),
+    "territory": (
+        "territory",
+        "patch",
+        "location",
+        "underserved",
+        "overserved",
+        "self-serving",
+        "self serving",
     ),
     "quality": ("quality", "data", "validation", "coverage", "unmatched", "freshness", "missing"),
 }
@@ -29,6 +46,7 @@ SECTION_BY_TOPIC = {
     "intervention": "interventions",
     "budget": "budget",
     "doctor": "doctorRoi",
+    "territory": "territory",
     "quality": "dataQuality",
 }
 
@@ -82,6 +100,8 @@ def _topics_for_question(normalized_question: str, page_context: str | None) -> 
             topics.append("budget")
         elif page == "quality" and "quality" not in topics:
             topics.append("quality")
+        elif page == "territory" and "territory" not in topics:
+            topics.append("territory")
         elif page == "execution" and not topics:
             topics.extend(["execution", "workflow", "intervention"])
     return list(dict.fromkeys(topics))
@@ -90,8 +110,12 @@ def _topics_for_question(normalized_question: str, page_context: str | None) -> 
 def _summary_support_sections(topics: list[str]) -> set[str]:
     if "quality" in topics:
         return {"dataQuality"}
+    if "doctor" in topics and "territory" in topics:
+        return {"doctorRoi", "territory", "budget", "dataQuality"}
     if "doctor" in topics:
         return {"doctorRoi", "budget", "dataQuality"}
+    if "territory" in topics:
+        return {"territory", "doctorRoi", "dataQuality"}
     if "budget" in topics:
         return {"budget", "dataQuality"}
     if "execution" in topics or "workflow" in topics or "intervention" in topics:

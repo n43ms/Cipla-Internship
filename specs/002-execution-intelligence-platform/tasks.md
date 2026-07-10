@@ -48,7 +48,7 @@
 - [X] T023 Create index and uniqueness migration for source file hash, run-file participation, country-scoped Pcodes, request identity, and initial RCPA aggregate conflict target in `database/migrations/versions/0006_indexes_constraints.py`
 - [X] T024 Create country seed SQL for Nepal, Sri Lanka, Myanmar, Oman, UAE, and Malaysia in `database/seeds/countries.sql`
 - [X] T025 Create FY26 and FY27 fiscal calendar seed generator with April fiscal-year start in `database/seeds/calendar_months.sql`
-- [X] T026 Create static exchange-rate seed with official LKR company rate `1 USD = 310 LKR` plus documented provisional/missing statuses for NPR, MMK, OMR, AED, and MYR in `database/seeds/exchange_rates_static.sql`
+- [X] T026 Create static exchange-rate seed with July 10 official company rates for LKR, NPR, OMR, AED, MMK, and MYR in `database/seeds/exchange_rates_static.sql`
 - [X] T027 Create materialized-view refresh utility with dependency-ordered refresh behavior in `database/views/refresh_materialized_views.sql`
 - [X] T028 [P] Create backend pytest database fixture utilities and migration reset helper in `backend/tests/conftest.py`
 - [X] T029 [P] Create ingestion pytest database fixture utilities and temporary workbook helper in `ingestion/tests/conftest.py`
@@ -176,12 +176,12 @@
 
 **Goal**: Show planned budget, estimated/FMV-like reference, confirmed/contracted amount, actual total spend, BTU direct spend, BTC overhead spend, unused budget, overruns, spend-without-plan, and safe currency status.
 
-**Independent Test**: Select a country/month and verify budget summary and detail rows show local currency, official LKR USD conversion at `1 USD = 310 LKR`, provisional-FX warnings only for non-official rates, confirmed-vs-estimated variance, BTU/BTC split, reconciliation warnings, and unmatched spend.
+**Independent Test**: Select a country/month and verify budget summary and detail rows show local currency, July 10 official company FX conversion, confirmed-vs-estimated variance, BTU/BTC split, reconciliation warnings, and unmatched spend.
 
 ### Tests for User Story 3
 
 - [X] T113 [P] [US3] Add tests for consolidation financial mapping from estimated, confirmed/contracted, BTU, BTC, total actual, association amount, and variance source columns in `ingestion/tests/loaders/test_consolidation_financial_mapping.py`
-- [X] T114 [P] [US3] Add tests for static FX seeds, official LKR company rate `1 USD = 310 LKR`, provisional FX status for non-official rates, missing-FX flags, and local-vs-USD behavior in `backend/tests/database/test_exchange_rates.py`
+- [X] T114 [P] [US3] Add tests for static FX seeds, July 10 official company rates, missing-FX flags, and local-vs-USD behavior in `backend/tests/database/test_exchange_rates.py`
 - [X] T115 [P] [US3] Add database tests for `mv_budget_utilization` including planned budget, estimated reference, confirmed amount, variance, BTU/BTC split, total actual spend, unspent gap, overrun, plan without spend, and spend without plan in `backend/tests/database/test_budget_view.py`
 - [X] T116 [P] [US3] Add tests for BTU plus BTC reconciliation warnings when populated values do not match total actual spend in `backend/tests/database/test_budget_reconciliation_quality.py`
 - [X] T117 [P] [US3] Add API contract tests for `/api/budget/summary` including confirmedContractedAmount, actualTotalSpend, fxRateStatus, official LKR conversion, and provisional-FX limitations for non-official rates in `backend/tests/api/test_budget_api.py`
@@ -435,7 +435,7 @@ T182, T184, T185, T191, T192, T193, and T194 can run in parallel after the relev
 2. Complete US1 tests and implementation.
 3. Run profiling and ingestion against synthetic fixtures.
 4. Run profiling against the real local workbooks without committing them.
-5. Stop and validate row counts, validation errors, canonical sheet choices, serial dates, Pcodes, official LKR FX at `1 USD = 310 LKR`, static/provisional FX for other currencies, and RCPA aggregation.
+5. Stop and validate row counts, validation errors, canonical sheet choices, serial dates, Pcodes, July 10 official company FX, and RCPA aggregation.
 
 ### Business Demo Increment
 

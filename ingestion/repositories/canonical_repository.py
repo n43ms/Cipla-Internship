@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from ingestion.normalizers.months import fiscal_year_for
 
 BATCH_SIZE = 5000
 
@@ -26,18 +28,51 @@ class CanonicalRepository:
         return self._countries[country]
 
     def month_id(self, month_start_date: object) -> str:
-        key = str(month_start_date)
+        month_value = _coerce_month_start(month_start_date)
+        key = month_value.isoformat()
         if key not in self._months:
             value = self.session.execute(
-                text("select id from calendar_months where month_start_date = :month_start_date limit 1"),
-                {"month_start_date": month_start_date},
+                text(
+                    """
+                    insert into calendar_months (
+                        month_start_date,
+                        month_label,
+                        fiscal_year,
+                        fiscal_month_number,
+                        calendar_year,
+                        calendar_month_number
+                    )
+                    values (
+                        :month_start_date,
+                        :month_label,
+                        :fiscal_year,
+                        :fiscal_month_number,
+                        :calendar_year,
+                        :calendar_month_number
+                    )
+                    on conflict (month_start_date) do update
+                    set
+                        month_label = excluded.month_label,
+                        fiscal_year = excluded.fiscal_year,
+                        fiscal_month_number = excluded.fiscal_month_number,
+                        calendar_year = excluded.calendar_year,
+                        calendar_month_number = excluded.calendar_month_number
+                    returning id
+                    """
+                ),
+                _month_params(month_value),
             ).scalar_one()
             self._months[key] = str(value)
         return self._months[key]
 
-    def insert_plan_events(self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]) -> None:
+    def insert_plan_events(
+        self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
+    ) -> None:
         self._clear_derived_matches()
-        self.session.execute(text("delete from plan_events where source_file_id = :source_file_id"), {"source_file_id": source_file_id})
+        self.session.execute(
+            text("delete from plan_events where source_file_id = :source_file_id"),
+            {"source_file_id": source_file_id},
+        )
         self._execute_many(
             """
             insert into plan_events (
@@ -208,15 +243,24 @@ class CanonicalRepository:
             self.session.execute(statement, batch)
         uids = [str(record["request_uid"]) for record in records]
         request_ids: dict[str, str] = {}
-        for batch in [uids[index : index + BATCH_SIZE] for index in range(0, len(uids), BATCH_SIZE)]:
+        for batch in [
+            uids[index : index + BATCH_SIZE] for index in range(0, len(uids), BATCH_SIZE)
+        ]:
             rows = self.session.execute(
-                text("select request_uid, id from execution_requests where request_uid = any(:request_uids)"),
+                text(
+                    "select request_uid, id from execution_requests where request_uid = any(:request_uids)"
+                ),
                 {"request_uids": batch},
             ).all()
             request_ids.update({str(row[0]): str(row[1]) for row in rows})
-        return {str(record["request_key"]): request_ids[str(record["request_uid"])] for record in records}
+        return {
+            str(record["request_key"]): request_ids[str(record["request_uid"])]
+            for record in records
+        }
 
-    def insert_request_doctors(self, request_ids: dict[str, str], records: list[dict[str, Any]]) -> None:
+    def insert_request_doctors(
+        self, request_ids: dict[str, str], records: list[dict[str, Any]]
+    ) -> None:
         rows = []
         for record in records:
             execution_request_id = request_ids.get(str(record.get("request_key")))
@@ -247,6 +291,131 @@ class CanonicalRepository:
         for batch in _chunks(rows):
             self.session.execute(statement, batch)
 
+    def insert_doctor_engagement_facts(
+        self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
+    ) -> None:
+        if not records:
+            return
+        self.session.execute(
+            text("delete from doctor_engagement_facts where source_file_id = :source_file_id"),
+            {"source_file_id": source_file_id},
+        )
+        statement = text(
+            """
+            insert into doctor_engagement_facts (
+                source_file_id, ingestion_run_id, country_id, calendar_month_id, region, territory_code,
+                fs_hq, request_date, expected_intervention_date, intervention_id, intervention_name,
+                intervention_name_normalized, intervention_type, intervention_subtype, pcode_raw,
+                pcode_normalized, doctor_segment, doctor_name, estimated_intervention_amount_local,
+                btu_expense_local, expense_against_advance_local, btc_expense_local,
+                total_actual_intervention_expense_local, fmv_speciality, fmv_tier, fmv_role,
+                fmv_amount_local, contract_id, contracted_amount_local, contract_saving_local,
+                status, is_sponsorship, sponsorship_class, engagement_class,
+                classification_reason, classification_confidence,
+                currency_code, fx_rate_to_usd, fx_rate_source, fx_rate_date, fx_rate_status,
+                fmv_amount_usd, contracted_amount_usd, contract_saving_usd,
+                source_sheet_name, source_row_number, source_row_hash
+            )
+            values (
+                :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :region, :territory_code,
+                :fs_hq, :request_date, :expected_intervention_date, :intervention_id, :intervention_name,
+                :intervention_name_normalized, :intervention_type, :intervention_subtype, :pcode_raw,
+                :pcode_normalized, :doctor_segment, :doctor_name, :estimated_intervention_amount_local,
+                :btu_expense_local, :expense_against_advance_local, :btc_expense_local,
+                :total_actual_intervention_expense_local, :fmv_speciality, :fmv_tier, :fmv_role,
+                :fmv_amount_local, :contract_id, :contracted_amount_local, :contract_saving_local,
+                :status, :is_sponsorship, :sponsorship_class, :engagement_class,
+                :classification_reason, :classification_confidence,
+                :currency_code, :fx_rate_to_usd, :fx_rate_source, :fx_rate_date, :fx_rate_status,
+                :fmv_amount_usd, :contracted_amount_usd, :contract_saving_usd,
+                :source_sheet_name, :source_row_number, :source_row_hash
+            )
+            on conflict (source_file_id, source_row_hash) do update
+            set
+                ingestion_run_id = excluded.ingestion_run_id,
+                country_id = excluded.country_id,
+                calendar_month_id = excluded.calendar_month_id,
+                region = excluded.region,
+                territory_code = excluded.territory_code,
+                fs_hq = excluded.fs_hq,
+                request_date = excluded.request_date,
+                expected_intervention_date = excluded.expected_intervention_date,
+                intervention_id = excluded.intervention_id,
+                intervention_name = excluded.intervention_name,
+                intervention_name_normalized = excluded.intervention_name_normalized,
+                intervention_type = excluded.intervention_type,
+                intervention_subtype = excluded.intervention_subtype,
+                pcode_raw = excluded.pcode_raw,
+                pcode_normalized = excluded.pcode_normalized,
+                doctor_segment = excluded.doctor_segment,
+                doctor_name = excluded.doctor_name,
+                estimated_intervention_amount_local = excluded.estimated_intervention_amount_local,
+                btu_expense_local = excluded.btu_expense_local,
+                expense_against_advance_local = excluded.expense_against_advance_local,
+                btc_expense_local = excluded.btc_expense_local,
+                total_actual_intervention_expense_local = excluded.total_actual_intervention_expense_local,
+                fmv_speciality = excluded.fmv_speciality,
+                fmv_tier = excluded.fmv_tier,
+                fmv_role = excluded.fmv_role,
+                fmv_amount_local = excluded.fmv_amount_local,
+                contract_id = excluded.contract_id,
+                contracted_amount_local = excluded.contracted_amount_local,
+                contract_saving_local = excluded.contract_saving_local,
+                status = excluded.status,
+                is_sponsorship = excluded.is_sponsorship,
+                sponsorship_class = excluded.sponsorship_class,
+                engagement_class = excluded.engagement_class,
+                classification_reason = excluded.classification_reason,
+                classification_confidence = excluded.classification_confidence,
+                currency_code = excluded.currency_code,
+                fx_rate_to_usd = excluded.fx_rate_to_usd,
+                fx_rate_source = excluded.fx_rate_source,
+                fx_rate_date = excluded.fx_rate_date,
+                fx_rate_status = excluded.fx_rate_status,
+                fmv_amount_usd = excluded.fmv_amount_usd,
+                contracted_amount_usd = excluded.contracted_amount_usd,
+                contract_saving_usd = excluded.contract_saving_usd,
+                source_sheet_name = excluded.source_sheet_name,
+                source_row_number = excluded.source_row_number
+            """
+        )
+        for batch in _chunks(
+            [self._params(ingestion_run_id, source_file_id, record) for record in records]
+        ):
+            self.session.execute(statement, batch)
+        self._upsert_doctors_from_engagement(records)
+
+    def _upsert_doctors_from_engagement(self, records: list[dict[str, Any]]) -> None:
+        rows = []
+        for record in records:
+            pcode = record.get("pcode_normalized")
+            if not pcode:
+                continue
+            rows.append(
+                {
+                    "country_id": self.country_id(str(record["country"])),
+                    "pcode_normalized": pcode,
+                    "latest_doctor_name": record.get("doctor_name"),
+                    "doctor_class": record.get("doctor_segment"),
+                }
+            )
+        if not rows:
+            return
+        statement = text(
+            """
+            insert into doctors (country_id, pcode_normalized, latest_doctor_name, doctor_class, source_count)
+            values (:country_id, :pcode_normalized, :latest_doctor_name, :doctor_class, 1)
+            on conflict (country_id, pcode_normalized) do update
+            set
+                latest_doctor_name = coalesce(excluded.latest_doctor_name, doctors.latest_doctor_name),
+                doctor_class = coalesce(excluded.doctor_class, doctors.doctor_class),
+                source_count = doctors.source_count + 1,
+                updated_at = now()
+            """
+        )
+        for batch in _chunks(rows):
+            self.session.execute(statement, batch)
+
     def _execute_many(
         self,
         sql: str,
@@ -257,10 +426,14 @@ class CanonicalRepository:
         if not records:
             return
         statement = text(sql)
-        for batch in _chunks([self._params(ingestion_run_id, source_file_id, record) for record in records]):
+        for batch in _chunks(
+            [self._params(ingestion_run_id, source_file_id, record) for record in records]
+        ):
             self.session.execute(statement, batch)
 
-    def _params(self, ingestion_run_id: str, source_file_id: str, record: dict[str, Any]) -> dict[str, Any]:
+    def _params(
+        self, ingestion_run_id: str, source_file_id: str, record: dict[str, Any]
+    ) -> dict[str, Any]:
         params = dict(record)
         params["ingestion_run_id"] = ingestion_run_id
         params["source_file_id"] = source_file_id
@@ -276,3 +449,22 @@ class CanonicalRepository:
 
 def _chunks(rows: list[dict[str, Any]], size: int = BATCH_SIZE) -> list[list[dict[str, Any]]]:
     return [rows[index : index + size] for index in range(0, len(rows), size)]
+
+
+def _coerce_month_start(value: object) -> date:
+    if isinstance(value, datetime):
+        return date(value.year, value.month, 1)
+    if isinstance(value, date):
+        return date(value.year, value.month, 1)
+    return date.fromisoformat(str(value))
+
+
+def _month_params(month_start_date: date) -> dict[str, object]:
+    return {
+        "month_start_date": month_start_date,
+        "month_label": month_start_date.strftime("%Y-%m"),
+        "fiscal_year": fiscal_year_for(month_start_date),
+        "fiscal_month_number": ((month_start_date.month - 4) % 12) + 1,
+        "calendar_year": month_start_date.year,
+        "calendar_month_number": month_start_date.month,
+    }

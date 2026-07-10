@@ -185,6 +185,13 @@ def select_canonical_sheets(source_type: str, sheet_profiles: list[SheetProfile]
             if sheet.required_column_coverage >= 0.6
             or sheet.sheet_name.lower() in {"rcpa", "data", "sheet1"}
         ][:3]
+    if source_type == "msl_doctor_master":
+        return [
+            sheet.sheet_name
+            for sheet in sheet_profiles
+            if sheet.required_column_coverage >= 0.6
+            or sheet.sheet_name.lower() in {"msl", "doctor master", "sheet1"}
+        ][:1]
     return names[:1]
 
 

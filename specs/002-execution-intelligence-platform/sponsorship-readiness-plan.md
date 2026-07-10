@@ -28,7 +28,7 @@ The key change is that the next phase is no longer a broad speculative discovery
 
 ```text
 North Star: keep Doctor ROI quadranting as the core product.
-Method: refresh the system through manual batch upload of known raw Excel reports.
+Method: pre-ingest the already received package through the controlled ingestion pipeline, then refresh future files through manual dashboard upload.
 Business value: explain why a doctor belongs in a quadrant using sponsorship history, paid engagement economics, RCPA trend, spend, contract evidence, and territory context.
 ```
 
@@ -40,11 +40,19 @@ Build the next phase as a manual-batch, evidence-gated vertical slice.
 
 Do not pursue live SFTP, SharePoint folder polling, or data-lake automation in this project phase. Abhijeet clarified that the current CRM/data-lake environment contains roughly 128 reports across departments, many with similar names and different cadences. A direct automated connector would be brittle, hard to validate, and not worth the complexity for the remaining internship timeline.
 
-Do build a robust manual upload pipeline:
+Do build a two-track controlled batch pipeline:
 
 ```text
-business user exports exact raw reports
-  -> user uploads workbook batch
+initial received package under files/
+  -> engineering-controlled CLI/backend pre-ingestion
+  -> profiler validates source type and schema
+  -> deterministic loaders normalize known fields
+  -> compact canonical facts and KPI views refresh
+  -> dashboard starts with the provided package already loaded
+
+future monthly/new data
+  -> business user exports exact raw reports
+  -> user uploads workbook batch through the dashboard
   -> ingestion profiler validates source type and schema
   -> deterministic loaders normalize known fields
   -> compact canonical facts and KPI views refresh
@@ -52,25 +60,57 @@ business user exports exact raw reports
   -> ExecAI summarizes only deterministic backend context
 ```
 
-This gives the business control over the exact files being refreshed while still making the application reusable.
+This lets the current package be loaded once without forcing a business user to re-upload every
+file, while still giving the business a simple upload path for future refreshes.
+
+### Initial Load Versus Future Refresh
+
+The July 10 package already present under `files/` is an initial preload source, not a
+dashboard-upload requirement.
+
+```text
+Initial preload:
+  use the CLI/backend ingestion path against the received package under files/
+  load the complete available package except any intentionally held-out demo file
+  write Supabase canonical facts
+  refresh materialized views
+  verify Doctor ROI, Data Quality, and ExecAI evidence
+
+Future refresh:
+  use React Upload new data/files
+  validate and stage the uploaded Excel batch
+  run accepted-batch ingestion
+  refresh Supabase views
+  show updated dashboard evidence
+
+Demo validation:
+  optionally hold out one non-critical file from the preload
+  upload it later through the dashboard to prove the business-user refresh path
+```
+
+The dashboard upload flow and the CLI/backend preload flow must converge on the same deterministic
+loaders, canonical tables, validation reports, and materialized-view refresh behavior.
 
 ## Final Deliverable Contract
 
 The final deliverable is not just file upload, profiling, or a separate sponsorship page. The final deliverable is a complete refreshable Doctor ROI evidence workflow:
 
 ```text
-1. Business user uploads the latest Excel/XLSB/CRM HTML-XLS files from the dashboard.
-2. The system validates the batch and clearly rejects wrong, duplicate, unreadable, or unknown files.
-3. Accepted files are ingested through deterministic loaders into Supabase compact canonical facts.
-4. Materialized views refresh from Supabase.
-5. Existing dashboard pages reload API data and reflect the new source package.
-6. Doctor ROI calculations include source-backed sponsorship and engagement investment where available.
-7. Doctor detail views explain sponsorship, paid engagement, no-fee, FMV, contracted value, expense, RCPA, and caveat evidence.
-8. Data Quality explains any weak joins, missing P-codes, missing economics, manual RCPA mapping periods, or upload issues.
-9. ExecAI answers only from the refreshed backend evidence, never directly from raw workbook rows.
+1. Engineering pre-ingests the already received `files/` package through the controlled CLI/backend ingestion path.
+2. The preload validates source type, schema, duplicates, and rejected files before writing Supabase.
+3. Future new files are refreshed through dashboard upload using the same deterministic loaders.
+4. Accepted files are ingested into Supabase compact canonical facts.
+5. Materialized views refresh from Supabase.
+6. Existing dashboard pages reload API data and reflect the refreshed source package.
+7. Doctor ROI calculations include source-backed sponsorship and engagement investment where available.
+8. Doctor detail views explain sponsorship, paid engagement, no-fee, FMV, contracted value, expense, RCPA, and caveat evidence.
+9. Data Quality explains any weak joins, missing P-codes, missing economics, manual RCPA mapping periods, or upload issues.
+10. ExecAI answers only from the refreshed backend evidence, never directly from raw workbook rows.
 ```
 
-The deliverable is complete only when a non-technical business user can upload the agreed file package, run or trigger the accepted-batch refresh, and see Doctor ROI evidence updated in the dashboard after the Supabase write and view refresh.
+The deliverable is complete only when the received package can be pre-ingested, the dashboard shows
+the refreshed Doctor ROI evidence, and a non-technical business user can later upload a new or
+held-out file, run the accepted-batch refresh, and see the same Supabase-backed dashboard update path.
 
 ### Required User-Visible Outcomes
 
@@ -137,9 +177,10 @@ The system may describe association between sponsorship/engagement and prescript
 These decisions are final for this phase unless Abhijeet provides a new written correction:
 
 ```text
-Upload is the business-user refresh entry point.
+CLI/backend preload is the initial-load entry point for the already received package.
+Dashboard upload is the business-user refresh entry point for future new data and demo validation.
 Upload validation alone does not update KPI data.
-Dashboard data changes only after accepted-batch ingestion writes Supabase facts and refreshes views.
+Dashboard data changes only after CLI preload or accepted-batch ingestion writes Supabase facts and refreshes views.
 Raw reports are source of truth.
 Cleaned/presentable reports are comparison and validation evidence only.
 Historical RCPA supplies prescription baseline and trend context, not sponsorship spend.
@@ -700,13 +741,22 @@ Do not collapse everything into a sponsorship bucket.
 The architecture remains a controlled batch-refresh pipeline:
 
 ```text
-business user opens React dashboard
+initial package already under files/
+  -> engineering-controlled CLI/backend preload
+  -> source fingerprinting accepts or quarantines each file
+  -> profiler records schema, row counts, sheets, and warnings
+  -> deterministic loaders write Supabase canonical facts and summaries
+  -> materialized KPI views refresh
+  -> dashboard starts from refreshed Doctor ROI evidence
+
+future refresh package
+  -> business user opens React dashboard
   -> user clicks "Upload new data/files"
   -> user uploads Excel/XLSB/CRM HTML-XLS workbook batch
   -> FastAPI stores the batch in gitignored local upload storage
   -> source fingerprinting accepts or quarantines each file
   -> profiler records schema, row counts, sheets, and warnings
-  -> approved batch is ingested by deterministic loaders
+  -> approved batch is ingested by the same deterministic loaders
   -> Supabase receives compact canonical facts and summaries
   -> materialized KPI views refresh
   -> FastAPI read services expose updated Doctor ROI evidence
@@ -715,7 +765,7 @@ business user opens React dashboard
 ```
 
 The upload step is not the final business-data mutation by itself. It is the business-user entry
-point for a refresh. The dashboard should make the next state explicit:
+point for future refreshes. The dashboard should make the next state explicit:
 
 ```text
 uploaded and rejected
@@ -726,9 +776,9 @@ views refreshed
 dashboard data refreshed
 ```
 
-When the loader phases are complete, accepted uploaded files must be able to drive the same
-canonical update path as CLI-based ingestion. The source of truth after ingestion is Supabase,
-not the uploaded workbook folder.
+When the loader phases are complete, the initial preload and accepted uploaded files must drive
+the same canonical update path. The source of truth after ingestion is Supabase, not the uploaded
+workbook folder or the local `files/` package.
 
 ### Out Of Scope For This Phase
 
@@ -1017,7 +1067,48 @@ Exit criteria:
 ```text
 same file cannot silently duplicate facts
 wrong report type is rejected or quarantined
-business user can refresh by uploading the known file set
+engineering can preload the received package through CLI/backend ingestion
+business user can refresh future files through dashboard upload without a manifest
+```
+
+### Phase 2B: Initial Received-Package Preload
+
+**Trigger**: Source-specific loaders pass synthetic fixture tests for the received package.
+
+**Goal**: Seed the dashboard with the already provided `files/` package before asking a
+business user to upload future files.
+
+Work:
+
+```text
+build a source manifest for the received package under files/
+optionally hold out one non-critical file for dashboard upload trial
+run CLI/backend ingestion against the preload manifest
+write accepted facts to Supabase
+refresh materialized views
+verify Doctor ROI, Data Quality, and ExecAI evidence from Supabase
+document loaded files, held-out file, row counts, warnings, and caveats
+```
+
+Exit criteria:
+
+```text
+current dashboard is populated from the received package
+held-out demo upload does not block core Doctor ROI evidence
+future dashboard uploads use the same canonical loaders and view refresh path
+```
+
+Implementation status:
+
+```text
+completed against Supabase with the July 10 received package
+12 manifest files accepted and preloaded
+499,387 rows loaded from 1,319,717 profiled rows
+1 source row skipped with a warning
+4,545 data-quality warnings retained for dashboard caveats
+0 loader errors after Myanmar and ERS source-shape repairs
+MSL.xlsx held-out upload validation accepted as msl_doctor_master
+Doctor ROI, Data Quality, Territory Opportunity, latest ingestion, and doctor detail APIs verified
 ```
 
 ### Phase 3: Intervention And Doctor Engagement Spine
@@ -1475,15 +1566,17 @@ T5. Add territory UI only after validation examples pass.
 The cleanest execution path is:
 
 ```text
-1. Finish batch-upload readiness and source profiling.
-2. Profile Abhijeet's labeled file package as soon as it arrives.
-3. Build intervention and doctor engagement spine from the two raw reports.
-4. Add sponsorship and paid/no-fee engagement classification.
-5. Load historical RCPA compact summaries.
-6. Add cumulative monthly RCPA refresh.
-7. Extend Doctor ROI detail with sponsorship, engagement, spend, FMV, and RCPA evidence.
-8. Add ExecAI evidence summaries.
-9. Add territory intelligence only after core Doctor ROI is finalized.
+1. Finish source profiling and deterministic loaders.
+2. Build intervention and doctor engagement spine from the two raw reports.
+3. Add sponsorship and paid/no-fee engagement classification.
+4. Load historical RCPA compact summaries.
+5. Add cumulative monthly RCPA refresh.
+6. Pre-ingest the received `files/` package through CLI/backend ingestion, holding out one non-critical file only for upload-demo validation if useful.
+7. Refresh materialized views and verify Doctor ROI/Data Quality against the preloaded package.
+8. Keep dashboard upload as the future-refresh path, backed by the same loaders and Supabase view refresh.
+9. Extend Doctor ROI detail with sponsorship, engagement, spend, FMV, and RCPA evidence.
+10. Add ExecAI evidence summaries.
+11. Add territory intelligence only after core Doctor ROI is finalized.
 ```
 
 This matches the transcript's priority: finalize the core Doctor ROI product before adding territory and other bells and whistles.

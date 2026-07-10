@@ -18,6 +18,7 @@ def test_storage_budget_runbook_contains_required_sql_sections() -> None:
         "pg_database_size",
         "pg_total_relation_size",
         "rcpa_doctor_month_summary",
+        "mapping provenance",
         "materialized views",
         "ai_query_logs",
         "raw files stay out of Supabase",

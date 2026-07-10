@@ -62,8 +62,15 @@ budget_quality as (
 rcpa as (
     select
         count(distinct country_id || ':' || pcode_normalized)::integer as rcpa_doctor_count,
-        coalesce(sum(row_count_aggregated), 0)::integer as rcpa_rows_aggregated
+        coalesce(sum(row_count_aggregated), 0)::integer as rcpa_rows_aggregated,
+        count(*) filter (where mapping_provenance = 'manual_legacy')::integer as rcpa_manual_mapping_count,
+        count(*) filter (where mapping_provenance = 'system_supplied')::integer as rcpa_system_mapping_count,
+        count(*) filter (where mapping_provenance = 'source_supplied')::integer as rcpa_source_mapping_count,
+        count(*) filter (where mapping_provenance = 'unknown')::integer as rcpa_unknown_mapping_count,
+        min(cm.month_start_date) as rcpa_covered_month_start,
+        max(cm.month_start_date) as rcpa_covered_month_end
     from rcpa_doctor_month_summary
+    left join calendar_months cm on cm.id = rcpa_doctor_month_summary.calendar_month_id
 ),
 doctor_coverage as (
     select
@@ -152,6 +159,12 @@ select
         else 0 end as pcode_coverage,
     rcpa.rcpa_doctor_count,
     rcpa.rcpa_rows_aggregated,
+    rcpa.rcpa_manual_mapping_count,
+    rcpa.rcpa_system_mapping_count,
+    rcpa.rcpa_source_mapping_count,
+    rcpa.rcpa_unknown_mapping_count,
+    rcpa.rcpa_covered_month_start,
+    rcpa.rcpa_covered_month_end,
     dc.doctor_roi_rows,
     dc.doctor_roi_rows_with_rcpa,
     dc.doctor_no_rcpa_count,

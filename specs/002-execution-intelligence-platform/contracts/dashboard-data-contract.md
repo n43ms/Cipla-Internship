@@ -77,7 +77,7 @@ Required fields:
 - missing-FX count
 - FX rate date
 - FX rate source
-- FX rate status: `official`, `provisional`, or `missing`; LKR must be `official` at `1 USD = 310 LKR`
+- FX rate status: `official`, `provisional`, or `missing`; the six scoped currencies must use the July 10 official company rates
 - paginated budget evidence rows
 
 Budget grain rules:
@@ -87,7 +87,7 @@ Budget grain rules:
 - Request-level rows remain visible as evidence rows but must not be treated as independent planned-budget gaps.
 - Spend without plan is reported separately from plan overrun.
 - Top-level local totals are nullable when multiple local currencies are present. Consumers must use `localTotalsByCurrency` for local money.
-- Public internet FX rates may fill missing company rates only with `fxRateStatus = provisional` and `fxRateSource = public_market_rate`.
+- Public internet FX rates must not fill missing company rates for this phase.
 
 ## Workflow Governance
 

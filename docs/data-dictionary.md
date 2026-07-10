@@ -196,9 +196,8 @@ Important mappings:
 Currency:
 
 - country default currency is used.
-- Sri Lanka uses LKR and official company FX `1 USD = 310 LKR`.
-- non-LKR currencies use documented public market FX as `provisional` when no company rate is provided.
-- provisional public FX rates are decision-support estimates only and must be replaced with company finance rates before official reporting.
+- All six scoped markets use company-provided official FX dated 2026-07-10: LKR 368.90, NPR 89, OMR 0.46, AED 1.00, MMK 4300, and MYR 4.39 per USD.
+- Internet/public FX fallback is not allowed for this phase.
 
 ### Consolidation Doctor Fields To `request_doctors`
 
@@ -296,9 +295,8 @@ Financial source semantics:
 
 FX rules:
 
-- Sri Lanka LKR uses official company FX: `1 USD = 310 LKR`.
-- Non-LKR currencies use documented public market FX as `provisional` when no company FX exists.
-- `provisional` FX is allowed only when a documented non-official rate exists.
+- All scoped currencies use company-provided official FX only.
+- `provisional` FX remains a data-quality status for legacy rows, but new sponsorship/RCPA ingestion must not create public-rate fallback rows.
 - missing FX remains possible for unknown/unmapped currencies.
 
 Budget quality flags:
@@ -313,7 +311,7 @@ Budget aggregation rules:
 - matched requests are grouped under their matched `plan_event_id` before calculating summary unspent gap or overrun;
 - request-level rows are evidence rows and must not be summed as independent planned-budget gaps;
 - local money is grouped by `currency_code` and is never summed across currencies;
-- USD comparisons include rows with seeded official or provisional FX. LKR uses the official company rate `1 USD = 310 LKR`; NPR/MMK/OMR/AED/MYR use provisional public rates dated 2026-06-19 until company finance rates are supplied.
+- USD comparisons use the July 10 official company FX values for LKR, NPR, OMR, AED, MMK, and MYR.
 - top-level local totals are null when more than one currency is present; consumers must use `local_totals_by_currency`.
 
 ## Phase 6 Doctor ROI

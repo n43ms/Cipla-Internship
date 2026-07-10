@@ -42,7 +42,8 @@ export function DataQuality({ onAiContextChange }: { onAiContextChange?: (contex
           <KpiCard label="Loaded files" value={`${data.loadedFileCount}/${data.sourceFileCount}`} detail={data.latestIngestion.status} />
           <KpiCard label="Rows loaded" value={data.rowsLoaded.toLocaleString()} detail={`${data.rowsSkipped.toLocaleString()} skipped`} />
           <KpiCard label="Match coverage" value={`${Math.round(data.matchCoverage * 100)}%`} detail={`${data.unmatchedEventCount} unmatched records`} />
-          <KpiCard label="RCPA coverage" value={`${Math.round(data.rcpaCoverage * 100)}%`} detail={`${data.derivedSnapshotCount} derived snapshots`} />
+          <KpiCard label="RCPA coverage" value={`${Math.round(data.rcpaCoverage * 100)}%`} detail={`${data.rcpaCoveredMonthStart ?? "unknown"} to ${data.rcpaCoveredMonthEnd ?? "unknown"}`} />
+          <KpiCard label="RCPA mapping" value={data.rcpaManualMappingCount} detail={`${data.rcpaSystemMappingCount + data.rcpaSourceMappingCount} system/source, ${data.rcpaUnknownMappingCount} unknown`} />
           <KpiCard label="Pcode coverage" value={`${Math.round(data.pcodeCoverage * 100)}%`} />
           <KpiCard label="Missing FX" value={data.missingFxCount} detail={`${data.provisionalFxCount} provisional`} />
           <KpiCard label="BTU/BTC issues" value={data.btuBtcReconciliationIssueCount} />

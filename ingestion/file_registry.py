@@ -42,10 +42,10 @@ def infer_country_scope(filename: str) -> str | None:
 
 def infer_source_type(filename: str) -> str:
     lower = filename.lower()
-    if "doctor" in lower or "dr wise" in lower:
-        return "doctor_contract"
     if "msl" in lower or "doctor master" in lower:
         return "msl_doctor_master"
+    if "doctor" in lower or "dr wise" in lower:
+        return "doctor_contract"
     if "ers" in lower:
         return "ers_conference"
     if "cleaned" in lower or "presentable" in lower:

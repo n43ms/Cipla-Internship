@@ -53,7 +53,9 @@ Use only these company-provided values. Do not use internet-rate fallback.
 7. Write failing tests for each source-specific loader or classifier behavior.
 8. Implement deterministic source handling.
 9. Estimate storage before historical RCPA persistence.
-10. Refresh materialized views only after compact canonical facts are validated.
+10. Preload the already received package through CLI/backend ingestion.
+11. Refresh materialized views only after compact canonical facts are validated.
+12. Use dashboard upload only for future or intentionally held-out files, with the same deterministic loaders.
 
 ## Source-Specific Notes
 
@@ -126,6 +128,10 @@ Class
 PATCHNAME
 ```
 
+Historical RCPA rows before 2025-11-01 are treated as `manual_legacy` P-code mapping unless the source file explicitly marks another method. Rows on or after 2025-11-01 with a source-provided P-code are treated as `system_supplied`.
+
+Own and competitor rows are retained from the source labels instead of applying an external competitor filter. If the `O & C`/own-competitor label is missing or unrecognized, the row is retained with a source-derived caveat so Doctor ROI does not silently overstate Cipla share.
+
 ### MSL Doctor Master
 
 Observed priority fields:
@@ -143,6 +149,24 @@ Patch
 Patchsname
 Legacy Code
 ```
+
+Decision for this implementation phase:
+
+- Report-level territory fields are sufficient to create the first territory opportunity view.
+- MSL remains optional enrichment for doctor/territory identity cleanup.
+- Do not make MSL mandatory unless source-level reconciliation shows `FS HQ`, `Location`, or `PATCHNAME` are insufficient.
+
+### Territory Intelligence
+
+Territory signals are deterministic planning labels, not performance causality:
+
+- `underserved`: high prescription volume per doctor with no engagement evidence.
+- `overserved`: spend or engagement exists while prescription signal is weak.
+- `self_serving`: paid engagement evidence exists without sponsorship and prescription signal is meaningful.
+- `balanced`: no deterministic exception label.
+- `insufficient_data`: missing doctor/RCPA base.
+
+The materialized view uses compact Supabase summaries only: `rcpa_doctor_month_summary` and `doctor_engagement_facts`. Raw workbook rows are not sent to the frontend or ExecAI.
 
 ## Validation Checks
 

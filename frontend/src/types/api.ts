@@ -240,11 +240,18 @@ export type DoctorRoiRow = {
   doctorClass: string | null;
   activeStatus: string | null;
   engagementCount: number;
+  sponsorshipCount: number;
+  noFeeEngagementCount: number;
+  paidEngagementCount: number;
   firstEngagementDate: string | null;
   lastEngagementDate: string | null;
   directHcpBtuSpendUsd: number;
   overheadBtcSpendUsd: number;
   totalRoiSpendUsd: number;
+  contractedEngagementAmountUsd: number;
+  fmvEngagementAmountUsd: number;
+  contractSavingUsd: number;
+  sponsorshipEngagementAmountMissingCount: number;
   ciplaPrescriptionQty: number;
   competitorPrescriptionQty: number;
   totalPrescriptionQty: number;
@@ -286,14 +293,38 @@ export type DoctorRoiResponse = {
 export type DoctorDetailResponse = {
   meta: ResponseMeta;
   profile: DoctorRoiRow;
+  sponsorshipOutcome: {
+    sponsorshipCount: number;
+    paidEngagementCount: number;
+    noFeeEngagementCount: number;
+    paidServiceCount: number;
+    contractedAmountUsd: number;
+    fmvAmountUsd: number;
+    contractSavingUsd: number;
+    doctorAttributableExpenseLocal: number;
+    knownEngagementInvestmentUsd: number;
+    preWindowCiplaRxQty: number;
+    postWindowCiplaRxQty: number;
+    associatedRxMovementQty: number;
+    preWindowMonthCount: number;
+    postWindowMonthCount: number;
+    evidenceConfidence: string;
+    evidenceCaveats: string[];
+  } | null;
   engagementHistory: Array<{
     requestId: string | null;
     interventionName: string | null;
     interventionType: string | null;
+    interventionSubtype: string | null;
     month: string | null;
     actualInterventionDate: string | null;
+    expectedInterventionDate: string | null;
     totalRoiSpendUsd: number | null;
+    contractedAmountUsd: number | null;
+    fmvAmountUsd: number | null;
+    contractSavingUsd: number | null;
     fxRateStatus: string | null;
+    evidenceSource: string;
   }>;
   prescriptionTrend: Array<{
     month: string;
@@ -338,6 +369,46 @@ export type IngestionLatestResponse = {
   errorCount: number;
 };
 
+export type TerritoryOpportunityRow = {
+  countryCode: string;
+  countryName: string;
+  territoryName: string;
+  patchName: string | null;
+  firstMonth: string | null;
+  lastMonth: string | null;
+  doctorCount: number;
+  engagedDoctorCount: number;
+  ciplaPrescriptionQty: number;
+  competitorPrescriptionQty: number;
+  totalPrescriptionQty: number;
+  ciplaShareQty: number | null;
+  prescriptionsPerDoctor: number | null;
+  engagementCount: number;
+  sponsorshipCount: number;
+  paidEngagementCount: number;
+  noFeeEngagementCount: number;
+  engagementsPerDoctor: number | null;
+  contractedAmountUsd: number;
+  fmvAmountUsd: number;
+  contractSavingUsd: number;
+  knownInvestmentUsd: number;
+  manualMappingCount: number;
+  unknownMappingCount: number;
+  missingAmountCount: number;
+  opportunityLabel: string;
+  evidenceConfidence: "high" | "medium" | "low" | string;
+  sourceCaveats: string[];
+};
+
+export type TerritoryOpportunityResponse = {
+  meta: ResponseMeta;
+  page: number;
+  pageSize: number;
+  total: number;
+  rows: TerritoryOpportunityRow[];
+  labelCounts: Record<string, number>;
+};
+
 export type UploadFileResult = {
   originalFilename: string;
   savedFilename: string | null;
@@ -354,12 +425,30 @@ export type UploadFileResult = {
 
 export type UploadBatchResponse = {
   batchId: string;
+  refreshState: string;
   totalFiles: number;
   acceptedCount: number;
   quarantinedCount: number;
   manifestPath: string | null;
   summaryPath: string | null;
   files: UploadFileResult[];
+  nextSteps: string[];
+};
+
+export type BatchIngestionStatusResponse = {
+  batchId: string;
+  refreshState: string;
+  acceptedCount: number;
+  quarantinedCount: number;
+  ingestionRunId: string | null;
+  rowsSeen: number;
+  rowsLoaded: number;
+  rowsSkipped: number;
+  warningCount: number;
+  errorCount: number;
+  manifestPath: string | null;
+  summaryPath: string | null;
+  message: string;
   nextSteps: string[];
 };
 
@@ -376,6 +465,12 @@ export type DataQualityResponse = {
   matchCoverage: number;
   pcodeCoverage: number;
   rcpaCoverage: number;
+  rcpaManualMappingCount: number;
+  rcpaSystemMappingCount: number;
+  rcpaSourceMappingCount: number;
+  rcpaUnknownMappingCount: number;
+  rcpaCoveredMonthStart: string | null;
+  rcpaCoveredMonthEnd: string | null;
   missingFxCount: number;
   provisionalFxCount: number;
   btuBtcReconciliationIssueCount: number;

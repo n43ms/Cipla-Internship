@@ -10,7 +10,8 @@ The platform is built around doctor ROI: identifying which doctors, intervention
 
 ```text
 Local Excel/XLSB workbooks
-  -> Python ingestion and reconciliation CLI
+  -> Python ingestion and reconciliation CLI for initial preload
+  -> React upload panel for future business-user refreshes
   -> Supabase PostgreSQL canonical tables and materialized KPI views
   -> FastAPI read services
   -> React executive dashboard
@@ -19,7 +20,7 @@ Local Excel/XLSB workbooks
 
 Runtime boundaries:
 
-- `ingestion/`: local Python CLI for workbook profiling, validation, loading, reconciliation, materialized-view refresh, and reporting.
+- `ingestion/`: local Python CLI for workbook profiling, validation, initial received-package preload, reconciliation, materialized-view refresh, and reporting.
 - `backend/`: FastAPI read API, service/repository layer, filter validation, response metadata, and ExecAI orchestration.
 - `frontend/`: Vite React TypeScript dashboard with charts, tables, drilldowns, data-quality states, and ExecAI.
 - `database/`: Alembic migrations, SQL views, materialized views, and seed scripts.
@@ -35,13 +36,15 @@ Runtime boundaries:
 - Intervention mix analytics grouped from source intervention type and subtype values rather than hard-coded categories.
 - Data-quality layer for latest ingestion status, validation issues, match coverage, Pcode coverage, RCPA coverage, stale data, missing FX, provisional FX, BTU/BTC reconciliation issues, and unmatched records.
 - Dashboard upload flow for business users to submit new Excel files, validate workbook type, reject duplicates or unknown files, and generate a reviewable batch manifest before any ingestion write occurs.
+- Sponsorship and engagement evidence layer for National/International conference sponsorship, paid engagements, no-fee activity, FMV, contracted value, contract saving, expenses, and source-backed Doctor ROI investment.
+- Territory intelligence add-on using source-backed RCPA Location/PATCHNAME and Smart Contract HQ/territory fields to flag underserved, overserved, and self-serving territory patterns with caveats.
 - ExecAI, an embedded structured RAG assistant that plans business questions, retrieves deterministic FastAPI/PostgreSQL context, asks Gemini to synthesize, validates evidence references, redacts sensitive query logs, and falls back to deterministic answers when provider calls fail.
 
 ## Data Trust and Confidentiality
 
 Real Cipla source workbooks are confidential local inputs. Keep them under `data/raw/` or another gitignored local folder. Do not commit raw workbooks, generated extracts, reports, `.env`, database credentials, Supabase service-role keys, or AI provider keys.
 
-The frontend never calls Supabase or the AI provider directly. Source-derived business facts are written only through controlled ingestion paths. The dashboard upload endpoint stores uploaded Excel batches locally for validation and profiling; it does not mutate KPI tables until a reviewed ingestion run is executed.
+The frontend never calls Supabase or the AI provider directly. Source-derived business facts are written only through controlled ingestion paths. The already received July 10 `files/` package is intended for engineering-controlled CLI/backend preload. Future workbooks use the dashboard **Upload new data/files** path. In both cases, dashboard-visible data changes only after accepted ingestion writes Supabase facts and refreshes materialized views.
 
 ## Scale Signals
 
@@ -89,6 +92,7 @@ Typical validation flow:
 
 ```powershell
 python -m ingestion.main profile --data-dir data/raw --output data/reports/profile.json
+python -m ingestion.main batch-ingest --manifest files/source-manifest.json --dry-run
 python -m ingestion.main ingest --source all
 python -m ingestion.main reconcile
 python -m ingestion.main refresh-views

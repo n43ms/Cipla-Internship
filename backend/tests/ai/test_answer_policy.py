@@ -1,7 +1,9 @@
 from backend.app.services.ai.answer_policy import (
+    association_only_text,
     confidence_for_context,
     dashboard_pointers_for_topics,
     deterministic_answer,
+    evidence_refs_for_context,
     route_question,
 )
 
@@ -59,3 +61,30 @@ def test_dashboard_pointers_follow_query_topics() -> None:
     assert any(pointer["page"] == "Budget" for pointer in pointers)
     assert any(pointer["page"] == "Doctor ROI" for pointer in pointers)
     assert all("value" not in pointer for pointer in pointers)
+
+
+def test_answer_policy_rewrites_causal_uplift_language() -> None:
+    safe = association_only_text("Sponsorship caused causal uplift in prescriptions.")
+
+    assert "caused" not in safe.lower()
+    assert "uplift" not in safe.lower()
+    assert "associated" in safe.lower()
+    assert "movement" in safe.lower()
+
+
+def test_evidence_refs_include_territory_rows() -> None:
+    refs = evidence_refs_for_context(
+        {
+            "territory": {
+                "topTerritoryRows": [
+                    {
+                        "territoryName": "Colombo",
+                        "opportunityLabel": "underserved",
+                    }
+                ]
+            }
+        }
+    )
+
+    assert refs[0]["section"] == "territory"
+    assert refs[0]["label"] == "Colombo"

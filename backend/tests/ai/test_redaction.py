@@ -3,7 +3,7 @@ from backend.app.services.ai.redaction import redact_payload, redact_text
 
 def test_redacts_pcodes_amounts_names_and_source_snippets() -> None:
     text = (
-        "Dr Arjun Perera has Pcode 123456 and LKR 310000 spend. "
+        "Dr Arjun Perera has Pcode 123456, Contract ID C-001, and LKR 310000 spend. "
         "source row: full workbook payload should not be sent."
     )
 
@@ -11,10 +11,12 @@ def test_redacts_pcodes_amounts_names_and_source_snippets() -> None:
 
     assert changed is True
     assert "123456" not in redacted
+    assert "C-001" not in redacted
     assert "310000" not in redacted
     assert "Arjun Perera" not in redacted
     assert "full workbook payload" not in redacted
     assert "[PCODE]" in redacted
+    assert "[CONTRACT_ID]" in redacted
     assert "[AMOUNT]" in redacted
     assert "[NAME]" in redacted
     assert "[SOURCE_EXCERPT]" in redacted

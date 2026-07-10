@@ -30,6 +30,10 @@ Dashboard uploads save files under `data/uploads/<batch-id>/`, generate a manife
 files, and write an upload summary. These generated batch folders are confidential local artifacts
 and must not be committed.
 
+The July 10 `files/` package is an initial preload input and also stays local/gitignored. Future
+refresh files enter through dashboard upload, but uploaded files update dashboard data only after
+accepted ingestion writes Supabase canonical facts and refreshes materialized views.
+
 ## Raw Vs Cleaned Files
 
 - Raw exports are ingestion source of truth.

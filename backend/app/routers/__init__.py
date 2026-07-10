@@ -9,6 +9,7 @@ from backend.app.routers import (
     health,
     ingestion,
     interventions,
+    territory,
     workflow,
 )
 
@@ -22,4 +23,5 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(doctors.router, prefix="/api")
     app.include_router(data_quality.router, prefix="/api")
     app.include_router(ingestion.router, prefix="/api")
+    app.include_router(territory.router, prefix="/api")
     app.include_router(ai.router, prefix="/api")

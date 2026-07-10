@@ -72,6 +72,31 @@ engagement as (
     join request_actual_counts rac on rac.execution_request_id = aa.execution_request_id
     group by aa.country_id, aa.pcode_normalized
 ),
+doctor_contract_economics as (
+    select
+        country_id,
+        pcode_normalized,
+        max(doctor_name) filter (where doctor_name is not null) as doctor_contract_doctor_name,
+        max(doctor_segment) filter (where doctor_segment is not null) as doctor_contract_segment,
+        count(*)::integer as doctor_contract_engagement_count,
+        count(*) filter (where is_sponsorship)::integer as sponsorship_count,
+        count(*) filter (where engagement_class = 'no_fee')::integer as no_fee_engagement_count,
+        count(*) filter (where engagement_class like 'paid_%')::integer as paid_engagement_count,
+        min(expected_intervention_date) as first_doctor_contract_date,
+        max(expected_intervention_date) as last_doctor_contract_date,
+        sum(contracted_amount_local) as contracted_engagement_amount_local,
+        sum(contracted_amount_usd) as contracted_engagement_amount_usd,
+        sum(fmv_amount_local) as fmv_engagement_amount_local,
+        sum(fmv_amount_usd) as fmv_engagement_amount_usd,
+        sum(contract_saving_local) as contract_saving_local,
+        sum(contract_saving_usd) as contract_saving_usd,
+        count(*) filter (where contracted_amount_local is null and fmv_amount_local is null)::integer as amount_missing_count,
+        bool_or(fx_rate_status = 'missing') as has_missing_fx,
+        bool_or(fx_rate_status = 'provisional') as has_provisional_fx
+    from doctor_engagement_facts
+    where pcode_normalized is not null
+    group by country_id, pcode_normalized
+),
 rx as (
     select
         country_id,
@@ -99,6 +124,8 @@ doctor_universe as (
     union
     select country_id, pcode_normalized from engagement
     union
+    select country_id, pcode_normalized from doctor_contract_economics
+    union
     select country_id, pcode_normalized from rx
 ),
 metrics as (
@@ -107,19 +134,37 @@ metrics as (
         c.code as country_code,
         c.name as country_name,
         du.pcode_normalized,
-        coalesce(d.latest_doctor_name, rx.rcpa_doctor_name, e.attended_doctor_name) as doctor_name,
+        coalesce(d.latest_doctor_name, rx.rcpa_doctor_name, e.attended_doctor_name, de.doctor_contract_doctor_name) as doctor_name,
         coalesce(d.speciality, rx.speciality) as speciality,
-        coalesce(d.doctor_class, rx.doctor_class, e.attended_doctor_class) as doctor_class,
+        coalesce(d.doctor_class, rx.doctor_class, e.attended_doctor_class, de.doctor_contract_segment) as doctor_class,
         coalesce(d.active_status, rx.active_status) as active_status,
-        coalesce(e.engagement_count, 0) as engagement_count,
-        e.first_engagement_date,
-        e.last_engagement_date,
+        coalesce(e.engagement_count, 0) + coalesce(de.doctor_contract_engagement_count, 0) as engagement_count,
+        coalesce(de.sponsorship_count, 0) as sponsorship_count,
+        coalesce(de.no_fee_engagement_count, 0) as no_fee_engagement_count,
+        coalesce(de.paid_engagement_count, 0) as paid_engagement_count,
+        case
+            when e.first_engagement_date is null then de.first_doctor_contract_date
+            when de.first_doctor_contract_date is null then e.first_engagement_date
+            else least(e.first_engagement_date, de.first_doctor_contract_date)
+        end as first_engagement_date,
+        case
+            when e.last_engagement_date is null then de.last_doctor_contract_date
+            when de.last_doctor_contract_date is null then e.last_engagement_date
+            else greatest(e.last_engagement_date, de.last_doctor_contract_date)
+        end as last_engagement_date,
         coalesce(e.direct_hcp_btu_spend_local, 0) as direct_hcp_btu_spend_local,
         coalesce(e.overhead_btc_spend_local, 0) as overhead_btc_spend_local,
-        coalesce(e.total_roi_spend_local, 0) as total_roi_spend_local,
+        coalesce(e.total_roi_spend_local, 0) + coalesce(de.contracted_engagement_amount_local, 0) as total_roi_spend_local,
         coalesce(e.direct_hcp_btu_spend_usd, 0) as direct_hcp_btu_spend_usd,
         coalesce(e.overhead_btc_spend_usd, 0) as overhead_btc_spend_usd,
-        coalesce(e.total_roi_spend_usd, 0) as total_roi_spend_usd,
+        coalesce(e.total_roi_spend_usd, 0) + coalesce(de.contracted_engagement_amount_usd, 0) as total_roi_spend_usd,
+        coalesce(de.contracted_engagement_amount_local, 0) as contracted_engagement_amount_local,
+        coalesce(de.contracted_engagement_amount_usd, 0) as contracted_engagement_amount_usd,
+        coalesce(de.fmv_engagement_amount_local, 0) as fmv_engagement_amount_local,
+        coalesce(de.fmv_engagement_amount_usd, 0) as fmv_engagement_amount_usd,
+        coalesce(de.contract_saving_local, 0) as contract_saving_local,
+        coalesce(de.contract_saving_usd, 0) as contract_saving_usd,
+        coalesce(de.amount_missing_count, 0) as sponsorship_engagement_amount_missing_count,
         coalesce(rx.cipla_prescription_qty, 0) as cipla_prescription_qty,
         coalesce(rx.cipla_prescription_value_local, 0) as cipla_prescription_value_local,
         coalesce(rx.competitor_prescription_qty, 0) as competitor_prescription_qty,
@@ -130,12 +175,13 @@ metrics as (
         rx.rcpa_first_month,
         rx.rcpa_last_month,
         (rx.pcode_normalized is not null) as has_rcpa,
-        coalesce(e.has_missing_fx, false) as has_missing_fx,
-        coalesce(e.has_provisional_fx, false) as has_provisional_fx
+        coalesce(e.has_missing_fx, false) or coalesce(de.has_missing_fx, false) as has_missing_fx,
+        coalesce(e.has_provisional_fx, false) or coalesce(de.has_provisional_fx, false) as has_provisional_fx
     from doctor_universe du
     join countries c on c.id = du.country_id
     left join doctors d on d.country_id = du.country_id and d.pcode_normalized = du.pcode_normalized
     left join engagement e on e.country_id = du.country_id and e.pcode_normalized = du.pcode_normalized
+    left join doctor_contract_economics de on de.country_id = du.country_id and de.pcode_normalized = du.pcode_normalized
     left join rx on rx.country_id = du.country_id and rx.pcode_normalized = du.pcode_normalized
 ),
 thresholds as (

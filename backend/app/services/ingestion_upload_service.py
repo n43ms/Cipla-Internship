@@ -12,9 +12,14 @@ from uuid import uuid4
 from fastapi import HTTPException, Request
 
 from backend.app.config import get_settings
-from backend.app.schemas.ingestion_upload import UploadBatchResponse, UploadFileResult
+from backend.app.schemas.ingestion_upload import (
+    BatchIngestionStatusResponse,
+    UploadBatchResponse,
+    UploadFileResult,
+)
 from ingestion.file_registry import calculate_file_hash
 from ingestion.models import SourceFile
+from ingestion.orchestrator import ingest_manifest_batch
 from ingestion.profiler import profile_source_file
 from ingestion.source_fingerprints import detect_file_format, fingerprint_path
 
@@ -64,6 +69,7 @@ async def validate_uploaded_batch(request: Request) -> UploadBatchResponse:
     accepted_count = sum(1 for result in results if result.status == "accepted")
     response = UploadBatchResponse(
         batch_id=batch_id,
+        refresh_state="validated" if accepted_count else "quarantined",
         total_files=len(results),
         accepted_count=accepted_count,
         quarantined_count=len(results) - accepted_count,
@@ -73,7 +79,83 @@ async def validate_uploaded_batch(request: Request) -> UploadBatchResponse:
     )
     summary_path = batch_dir / "batch-upload-summary.json"
     summary_path.write_text(response.model_dump_json(by_alias=True, indent=2), encoding="utf-8")
+    _write_batch_status(
+        batch_dir,
+        BatchIngestionStatusResponse(
+            batch_id=batch_id,
+            refresh_state="accepted_for_ingestion" if accepted_count else "quarantined",
+            accepted_count=accepted_count,
+            quarantined_count=len(results) - accepted_count,
+            manifest_path=str(manifest_path) if manifest_files else None,
+            summary_path=str(summary_path),
+            message=(
+                "Batch passed intake validation and is ready for ingestion."
+                if accepted_count
+                else "Batch has no accepted files and cannot be ingested."
+            ),
+            next_steps=_next_steps(accepted_count, len(results) - accepted_count),
+        ),
+    )
     return response.model_copy(update={"summary_path": str(summary_path)})
+
+
+def get_batch_ingestion_status(batch_id: str) -> BatchIngestionStatusResponse:
+    batch_dir = _batch_dir(batch_id)
+    status_path = _batch_status_path(batch_dir)
+    if not status_path.exists():
+        raise HTTPException(status_code=404, detail="Upload batch was not found.")
+    return BatchIngestionStatusResponse.model_validate_json(status_path.read_text(encoding="utf-8"))
+
+
+def run_batch_ingestion(batch_id: str) -> BatchIngestionStatusResponse:
+    batch_dir = _batch_dir(batch_id)
+    status = get_batch_ingestion_status(batch_id)
+    if status.accepted_count == 0 or not status.manifest_path:
+        raise HTTPException(status_code=409, detail="Batch has no accepted files to ingest.")
+    if status.refresh_state in {"ingestion_running"}:
+        raise HTTPException(status_code=409, detail="Batch ingestion is already running.")
+    if status.refresh_state in {"supabase_written", "views_refreshed", "dashboard_refreshed"}:
+        return status
+
+    running_status = status.model_copy(
+        update={
+            "refresh_state": "ingestion_running",
+            "message": "Ingestion is running. Accepted files are being loaded into Supabase.",
+            "next_steps": ["Wait for Supabase write and materialized-view refresh to finish."],
+        }
+    )
+    _write_batch_status(batch_dir, running_status)
+    try:
+        summary = ingest_manifest_batch(Path(status.manifest_path))
+    except Exception as exc:
+        failed = running_status.model_copy(
+            update={
+                "refresh_state": "ingestion_failed",
+                "message": "Ingestion failed before the dashboard could refresh.",
+                "next_steps": [str(exc)],
+            }
+        )
+        _write_batch_status(batch_dir, failed)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    completed = running_status.model_copy(
+        update={
+            "refresh_state": "views_refreshed",
+            "ingestion_run_id": summary.ingestion_run_id,
+            "rows_seen": summary.rows_seen,
+            "rows_loaded": summary.rows_loaded,
+            "rows_skipped": summary.rows_skipped,
+            "warning_count": summary.warning_count,
+            "error_count": summary.error_count,
+            "message": "Supabase facts were written and materialized views were refreshed.",
+            "next_steps": [
+                "Refresh the dashboard pages to see updated Doctor ROI evidence.",
+                "Review Data Quality for join, P-code, missing amount, and RCPA caveats.",
+            ],
+        }
+    )
+    _write_batch_status(batch_dir, completed)
+    return completed
 
 
 def _validate_file_part(
@@ -225,3 +307,23 @@ def _next_steps(accepted_count: int, quarantined_count: int) -> list[str]:
     if quarantined_count == 0:
         steps.append("All files passed the intake check. The batch can move to ingestion review.")
     return steps
+
+
+def _batch_dir(batch_id: str) -> Path:
+    if not re.fullmatch(r"[0-9TZ-]+[a-f0-9]{8}", batch_id):
+        raise HTTPException(status_code=400, detail="Invalid upload batch id.")
+    batch_dir = Path(get_settings().upload_data_dir) / batch_id
+    if not batch_dir.exists() or not batch_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Upload batch was not found.")
+    return batch_dir
+
+
+def _batch_status_path(batch_dir: Path) -> Path:
+    return batch_dir / "batch-ingestion-status.json"
+
+
+def _write_batch_status(batch_dir: Path, status: BatchIngestionStatusResponse) -> None:
+    _batch_status_path(batch_dir).write_text(
+        status.model_dump_json(by_alias=True, indent=2),
+        encoding="utf-8",
+    )

@@ -28,7 +28,7 @@ Phase 2 establishes:
 - canonical table shells,
 - reconciliation and AI log tables,
 - uniqueness/index constraints,
-- official LKR company FX seed at `1 USD = 310 LKR`,
+- official company FX seeds for all six scoped markets dated 2026-07-10,
 - shared constants and error schemas,
 - test harnesses and fixture structure.
 
@@ -39,7 +39,16 @@ The sponsorship ROI phase now has a received source package and should be implem
 It extends the architecture through this path:
 
 ```text
-business user uploads known workbook package through React "Upload new data/files"
+already received files/ package
+  -> engineering-controlled CLI/backend preload
+  -> source manifest and fingerprinting
+  -> workbook/HTML-XLS profiling
+  -> deterministic loaders
+  -> compact canonical facts written to Supabase
+  -> materialized Doctor ROI, data-quality, sponsorship, and territory views refreshed
+
+future business-user refresh
+  -> business user uploads known workbook package through React "Upload new data/files"
   -> FastAPI stores accepted local batch under data/uploads/<batch-id>/
   -> source manifest and fingerprinting
   -> workbook/HTML-XLS profiling
@@ -47,22 +56,24 @@ business user uploads known workbook package through React "Upload new data/file
   -> synthetic fixtures
   -> deterministic loaders
   -> compact canonical facts written to Supabase
-  -> materialized Doctor ROI and sponsorship evidence views refreshed
+  -> materialized Doctor ROI, sponsorship, RCPA, data-quality, and territory views refreshed
   -> FastAPI read services
   -> React dashboard reflects refreshed Doctor ROI/detail/data-quality evidence
   -> ExecAI context only after deterministic services exist
 ```
 
-The following remain blocked until profiles, fixtures, tests, and storage checks pass:
+The following require real Supabase preload or business spot checks before being marked fully accepted:
 
-- production source-specific loaders,
-- canonical migrations for sponsorship/engagement/economics facts,
-- sponsorship/engagement outcome materialized views,
-- Doctor ROI detail API/UI enrichment,
-- standalone territory page,
-- ExecAI sponsorship/territory context.
+- current-package preload verification against Supabase,
+- held-out dashboard upload verification against Supabase,
+- selected doctor and territory business validation examples,
+- before/after database storage-size measurement for the real historical RCPA load.
 
 Manual dashboard upload is the target refresh mechanism for this project phase. SFTP, SharePoint polling, and CRM/data-lake auto-discovery are out of scope. Upload validation alone does not update live KPI data; the dashboard reflects new files only after accepted-batch ingestion writes Supabase facts and refreshes the materialized views.
+
+Territory intelligence remains source-backed and caveated. It uses RCPA `Location`/`PATCHNAME` and Smart Contract `FS HQ`/territory fields first. The MSL doctor master is optional enrichment and should only be promoted to a required source if report-level territory fields prove insufficient.
+
+ExecAI uses deterministic FastAPI service responses for Doctor ROI, sponsorship/engagement outcome evidence, RCPA trend, data-quality caveats, and territory rows. It must use association-only language for pre/post movement and must not claim causal uplift.
 
 Source semantics:
 

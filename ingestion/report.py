@@ -193,6 +193,8 @@ def ingestion_report_markdown(summary: IngestionSummary) -> str:
     rcpa_storage_rows = _rcpa_storage_summary(summary)
     scope_rows = _phase4_scope_summary(summary)
     duplicate_rows = _planner_duplicate_summary(summary)
+    doctor_engagement_quality_rows = _doctor_engagement_quality_summary(summary)
+    contract_economics_rows = _contract_economics_summary(summary)
     lines = [
         "# Ingestion Report",
         "",
@@ -203,7 +205,8 @@ def ingestion_report_markdown(summary: IngestionSummary) -> str:
         f"- Rows skipped: `{summary.rows_skipped}`",
         f"- Warnings: `{summary.warning_count}`",
         f"- Errors: `{summary.error_count}`",
-        "- Official Sri Lanka FX: `1 USD = 310 LKR`",
+        "- Official company FX: `LKR 368.90`, `NPR 89`, `OMR 0.46`, "
+        "`AED 1.00`, `MMK 4300`, `MYR 4.39` per USD",
         "- Phase 4 production scope: "
         f"`{', '.join(PHASE4_PRIMARY_COUNTRIES)}` for "
         f"`{', '.join(PHASE4_EXECUTION_MONTHS)}`",
@@ -238,14 +241,34 @@ def ingestion_report_markdown(summary: IngestionSummary) -> str:
                 "",
                 "## RCPA Free-Tier Storage Summary",
                 "",
-                "| File | Online Rows | Detail Rows | Detail Extract |",
-                "|---|---:|---:|---|",
+                "| File | Inserted/Replaced Summary Rows | Source Rows Skipped | Duplicate Source Rows Collapsed | Detail Rows | Detail Extract |",
+                "|---|---:|---:|---:|---:|---|",
             ]
         )
         for row in rcpa_storage_rows:
             lines.append(
-                f"| {row['file']} | {row['online_rows']} | {row['detail_rows']} | "
+                f"| {row['file']} | {row['inserted_or_replaced_rows']} | "
+                f"{row['source_rows_skipped']} | {row['duplicate_source_rows_collapsed']} | "
+                f"{row['detail_rows']} | "
                 f"{row['detail_extract']} |"
+            )
+        lines.extend(
+            [
+                "",
+                "### RCPA Mapping Provenance",
+                "",
+                "Historical RCPA rows before 2025-11-01 are marked `manual_legacy` unless the source explicitly provides a mapping method.",
+                "",
+                "| File | Covered Months | Manual Legacy | System Supplied | Source Supplied | Unknown |",
+                "|---|---|---:|---:|---:|---:|",
+            ]
+        )
+        for row in rcpa_storage_rows:
+            counts = row["mapping_counts"]
+            lines.append(
+                f"| {row['file']} | {row['covered_months']} | "
+                f"{counts.get('manual_legacy', 0)} | {counts.get('system_supplied', 0)} | "
+                f"{counts.get('source_supplied', 0)} | {counts.get('unknown', 0)} |"
             )
     lines.extend(
         [
@@ -279,6 +302,43 @@ def ingestion_report_markdown(summary: IngestionSummary) -> str:
             lines.append(
                 f"| {row['file']} | {row['country']} | {row['month']} | {row['event_type']} | "
                 f"{row['event_name']} | {row['count']} | {row['source_rows']} |"
+            )
+    if doctor_engagement_quality_rows:
+        lines.extend(
+            [
+                "",
+                "## Doctor Engagement Data Quality",
+                "",
+                "Doctor-wise contract rows enrich Doctor ROI only when the doctor, P-code, "
+                "intervention, and economics can be traced to source evidence.",
+                "",
+                "| File | Missing P-code | Missing Intervention ID | Missing FMV | "
+                "Missing Contracted Value | Unjoined Rows |",
+                "|---|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for row in doctor_engagement_quality_rows:
+            lines.append(
+                f"| {row['file']} | {row['missing_pcode']} | "
+                f"{row['missing_intervention_id']} | {row['missing_fmv']} | "
+                f"{row['missing_contracted_value']} | {row['unjoined_rows']} |"
+            )
+    if contract_economics_rows:
+        lines.extend(
+            [
+                "",
+                "## FMV vs Contracted Economics",
+                "",
+                "Contract saving is negotiation efficiency, not prescription ROI.",
+                "",
+                "| File | Rows | FMV Local | Contracted Local | Saving Local |",
+                "|---|---:|---:|---:|---:|",
+            ]
+        )
+        for row in contract_economics_rows:
+            lines.append(
+                f"| {row['file']} | {row['rows']} | {row['fmv_local']} | "
+                f"{row['contracted_local']} | {row['saving_local']} |"
             )
     lines.extend(
         [
@@ -360,11 +420,30 @@ def _rcpa_storage_summary(summary: IngestionSummary) -> list[dict[str, object]]:
             {
                 "file": profile.original_filename,
                 "online_rows": result.summaries.get("rcpa_online_record_count", result.rows_loaded),
+                "inserted_or_replaced_rows": result.summaries.get(
+                    "inserted_or_replaced_summary_rows",
+                    result.summaries.get("rcpa_online_record_count", result.rows_loaded),
+                ),
+                "source_rows_skipped": result.rows_skipped,
+                "duplicate_source_rows_collapsed": result.summaries.get(
+                    "duplicate_source_rows_collapsed", 0
+                ),
                 "detail_rows": result.summaries.get("rcpa_detail_record_count", 0),
                 "detail_extract": result.summaries.get("rcpa_detail_export_path", "dry-run"),
+                "mapping_counts": result.summaries.get("mapping_provenance_counts", {}),
+                "covered_months": _covered_months(
+                    result.summaries.get("covered_month_start"),
+                    result.summaries.get("covered_month_end"),
+                ),
             }
         )
     return rows
+
+
+def _covered_months(start: object, end: object) -> str:
+    if not start and not end:
+        return "unknown"
+    return f"{start or 'unknown'} to {end or 'unknown'}"
 
 
 def _phase4_scope_summary(summary: IngestionSummary) -> dict[str, dict[str, int]]:
@@ -425,6 +504,55 @@ def _planner_duplicate_summary(summary: IngestionSummary) -> list[dict[str, obje
             str(row["event_name"]),
         ),
     )
+
+
+def _doctor_engagement_quality_summary(summary: IngestionSummary) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for profile, result in zip(summary.profiles, summary.load_results, strict=False):
+        if result.source_type != "doctor_contract":
+            continue
+        missing_pcode = int(result.summaries.get("missing_pcode_count") or 0)
+        missing_fmv = int(result.summaries.get("missing_fmv_count") or 0)
+        missing_contracted = int(result.summaries.get("missing_contracted_value_count") or 0)
+        missing_intervention = sum(
+            1
+            for issue in result.issues
+            if issue.error_code == "doctor_wise_required_field_missing"
+            and issue.field_name in {None, "intervention_id"}
+        )
+        unjoined = int(result.summaries.get("unjoined_row_count") or 0)
+        if any([missing_pcode, missing_fmv, missing_contracted, missing_intervention, unjoined]):
+            rows.append(
+                {
+                    "file": profile.original_filename,
+                    "missing_pcode": missing_pcode,
+                    "missing_intervention_id": missing_intervention,
+                    "missing_fmv": missing_fmv,
+                    "missing_contracted_value": missing_contracted,
+                    "unjoined_rows": unjoined,
+                }
+            )
+    return rows
+
+
+def _contract_economics_summary(summary: IngestionSummary) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for profile, result in zip(summary.profiles, summary.load_results, strict=False):
+        if result.source_type != "doctor_contract":
+            continue
+        fmv_total = sum(record.get("fmv_amount_local") or 0 for record in result.records)
+        contracted_total = sum(record.get("contracted_amount_local") or 0 for record in result.records)
+        saving_total = sum(record.get("contract_saving_local") or 0 for record in result.records)
+        rows.append(
+            {
+                "file": profile.original_filename,
+                "rows": result.rows_loaded,
+                "fmv_local": fmv_total,
+                "contracted_local": contracted_total,
+                "saving_local": saving_total,
+            }
+        )
+    return rows
 
 
 def _record_in_phase4_scope(record: dict[str, object]) -> bool:

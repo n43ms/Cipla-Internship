@@ -40,11 +40,36 @@ Dry run: SQL only; no database connection attempted.
 
 ## Post-Load Checklist
 
-- [ ] Database size was measured again.
-- [ ] Largest relations were reviewed.
-- [ ] RCPA summary growth was checked.
+- [X] Database size was measured again.
+- [X] Largest relations were reviewed.
+- [X] RCPA summary growth was checked.
 - [ ] AI log growth was checked.
-- [ ] Any generated detailed extract stayed local.
+- [X] Any generated detailed extract stayed local.
+
+## July 10 Package Measurement
+
+Measured after the received-package preload. A pre-load measurement was not captured before the
+first successful Supabase write, so this is the post-load baseline for future refreshes.
+
+```text
+Database size: 425 MB
+Free-tier reference limit: 500 MB
+RCPA doctor-month summary: 264 MB, 325,535 rows
+RCPA doctor-brand summary: 85 MB, 162,770 rows
+RCPA country-brand-month summary: 1,352 kB, 2,482 rows
+Doctor engagement facts: 4,976 kB, 4,775 rows
+Execution requests: 5,160 kB, 3,604 rows
+Source file registry: 64 kB
+```
+
+Decision:
+
+```text
+Keep compact RCPA summaries in Supabase.
+Keep detailed RCPA extracts local under data/processed/.
+Do not load raw workbook rows into Supabase.
+Future RCPA expansion needs storage review before another full historical backfill.
+```
 
 ## Compact-Mode Rules
 
@@ -52,6 +77,8 @@ Dry run: SQL only; no database connection attempted.
 - raw files stay out of git,
 - large raw RCPA detail stays out of Supabase,
 - detailed RCPA evidence stays under `data/processed/`,
+- RCPA mapping provenance is stored on compact doctor-month summaries, not as raw rows,
+- territory opportunity is a compact materialized view over RCPA doctor-month summaries and doctor engagement facts, not a raw territory table,
 - Supabase stores compact canonical facts, summaries, materialized views, and audit metadata,
 - avoid duplicating large RCPA summaries into multiple materialized views.
 

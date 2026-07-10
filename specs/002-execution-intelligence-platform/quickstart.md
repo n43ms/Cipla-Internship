@@ -10,7 +10,7 @@ This guide proves the planned system works as a real data product before UI poli
 - Real source workbooks placed locally under `data/raw/`
 - `.env` configured from `.env.example`
 - Alembic configured with `sqlalchemy.url` resolved from `DATABASE_URL`
-- Static FX seed file available under `database/seeds/exchange_rates_static.sql` or equivalent migration seed; LKR must be seeded as official company FX at `1 USD = 310 LKR`, while temporary manual rates for other currencies must be marked `provisional`
+- Static FX seed file available under `database/seeds/exchange_rates_static.sql` or equivalent migration seed with the July 10 official company rates for all six scoped currencies
 
 Required environment variables:
 
@@ -74,7 +74,7 @@ alembic upgrade head
 Expected outcome:
 
 - reference tables exist,
-- static exchange-rate seeds include official LKR at `1 USD = 310 LKR` with documented `rate_date`, `source = company`, and `rate_status = official`,
+- static exchange-rate seeds include the July 10 official company rates with documented `rate_date`, `source = company`, and `rate_status = official`,
 - canonical tables exist,
 - reconciliation tables exist,
 - materialized views compile.
@@ -203,7 +203,7 @@ Required coverage:
 - missing Sri Lanka May execution derivation from consolidation,
 - consolidation multi-doctor parsing,
 - static FX seed and missing-FX behavior,
-- official LKR company FX at `1 USD = 310 LKR` plus provisional FX labeling for non-official rates,
+- official company FX for all six scoped currencies and missing-FX handling for unsupported currencies,
 - confirmed-vs-estimated variance,
 - BTU/BTC spend split and reconciliation warning behavior,
 - workflow governance status mapping,

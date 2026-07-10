@@ -77,9 +77,10 @@ def _recompute_provisional_request_usd() -> None:
             fx_rate_source = rates.source,
             fx_rate_date = rates.rate_date,
             fx_rate_status = rates.rate_status,
-            estimated_intervention_usd = round(er.estimated_intervention_local * rates.rate_to_usd, 2),
-            confirmed_contracted_amount_usd = round(er.confirmed_contracted_amount_local * rates.rate_to_usd, 2),
-            confirmed_vs_estimated_variance_usd = round(er.confirmed_vs_estimated_variance_local * rates.rate_to_usd, 2),
+            estimated_intervention_usd =
+                round(er.estimated_intervention_local * rates.rate_to_usd, 2),
+            confirmed_contracted_amount_usd =
+                round(er.confirmed_contracted_amount_local * rates.rate_to_usd, 2),
             actual_total_expense_usd = round(er.actual_total_expense_local * rates.rate_to_usd, 2),
             actual_btu_expense_usd = round(er.actual_btu_expense_local * rates.rate_to_usd, 2),
             actual_btc_expense_usd = round(er.actual_btc_expense_local * rates.rate_to_usd, 2),

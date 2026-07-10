@@ -10,6 +10,7 @@ from ingestion.normalizers import (
     normalize_country_name,
     normalize_pcode,
 )
+from ingestion.normalizers.rcpa_provenance import rcpa_mapping_provenance
 from ingestion.schema_maps import RCPA_SCHEMA
 from ingestion.validators import IssueCollector
 
@@ -42,6 +43,11 @@ def load_rcpa(profile: WorkbookProfile) -> LoadResult:
                     raw_value=row,
                 )
                 continue
+            mapping = rcpa_mapping_provenance(
+                month_start_date=month.value,
+                pcode_present=bool(pcode.value),
+                source_mapping_method=row.get("pcode_mapping_method"),
+            )
             currency_code = currency_for_country(country) or "UNKNOWN"
             key = (country, month.value, pcode.value, brand, sku, own_or_competitor.lower(), currency_code)
             if key not in detail_aggregate:
@@ -54,7 +60,12 @@ def load_rcpa(profile: WorkbookProfile) -> LoadResult:
                     "speciality": row.get("speciality"),
                     "doctor_class": row.get("doctor_class"),
                     "patch_name": row.get("patch_name"),
+                    "territory_name": row.get("territory_name"),
                     "active_status": row.get("active_status"),
+                    "mapping_provenance": mapping.mapping_provenance,
+                    "mapping_note": mapping.mapping_note,
+                    "source_mapping_method": row.get("pcode_mapping_method"),
+                    "competitor_filter_note": _competitor_filter_note(row.get("own_or_competitor")),
                     "brand_group": brand,
                     "sku": sku,
                     "sku_detail": row.get("sku_detail"),
@@ -74,6 +85,7 @@ def load_rcpa(profile: WorkbookProfile) -> LoadResult:
     country_brand_month = _country_brand_month_summaries(detail_records)
     online_rows_loaded = len(doctor_month) + len(doctor_brand) + len(country_brand_month)
     source_rows_loaded = sum(int(r["row_count_aggregated"]) for r in detail_records)
+    duplicate_source_rows_collapsed = max(source_rows_loaded - len(detail_records), 0)
     return LoadResult(
         "rcpa",
         rows_seen,
@@ -88,6 +100,12 @@ def load_rcpa(profile: WorkbookProfile) -> LoadResult:
             "rcpa_detail_record_count": len(detail_records),
             "rcpa_online_record_count": online_rows_loaded,
             "serial_month_parse_count": serial_month_parse_count,
+            "inserted_or_replaced_summary_rows": online_rows_loaded,
+            "duplicate_source_rows_collapsed": duplicate_source_rows_collapsed,
+            "mapping_provenance_counts": _mapping_provenance_counts(doctor_month),
+            "covered_month_start": min((r["month_start_date"] for r in doctor_month), default=None),
+            "covered_month_end": max((r["month_start_date"] for r in doctor_month), default=None),
+            "missing_pcode_count": sum(1 for issue in issues.issues if issue.error_code == "rcpa_row_skipped"),
         },
     )
 
@@ -111,7 +129,12 @@ def _doctor_month_summaries(records: list[dict[str, object]]) -> list[dict[str, 
                 "speciality": record.get("speciality"),
                 "doctor_class": record.get("doctor_class"),
                 "patch_name": record.get("patch_name"),
+                "territory_name": record.get("territory_name"),
                 "active_status": record.get("active_status"),
+                "mapping_provenance": record.get("mapping_provenance"),
+                "mapping_note": record.get("mapping_note"),
+                "source_mapping_method": record.get("source_mapping_method"),
+                "competitor_filter_note": record.get("competitor_filter_note"),
                 "own_prescription_qty": Decimal("0"),
                 "own_prescription_value_local": Decimal("0"),
                 "competitor_prescription_qty": Decimal("0"),
@@ -135,6 +158,23 @@ def _doctor_month_summaries(records: list[dict[str, object]]) -> list[dict[str, 
         summary["total_prescription_value_local"] += value  # type: ignore[operator]
         summary["row_count_aggregated"] += int(record.get("row_count_aggregated") or 0)  # type: ignore[operator]
     return list(summaries.values())
+
+
+def _mapping_provenance_counts(records: list[dict[str, object]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for record in records:
+        key = str(record.get("mapping_provenance") or "unknown")
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def _competitor_filter_note(value: object) -> str:
+    owner = _owner_bucket(value)
+    if owner == "own":
+        return "Cipla/own prescription row retained from source."
+    if owner == "competitor":
+        return "Competitor prescription row retained from source."
+    return "Own/competitor source label was not recognized; retained as source-provided."
 
 
 def _doctor_brand_summaries(records: list[dict[str, object]]) -> list[dict[str, object]]:
