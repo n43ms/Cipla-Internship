@@ -30,6 +30,7 @@ def test_doctor_roi_contract_forwards_filters_sort_and_returns_segments(monkeypa
         brand,
         speciality,
         doctor_class,
+        doctor_search,
         include_out_of_scope,
         page,
         page_size,
@@ -46,6 +47,7 @@ def test_doctor_roi_contract_forwards_filters_sort_and_returns_segments(monkeypa
                 "brand": brand,
                 "speciality": speciality,
                 "doctor_class": doctor_class,
+                "doctor_search": doctor_search,
                 "include_out_of_scope": include_out_of_scope,
                 "page": page,
                 "page_size": page_size,
@@ -77,7 +79,7 @@ def test_doctor_roi_contract_forwards_filters_sort_and_returns_segments(monkeypa
     app.dependency_overrides[get_session] = fake_session
     with TestClient(app) as client:
         response = client.get(
-            "/api/doctors/roi?country=LK&roiSegment=high_value_unengaged&quadrant=low%20effort%20/%20high%20reward&monthStart=2026-04&monthEnd=2026-05&brand=Brand%20A&speciality=Cardiology&doctorClass=A&includeOutOfScope=true&page=2&pageSize=5&sort=ciplaPrescriptionQty&sortDirection=asc"
+            "/api/doctors/roi?country=LK&roiSegment=high_value_unengaged&quadrant=low%20effort%20/%20high%20reward&monthStart=2026-04&monthEnd=2026-05&brand=Brand%20A&speciality=Cardiology&doctorClass=A&doctorSearch=rao&includeOutOfScope=true&page=2&pageSize=5&sort=ciplaPrescriptionQty&sortDirection=asc"
         )
 
     assert response.status_code == 200
@@ -87,6 +89,7 @@ def test_doctor_roi_contract_forwards_filters_sort_and_returns_segments(monkeypa
     assert body["rows"][0]["quadrantLabel"] == "low effort / high reward"
     assert calls[0]["sort"] == "ciplaPrescriptionQty"
     assert calls[0]["sort_direction"] == "asc"
+    assert calls[0]["doctor_search"] == "rao"
     assert calls[0]["include_out_of_scope"] is True
 
 

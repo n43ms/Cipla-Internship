@@ -7,7 +7,7 @@ import { DataFreshnessBanner, EmptyState, ErrorState, LoadingState } from "../co
 import { SidePanel } from "../components/common/SidePanel";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { WarningRegistration } from "../components/common/WarningCenter";
-import { DoctorOutcomeEvidence, DoctorRoiCards, DoctorRoiTable, DoctorScatter, QuadrantMatrix, type DoctorRoiSortKey } from "../components/doctors/DoctorRoiComponents";
+import { DoctorOpportunityChart, DoctorOutcomeEvidence, DoctorRoiCards, DoctorRoiTable, QuadrantMatrix, formatRoiSegment, type DoctorRoiSortKey } from "../components/doctors/DoctorRoiComponents";
 import { nextSort, type SortState } from "../components/common/SortableTable";
 import type { DoctorRoiRow } from "../types/api";
 
@@ -20,7 +20,9 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
   const [speciality, setSpeciality] = useState("");
   const [doctorClass, setDoctorClass] = useState("");
   const [roiSegment, setRoiSegment] = useState("");
-  const [includeOutOfScope, setIncludeOutOfScope] = useState(false);
+  const [includeOutOfScope, setIncludeOutOfScope] = useState(true);
+  const [doctorSearchInput, setDoctorSearchInput] = useState("");
+  const [doctorSearch, setDoctorSearch] = useState("");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState<DoctorRoiSortKey>>({ key: "ciplaPrescriptionQty", direction: "desc" });
 
@@ -33,13 +35,14 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
       speciality: speciality || undefined,
       doctorClass: doctorClass || undefined,
       roiSegment: roiSegment || undefined,
+      doctorSearch: doctorSearch || undefined,
       includeOutOfScope: includeOutOfScope || undefined,
     }),
-    [brand, country, doctorClass, includeOutOfScope, monthEnd, monthStart, roiSegment, speciality],
+    [brand, country, doctorClass, doctorSearch, includeOutOfScope, monthEnd, monthStart, roiSegment, speciality],
   );
   const roi = useQuery({
-    queryKey: ["doctor-roi", country, monthStart, monthEnd, brand, speciality, doctorClass, roiSegment, includeOutOfScope, page, sort],
-    queryFn: () => getDoctorRoi({ country, monthStart, monthEnd, brand, speciality, doctorClass, roiSegment, includeOutOfScope, page, pageSize: 50, sort: sort.key, sortDirection: sort.direction }),
+    queryKey: ["doctor-roi", country, monthStart, monthEnd, brand, speciality, doctorClass, roiSegment, doctorSearch, includeOutOfScope, page, sort],
+    queryFn: () => getDoctorRoi({ country, monthStart, monthEnd, brand, speciality, doctorClass, roiSegment, doctorSearch, includeOutOfScope, page, pageSize: 50, sort: sort.key, sortDirection: sort.direction }),
     placeholderData: (previousData) => previousData,
   });
 
@@ -67,20 +70,25 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
           </p>
         </header>
         <DataFreshnessBanner meta={roi.data.meta} />
-        <section className="dashboard-card overflow-visible p-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Select label="Country" value={country} options={filters.data?.countries ?? []} empty="All countries" onChange={(value) => { setCountry(value); setPage(1); }} />
-            <Select label="Start month" value={monthStart} options={filters.data?.months ?? []} empty="Any start" onChange={(value) => { setMonthStart(value); setPage(1); }} />
-            <Select label="End month" value={monthEnd} options={filters.data?.months ?? []} empty="Any end" onChange={(value) => { setMonthEnd(value); setPage(1); }} />
-            <Select label="Brand baseline" value={brand} options={filters.data?.brands ?? []} empty="All brands" onChange={(value) => { setBrand(value); setPage(1); }} />
-            <Select label="Speciality" value={speciality} options={filters.data?.specialities ?? []} empty="All specialities" onChange={(value) => { setSpeciality(value); setPage(1); }} />
-            <Select label="Doctor class" value={doctorClass} options={filters.data?.doctorClasses ?? []} empty="All classes" onChange={(value) => { setDoctorClass(value); setPage(1); }} />
-            <Select label="ROI segment" value={roiSegment} options={filters.data?.roiSegments ?? []} empty="All segments" onChange={(value) => { setRoiSegment(value); setPage(1); }} />
-            <label className="flex items-center gap-2 self-end rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm">
+        <section className="dashboard-card relative z-50 overflow-visible p-3">
+          <div className="mb-3 flex flex-col items-center justify-center gap-2 border-b border-white/[0.06] pb-3 text-center sm:flex-row">
+            <label className="flex items-center gap-2 rounded-md bg-white/[0.025] px-3 py-2 text-sm text-zinc-300">
               <input type="checkbox" checked={includeOutOfScope} onChange={(event) => { setIncludeOutOfScope(event.target.checked); setPage(1); }} />
-              Include all loaded markets
+              All loaded markets
             </label>
-            <button className="soft-button w-full self-end rounded-md border border-zinc-800 px-4 py-2 text-sm sm:w-auto" onClick={() => { setCountry(""); setMonthStart(""); setMonthEnd(""); setBrand(""); setSpeciality(""); setDoctorClass(""); setRoiSegment(""); setIncludeOutOfScope(false); setPage(1); }}>Clear</button>
+            <p className="text-xs text-zinc-500">{includeOutOfScope ? "Showing every loaded market." : "Restricted to Nepal and Sri Lanka primary-market scope."}</p>
+          </div>
+          <div className="grid grid-cols-1 items-end justify-items-stretch gap-2 overflow-visible pb-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+            <Select label="Country" value={country} options={filters.data?.countries ?? []} empty="All Countries" onChange={(value) => { setCountry(value); setPage(1); }} />
+            <Select label="Start Month" value={monthStart} options={filters.data?.months ?? []} empty="Any Start" onChange={(value) => { setMonthStart(value); setPage(1); }} />
+            <Select label="End Month" value={monthEnd} options={filters.data?.months ?? []} empty="Any End" onChange={(value) => { setMonthEnd(value); setPage(1); }} />
+            <Select label="Brand Baseline" value={brand} options={filters.data?.brands ?? []} empty="All Brands" onChange={(value) => { setBrand(value); setPage(1); }} />
+            <Select label="Speciality" value={speciality} options={filters.data?.specialities ?? []} empty="All Specialities" onChange={(value) => { setSpeciality(value); setPage(1); }} />
+            <Select label="Doctor Class" value={doctorClass} options={filters.data?.doctorClasses ?? []} empty="All Classes" onChange={(value) => { setDoctorClass(value); setPage(1); }} />
+            <Select label="ROI Segment" value={roiSegment} options={formatRoiOptions(filters.data?.roiSegments ?? [])} empty="All Segments" onChange={(value) => { setRoiSegment(value); setPage(1); }} />
+          </div>
+          <div className="mt-2 flex justify-end">
+            <button className="soft-button rounded-md border border-zinc-800 px-4 py-2 text-sm" onClick={() => { setCountry(""); setMonthStart(""); setMonthEnd(""); setBrand(""); setSpeciality(""); setDoctorClass(""); setRoiSegment(""); setDoctorSearchInput(""); setDoctorSearch(""); setIncludeOutOfScope(true); setPage(1); }}>Clear filters</button>
           </div>
         </section>
         <WarningRegistration
@@ -89,7 +97,7 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
             title: "Doctor ROI interpretation notes",
             tone: "info",
             items: [
-              "Doctor ROI defaults to Nepal and Sri Lanka primary markets.",
+              "Doctor ROI now defaults to all loaded markets; turn off All loaded markets to restrict the view to Nepal and Sri Lanka primary markets.",
               "RCPA prescription data is a historical baseline.",
               "Brand filters identify doctors with that brand in baseline RCPA; displayed ROI metrics remain all-brand doctor totals.",
             ],
@@ -97,8 +105,8 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
         />
         <DoctorRoiCards data={roi.data} />
         {roi.data.rows.length ? (
-          <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.6fr)]">
-            <DoctorScatter rows={roi.data.rows} />
+          <div className="grid min-w-0 grid-cols-1 items-stretch gap-5 xl:grid-cols-2">
+            <DoctorOpportunityChart rows={roi.data.rows} />
             <QuadrantMatrix counts={roi.data.quadrantCounts} />
             <div className="xl:col-span-2">
               <DoctorRoiTable
@@ -108,9 +116,12 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
                 total={roi.data.total}
                 sort={sort}
                 isFetching={roi.isFetching}
+                doctorSearch={doctorSearchInput}
                 onPageChange={setPage}
                 onSelect={setSelected}
                 onSort={(column) => { setSort((current) => nextSort(current, column)); setPage(1); }}
+                onDoctorSearchChange={setDoctorSearchInput}
+                onDoctorSearchSubmit={() => { setDoctorSearch(doctorSearchInput.trim()); setPage(1); }}
               />
             </div>
           </div>
@@ -141,7 +152,15 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
           {detail.isLoading ? <LoadingState label="Loading doctor detail" compact /> : null}
           {detail.isError ? (
             <div className="mt-5 grid gap-4 text-sm">
-              <div className="rounded-md border border-amber-300/20 bg-amber-300/[0.07] p-3 text-amber-100/85">
+              <WarningRegistration
+                record={{
+                  id: `doctor-detail-load-${selected.countryCode}-${selected.pcodeNormalized}`,
+                  title: "Doctor drilldown load notes",
+                  tone: "warning",
+                  items: ["Doctor drilldown could not load full history. Backend detail views may need migration or refresh."],
+                }}
+              />
+              <div className="rounded-md border border-zinc-800 bg-zinc-950 p-3 text-zinc-300">
                 <p className="font-semibold">Doctor drilldown could not load full history.</p>
                 <p className="mt-1 text-xs leading-5">
                   Showing the selected table row below. This usually means the backend detail endpoint
@@ -200,11 +219,15 @@ function Select({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="grid gap-1 text-sm">
+    <div className="grid w-full min-w-0 gap-1 text-sm">
       <span className="font-medium text-zinc-300">{label}</span>
       <SmoothSelect ariaLabel={label} value={value} options={options} placeholder={empty} onChange={onChange} />
     </div>
   );
+}
+
+function formatRoiOptions(options: Array<{ value: string; label: string }>) {
+  return options.map((option) => ({ ...option, label: formatRoiSegment(option.value) }));
 }
 
 function formatDate(value: string | null) {
@@ -215,12 +238,22 @@ function formatDate(value: string | null) {
 }
 
 function formatSegment(value: string | null | undefined) {
-  return value ? value.replaceAll("_", " ") : "segment unavailable";
+  return formatRoiSegment(value);
 }
 
 function DoctorRowFallback({ selected }: { selected: DoctorRoiRow }) {
   return (
     <section className="grid gap-3">
+      {selected.sponsorshipEngagementAmountMissingCount > 0 ? (
+        <WarningRegistration
+          record={{
+            id: `doctor-fallback-amount-${selected.countryCode}-${selected.pcodeNormalized}`,
+            title: "Doctor fallback evidence notes",
+            tone: "warning",
+            items: ["Prior sponsorship or engagement evidence exists, but at least one amount is unavailable."],
+          }}
+        />
+      ) : null}
       <h3 className="font-semibold">Selected row evidence</h3>
       <div className="grid grid-cols-2 gap-2 text-sm">
         <FallbackMetric label="Spend" value={`$${selected.totalRoiSpendUsd.toLocaleString()}`} />
@@ -230,11 +263,6 @@ function DoctorRowFallback({ selected }: { selected: DoctorRoiRow }) {
         <FallbackMetric label="Paid engagements" value={selected.paidEngagementCount.toLocaleString()} />
         <FallbackMetric label="No-fee" value={selected.noFeeEngagementCount.toLocaleString()} />
       </div>
-      {selected.sponsorshipEngagementAmountMissingCount > 0 ? (
-        <p className="rounded-md border border-amber-300/20 bg-amber-300/[0.06] p-2 text-xs text-amber-100/80">
-          Prior sponsorship or engagement evidence exists, but at least one amount is unavailable.
-        </p>
-      ) : null}
     </section>
   );
 }

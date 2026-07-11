@@ -73,7 +73,7 @@ def test_budget_doctor_and_data_quality_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         DoctorService,
         "roi",
-        lambda self, country, roi_segment, quadrant, month_start, month_end, brand, speciality, doctor_class, include_out_of_scope, page, page_size, sort="darkHorse", sort_direction="desc": {
+        lambda self, country, roi_segment, quadrant, month_start, month_end, brand, speciality, doctor_class, doctor_search, include_out_of_scope, page, page_size, sort="darkHorse", sort_direction="desc": {
             "meta": _meta(),
             "page": page,
             "pageSize": page_size,

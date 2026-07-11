@@ -49,7 +49,7 @@ describe("Phase 5-7 dashboard pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "Doctor ROI" }));
     await vi.dynamicImportSettled();
     await waitFor(() => expect(screen.getByText("Doctor opportunities and missed value")).toBeInTheDocument());
-    expect(screen.getByText("ROI quadrant matrix")).toBeInTheDocument();
+    expect(screen.getByText("ROI Quadrant Matrix")).toBeInTheDocument();
     expect(screen.getByText("Dr Test")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Open"));
     await waitFor(() => expect(screen.getByText("Engagement history")).toBeInTheDocument());

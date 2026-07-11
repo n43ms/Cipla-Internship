@@ -80,7 +80,7 @@ export function SmoothSelect({ ariaLabel, value, options, placeholder, onChange,
         id={listboxId}
         role="listbox"
         aria-hidden={!open}
-        className={`absolute left-0 right-0 z-30 mt-2 max-h-64 origin-top overflow-y-auto rounded-md border border-[#303437] bg-[#17191b]/98 p-1.5 shadow-2xl shadow-black/45 backdrop-blur-xl transition-all duration-300 ease-out ${
+        className={`absolute left-0 right-0 z-[9999] mt-2 max-h-64 origin-top overflow-y-auto rounded-md border border-white/[0.08] bg-[#17191b]/98 p-1.5 shadow-2xl shadow-black/45 backdrop-blur-xl transition-all duration-300 ease-out ${
           open ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-1 scale-[0.985] opacity-0"
         }`}
       >

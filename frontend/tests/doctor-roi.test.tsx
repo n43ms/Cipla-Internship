@@ -23,25 +23,27 @@ describe("Doctor ROI page", () => {
     renderWithProviders(<DoctorRoi />);
 
     await waitFor(() => expect(screen.getByText("Doctor opportunities and missed value")).toBeInTheDocument());
-    expect(screen.getByText("Doctor ROI rows")).toBeInTheDocument();
-    expect(screen.getByText("ROI quadrant matrix")).toBeInTheDocument();
+    expect(screen.getByText("Doctor ROI Rows")).toBeInTheDocument();
+    expect(screen.getByText("ROI Quadrant Matrix")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /open data warning notes/i }));
     expect(screen.getByText("Doctor ROI interpretation notes")).toBeInTheDocument();
     expect(screen.getByText("Dr Test")).toBeInTheDocument();
-    expect(screen.getByText("No RCPA rows")).toBeInTheDocument();
-    expect(screen.getByText("amount unavailable")).toBeInTheDocument();
+    expect(screen.getByText("No RCPA Rows")).toBeInTheDocument();
+    expect(screen.getByText("Amount Unavailable")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]);
     await waitFor(() => expect(screen.getByText("Engagement history")).toBeInTheDocument());
     expect(screen.getByText("Sponsorship and engagement evidence")).toBeInTheDocument();
-    expect(screen.getByText("Associated movement: 35 Cipla prescriptions.")).toBeInTheDocument();
+    expect(screen.queryByText("Associated movement: 35 Cipla prescriptions.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pre-window Rx")).not.toBeInTheDocument();
+    expect(screen.queryByText("Post-window Rx")).not.toBeInTheDocument();
+    expect(screen.queryByText("Confidence")).not.toBeInTheDocument();
     expect(screen.getByText("No-fee history")).toBeInTheDocument();
     expect(screen.getByText("FMV")).toBeInTheDocument();
-    expect(screen.getByText("amount unavailable not counted as zero")).toBeInTheDocument();
     expect(screen.getByText("Prescription trend")).toBeInTheDocument();
     expect(screen.getByText("Brand mix")).toBeInTheDocument();
   });
 
-  it("shows an empty sponsorship evidence state when a doctor has no outcome evidence", async () => {
+  it("distinguishes missing sponsorship summary from available engagement history", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(input);
       if (url.includes("/api/filters")) return ok(filters());
@@ -54,7 +56,8 @@ describe("Doctor ROI page", () => {
 
     await waitFor(() => expect(screen.getByText("Dr Test")).toBeInTheDocument());
     fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]);
-    await waitFor(() => expect(screen.getByText("No sponsorship or engagement outcome evidence is available for this doctor.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("No sponsorship outcome summary is available, but 1 engagement record appear below.")).toBeInTheDocument());
+    expect(screen.getByText(/Diabetes CME/)).toBeInTheDocument();
   });
 
   it("keeps the drawer useful when the doctor detail endpoint fails", async () => {

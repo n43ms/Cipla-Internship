@@ -80,4 +80,10 @@ pages in the order doctor roi, then execution then territory then budget then da
 - add an about this software section crediting Aditya nema and giving some details about the coding, language used etc
 - the doctor roi and execution should be one belowthe other, the rest 3 should also be one below the other. color the md icons and make the menu a bit large
 
+to clean up-
+doctor roi, territory, budget, data quality
 
+doctor roi changes - 
+
+filter bar too big - make it in one line - occupies tooo much psace. check if all loaded markets should be loaded by defaultw with the option to toggle it off grahph and roi quadrant matrix are not aligned. color code the roi quadrant matrix appropriately. the graph does not present it well use some other graph because of the non sequential x-axis values. remove the "insufficient data" from the roi matrix and pu tit as a data warning or something at the bottom of tehe matreix. add a search bar for doctor in doctor opportunities table. also make the algorithm explicit  near the quadrant matrix as to how theyre sorted based on roi
+dorwpdowns of the filer bar arent working, put "all loaded markets" option abover the bar - the bondaries are too highligher for the dropdown boxes, use some other chart that can fit more data like 30-40 datapoints without it being too cluttered, remove no rcpa rows, the boundary for high effort low reward is also overhighlighteddorwpdowns of the filer bar arent working, put "all loaded markets" option abover the bar - the bondaries are too highligher for the dropdown boxes, use some other chart that can fit more data like 30-40 datapoints without it being too cluttered, remove no rcpa rows kpi on the top since there are 0, the boundary for high effort low reward is also overhighlighted. the search doctor option loads every time you type something in it only when a new button "search" is clicked or enter key is pressed it should seach

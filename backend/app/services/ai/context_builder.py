@@ -115,6 +115,7 @@ def build_compact_context(
                 brand=_string_or_none(safe_filters.get("brand")),
                 speciality=_string_or_none(safe_filters.get("speciality")),
                 doctor_class=_string_or_none(safe_filters.get("doctorClass")),
+                doctor_search=_string_or_none(safe_filters.get("doctorSearch")),
                 include_out_of_scope=include_out_of_scope,
                 page=1,
                 page_size=detail_row_limit,

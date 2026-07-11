@@ -10,6 +10,7 @@ export type DoctorRoiFilters = {
   brand?: string;
   speciality?: string;
   doctorClass?: string;
+  doctorSearch?: string;
   includeOutOfScope?: boolean;
   page?: number;
   pageSize?: number;
@@ -27,6 +28,7 @@ export function getDoctorRoi(filters: DoctorRoiFilters = {}) {
   if (filters.brand) params.set("brand", filters.brand);
   if (filters.speciality) params.set("speciality", filters.speciality);
   if (filters.doctorClass) params.set("doctorClass", filters.doctorClass);
+  if (filters.doctorSearch) params.set("doctorSearch", filters.doctorSearch);
   if (filters.includeOutOfScope) params.set("includeOutOfScope", "true");
   params.set("page", String(filters.page ?? 1));
   params.set("pageSize", String(filters.pageSize ?? 25));
