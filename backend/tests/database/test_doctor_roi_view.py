@@ -31,3 +31,20 @@ def test_doctor_roi_view_allocates_request_spend_across_parsed_actual_pcodes() -
     assert "actual_btu_expense_usd / nullif(rac.doctor_count, 0)" in sql
     assert "actual_btc_expense_usd / nullif(rac.doctor_count, 0)" in sql
     assert "actual_total_expense_usd / nullif(rac.doctor_count, 0)" in sql
+
+
+def test_doctor_roi_view_credits_known_sponsorship_and_flags_missing_amounts() -> None:
+    sql = Path("database/views/mv_doctor_roi.sql").read_text(encoding="utf-8")
+
+    for fragment in [
+        "doctor_contract_economics",
+        "sponsorship_count",
+        "paid_engagement_count",
+        "contracted_engagement_amount_usd",
+        "fmv_engagement_amount_usd",
+        "contract_saving_usd",
+        "coalesce(e.total_roi_spend_usd, 0) + coalesce(de.contracted_engagement_amount_usd, 0) as total_roi_spend_usd",
+        "amount_missing_count",
+        "sponsorship_engagement_amount_missing_count",
+    ]:
+        assert fragment in sql

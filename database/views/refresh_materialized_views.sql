@@ -34,5 +34,13 @@ BEGIN
   IF to_regclass('mv_data_quality') IS NOT NULL THEN
     REFRESH MATERIALIZED VIEW mv_data_quality;
   END IF;
+
+  IF to_regclass('mv_sponsorship_outcomes') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_sponsorship_outcomes;
+  END IF;
+
+  IF to_regclass('mv_territory_opportunity') IS NOT NULL THEN
+    REFRESH MATERIALIZED VIEW mv_territory_opportunity;
+  END IF;
 END;
 $$;

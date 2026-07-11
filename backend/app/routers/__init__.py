@@ -1,6 +1,17 @@
 from fastapi import FastAPI
 
-from backend.app.routers import ai, budget, data_quality, doctors, execution, health, interventions, workflow
+from backend.app.routers import (
+    ai,
+    budget,
+    data_quality,
+    doctors,
+    execution,
+    health,
+    ingestion,
+    interventions,
+    territory,
+    workflow,
+)
 
 
 def register_routers(app: FastAPI) -> None:
@@ -11,4 +22,6 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(budget.router, prefix="/api")
     app.include_router(doctors.router, prefix="/api")
     app.include_router(data_quality.router, prefix="/api")
+    app.include_router(ingestion.router, prefix="/api")
+    app.include_router(territory.router, prefix="/api")
     app.include_router(ai.router, prefix="/api")

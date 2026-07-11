@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from decimal import Decimal
 
 from ingestion.loaders.common import canonical_sheet_data, iter_mapped_rows
 from ingestion.loaders.request_doctors import split_request_doctors
@@ -15,6 +16,7 @@ from ingestion.normalizers import (
 from ingestion.schema_maps import CONSOLIDATION_SCHEMA
 from ingestion.validators import IssueCollector
 
+
 def load_consolidation(profile: WorkbookProfile) -> LoadResult:
     issues = IssueCollector()
     records: list[dict[str, object]] = []
@@ -23,7 +25,10 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
     for sheet in canonical_sheet_data(profile):
         for row_number, row in iter_mapped_rows(sheet, CONSOLIDATION_SCHEMA):
             rows_seen += 1
-            month = month_start(row.get("month"))
+            intervention_date = to_date(row.get("intervention_date"))
+            intervention_end_date = to_date(row.get("intervention_end_date"))
+            actual_intervention_date = to_date(row.get("actual_intervention_date"))
+            month = _month_from_row(row, intervention_date, actual_intervention_date)
             country = normalize_country_name(row.get("country"))
             intervention_name = row.get("intervention_name")
             if not month.value or not country or not intervention_name:
@@ -38,7 +43,12 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
                 )
                 continue
             req_id = _clean_text(row.get("req_id"))
-            request_uid = req_id or _fallback_request_uid(profile.file_hash, sheet.name, row_number, row)
+            request_uid = req_id or _fallback_request_uid(
+                profile.file_hash,
+                sheet.name,
+                row_number,
+                row,
+            )
             estimated = to_decimal(row.get("estimated_intervention"))
             confirmed = to_decimal(row.get("confirmed_contracted_amount"))
             actual_total = to_decimal(row.get("actual_total_expense"))
@@ -48,9 +58,13 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
                 actual_total = (actual_btu or Decimal("0")) + (actual_btc or Decimal("0"))
             fx = fx_for_country(country)
             request_approval_status = normalize_workflow_status(row.get("request_approval_status"))
-            request_confirmation_status = normalize_workflow_status(row.get("request_confirmation_status"))
+            request_confirmation_status = normalize_workflow_status(
+                row.get("request_confirmation_status")
+            )
             post_approval_status = normalize_workflow_status(row.get("post_approval_status"))
-            post_confirmation_status = normalize_workflow_status(row.get("post_confirmation_status"))
+            post_confirmation_status = normalize_workflow_status(
+                row.get("post_confirmation_status")
+            )
             record = {
                 "request_key": request_uid,
                 "req_id": req_id,
@@ -59,8 +73,10 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
                 "month_start_date": month.value,
                 "rep_code": row.get("rep_code"),
                 "rep_name": row.get("rep_name"),
-                "intervention_date": to_date(row.get("intervention_date")),
-                "actual_intervention_date": to_date(row.get("actual_intervention_date")),
+                "fs_hq": row.get("fs_hq"),
+                "intervention_date": intervention_date,
+                "intervention_end_date": intervention_end_date,
+                "actual_intervention_date": actual_intervention_date,
                 "venue": row.get("venue"),
                 "intervention_name": str(intervention_name).strip(),
                 "intervention_name_normalized": normalize_event_name(intervention_name),
@@ -69,10 +85,14 @@ def load_consolidation(profile: WorkbookProfile) -> LoadResult:
                 "topic_remarks": row.get("topic_remarks"),
                 "estimated_intervention_local": estimated,
                 "confirmed_contracted_amount_local": confirmed,
-                "confirmed_vs_estimated_variance_local": (confirmed - estimated) if estimated and confirmed else None,
+                "confirmed_vs_estimated_variance_local": (
+                    (confirmed - estimated) if estimated and confirmed else None
+                ),
                 "actual_total_expense_local": actual_total,
                 "actual_btu_expense_local": actual_btu,
                 "actual_btc_expense_local": actual_btc,
+                "total_btc_local": to_decimal(row.get("total_btc")),
+                "expected_btu_local": to_decimal(row.get("expected_btu")),
                 "association_amount_local": to_decimal(row.get("association_amount")),
                 "association_contract_id": row.get("association_contract_id"),
                 "association_deliverables": row.get("association_deliverables"),
@@ -160,8 +180,30 @@ def _clean_text(value: object) -> str | None:
     return text or None
 
 
-def _fallback_request_uid(file_hash: str, sheet_name: str, row_number: int, row: dict[str, object]) -> str:
-    payload = f"{file_hash}|{sheet_name}|{row_number}|{row.get('country')}|{row.get('month')}|{row.get('intervention_name')}"
+def _month_from_row(
+    row: dict[str, object],
+    intervention_date,
+    actual_intervention_date,
+):
+    month = month_start(row.get("month"))
+    if month.value:
+        return month
+    for candidate in (actual_intervention_date, intervention_date):
+        if candidate:
+            return month_start(candidate)
+    return month
+
+
+def _fallback_request_uid(
+    file_hash: str,
+    sheet_name: str,
+    row_number: int,
+    row: dict[str, object],
+) -> str:
+    payload = (
+        f"{file_hash}|{sheet_name}|{row_number}|{row.get('country')}|"
+        f"{row.get('month')}|{row.get('intervention_name')}"
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
 
 
@@ -191,9 +233,15 @@ def _current_owner_stage(
         return "request approval pending"
     if request_confirmation_status in {"pending_owner", "pending_confirmation", "pending"}:
         return "request confirmation pending"
-    if post_approval_status in {"pending_owner", "pending_confirmation", "pending", "sent_for_correction"}:
+    pending_post_statuses = {
+        "pending_owner",
+        "pending_confirmation",
+        "pending",
+        "sent_for_correction",
+    }
+    if post_approval_status in pending_post_statuses:
         return "post report approval pending"
-    if post_confirmation_status in {"pending_owner", "pending_confirmation", "pending", "sent_for_correction"}:
+    if post_confirmation_status in pending_post_statuses:
         return "post report confirmation pending"
     if post_approval_status == "draft" or post_confirmation_status == "draft":
         return "post report not submitted"
@@ -201,7 +249,10 @@ def _current_owner_stage(
         return f"request {request_approval_status}"
     if post_approval_status == "approved" or post_confirmation_status in {"approved", "confirmed"}:
         return "post report approved"
-    if request_approval_status in {"approved", "confirmed"} or request_confirmation_status in {"approved", "confirmed"}:
+    if request_approval_status in {"approved", "confirmed"} or request_confirmation_status in {
+        "approved",
+        "confirmed",
+    }:
         return "request approved; report pending"
     return "unknown"
 

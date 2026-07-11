@@ -148,8 +148,8 @@ Fields:
 Validation:
 
 - MVP uses static seed rows only, not a live FX integration,
-- seed LKR with the official company rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`), `source = company`, and `rate_status = official`,
-- temporary manual rates are allowed only for currencies without company-approved rates and must use `rate_status = provisional`; official company-approved rates use `rate_status = official`,
+- seed all six scoped currencies from the July 10 company-provided official rates: LKR 368.90, NPR 89, OMR 0.46, AED 1.00, MMK 4300, and MYR 4.39 per USD,
+- internet/public FX fallback is not allowed for this phase; currencies outside the company-provided list remain `missing`,
 - USD fields stay null when FX is unavailable,
 - cross-country views must expose missing-FX warnings.
 
@@ -385,12 +385,9 @@ Compact online all-period brand mix by doctor.
 
 Fields:
 
-- `id`
-- `source_file_id`, `ingestion_run_id`
+- `source_file_id`
 - `country_id`
-- `first_calendar_month_id`, `last_calendar_month_id`
 - `pcode_normalized`
-- `doctor_name`
 - `brand_group`
 - `own_or_competitor`
 - `prescription_qty`
@@ -401,7 +398,7 @@ Fields:
 Validation:
 
 - unique conflict target: `source_file_id`, `country_id`, `pcode_normalized`, `brand_group`, `own_or_competitor`, `currency_code`,
-- supports doctor detail brand mix without storing every monthly SKU row online,
+- supports doctor detail brand mix and brand filters without storing row UUIDs, doctor names, repeated month metadata, or every monthly SKU row online,
 - detailed SKU-level aggregate evidence is retained in local compressed extracts under `data/processed/`.
 
 ### rcpa_country_brand_month_summary
@@ -521,7 +518,7 @@ Quadrants:
 
 Default quadrant logic:
 
-- x-axis investment/effort uses `total_roi_spend_local` or `total_roi_spend_usd` when official/provisional FX exists,
+- x-axis investment/effort uses `total_roi_spend_local` or `total_roi_spend_usd` when official company FX exists,
 - y-axis reward/result uses Cipla prescription quantity or value from RCPA,
 - thresholds are deterministic medians within the selected country/month/filter cohort unless a later configuration file supplies explicit thresholds,
 - `dark_horse = true` when quadrant is `low_effort_high_reward`.

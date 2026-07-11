@@ -26,7 +26,7 @@ def test_consolidation_financial_mapping_preserves_local_and_usd_fields() -> Non
     assert row["currency_code"] == "LKR"
     assert row["fx_rate_status"] == "official"
     assert row["fx_rate_source"] == "company"
-    assert row["fx_rate_to_usd"] == Decimal("1") / Decimal("310")
+    assert row["fx_rate_to_usd"] == Decimal("1") / Decimal("368.90")
     assert row["confirmed_contracted_amount_usd"] == (row["confirmed_contracted_amount_local"] * row["fx_rate_to_usd"]).quantize(Decimal("0.01"))
 
 

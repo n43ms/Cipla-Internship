@@ -37,6 +37,10 @@ class DataQualityService:
             limitations.append("Sri Lanka May execution includes consolidation-derived snapshots.")
         if row.get("missing_fx_count"):
             limitations.append("Non-LKR financial rows without company FX remain local-only for USD comparisons.")
+        if row.get("rcpa_manual_mapping_count"):
+            limitations.append("Historical RCPA includes manual P-code mapping before 2025-11-01.")
+        if row.get("rcpa_unknown_mapping_count"):
+            limitations.append("Some RCPA rows have unknown P-code mapping provenance.")
         return DataQualitySummary(
             meta=build_meta(self.session, flags=flags, limitations=limitations),
             latest_ingestion=latest,
@@ -50,6 +54,16 @@ class DataQualityService:
             match_coverage=_decimal(row.get("match_coverage")),
             pcode_coverage=_decimal(row.get("pcode_coverage")),
             rcpa_coverage=_decimal(row.get("rcpa_coverage")),
+            rcpa_manual_mapping_count=int(row.get("rcpa_manual_mapping_count") or 0),
+            rcpa_system_mapping_count=int(row.get("rcpa_system_mapping_count") or 0),
+            rcpa_source_mapping_count=int(row.get("rcpa_source_mapping_count") or 0),
+            rcpa_unknown_mapping_count=int(row.get("rcpa_unknown_mapping_count") or 0),
+            rcpa_covered_month_start=(
+                str(row.get("rcpa_covered_month_start")) if row.get("rcpa_covered_month_start") else None
+            ),
+            rcpa_covered_month_end=(
+                str(row.get("rcpa_covered_month_end")) if row.get("rcpa_covered_month_end") else None
+            ),
             missing_fx_count=int(row.get("missing_fx_count") or 0),
             provisional_fx_count=int(row.get("provisional_fx_count") or 0),
             btu_btc_reconciliation_issue_count=int(row.get("btu_btc_reconciliation_issue_count") or 0),
@@ -162,6 +176,10 @@ def _quality_flags(row: dict[str, object]) -> list[str]:
         flags.append("provisional_fx")
     if int(row.get("doctor_no_rcpa_count") or 0):
         flags.append("no_rcpa")
+    if int(row.get("rcpa_manual_mapping_count") or 0):
+        flags.append("manual_rcpa_mapping")
+    if int(row.get("rcpa_unknown_mapping_count") or 0):
+        flags.append("unknown_rcpa_mapping")
     if int(row.get("actual_attendance_missing_pcode_count") or 0):
         flags.append("unallocated_doctor_spend")
     return flags

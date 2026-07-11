@@ -16,6 +16,6 @@ def test_ingestion_settings_redact_database_url() -> None:
     assert settings.redacted_dict()["database_url"] == "***"
 
 
-def test_company_lkr_rate_defaults_to_310() -> None:
-    assert Settings().company_lkr_per_usd == 310.0
-    assert IngestionSettings().company_lkr_per_usd == 310.0
+def test_company_lkr_rate_defaults_to_july_10_official_rate() -> None:
+    assert Settings(_env_file=None).company_lkr_per_usd == 368.90
+    assert IngestionSettings(_env_file=None).company_lkr_per_usd == 368.90

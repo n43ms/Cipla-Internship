@@ -1,5 +1,46 @@
 # Data Dictionary
 
+## Planned Data-Gated Terms
+
+These terms are intentionally not implemented as database entities until real source files are profiled.
+
+| Term | Working Meaning | Gate |
+|---|---|---|
+| sponsorship event | A confirmed source row that business labels as sponsorship, conference sponsorship, no-fee/free-service support, or similar | Requires observed raw source labels and stable request/event keys |
+| sponsorship doctor | A doctor linked to a sponsorship event through country + P-code or another confirmed doctor-level key | Requires P-code/doctor linkage evidence |
+| no-fee service | A service or agreement outcome associated with sponsorship/free-service workflow | Requires exact source label and date behavior |
+| post-sponsorship movement | RCPA movement after a sponsorship event, described as association, not causality | Requires sponsorship facts plus enough before/after RCPA months |
+| accommodation support | Travel/accommodation support related to a doctor or event | Requires a separate source or confirmed fields in consolidation |
+| territory opportunity | A territory-level opportunity segment based on official territory mapping and deterministic metrics | Requires official territory/patch/region/cluster mapping |
+| manual P-code provenance | Evidence that P-codes were manually mapped or source-supplied | Requires actual provenance fields in RCPA or doctor master source |
+
+## Sponsorship ROI Phase Terms
+
+These terms are clarified by the July 10 source package and should be used consistently in source contracts, loaders, views, APIs, UI, and ExecAI.
+
+| Term | Meaning | Source Evidence |
+|---|---|---|
+| manual batch upload | User-controlled refresh of the known workbook package; no SFTP or SharePoint polling in this phase | Received raw reports and Abhijeet clarification |
+| raw consolidated intervention report | Smart Contract event/intervention spine with expense, request, expected/actual P-code, and HQ fields | `files/Raw Reports -Point 1/Consolidated Raw Report/` |
+| raw doctor-wise intervention report | CRM HTML-XLS export with doctor-level Smart Contract economics | `files/Raw Reports -Point 1/Doctor Raw Report/` |
+| cleaned presentable report | Business-facing comparison file; not ingestion source of truth | `files/Cleaned Presentable Version - Point 2/` |
+| sponsorship | National Conference or International Conference only by default | `INTERVENTION TYPE`, `Type of intervention`, cleaned `TYPE` |
+| ERS | International conference evidence, not a separate sponsorship root category | `files/Historical Smart Contracts-Point 5/ERS.xlsx` |
+| no-fee engagement | Free service/agreement evidence, usually after prior sponsorship/agreement but not proof by itself | source labels after profiling |
+| paid/service engagement | Speaker, consultancy, advisory, honorarium, or similar paid/service activity | doctor-wise/cleaned contract fields |
+| FMV amount | Fair-market-value amount used for economics/negotiation comparison | doctor-wise `FMV amount` |
+| contracted amount | Contracted value actually agreed/paid for the doctor engagement | doctor-wise `Contracted Amount` |
+| contract saving | `FMV amount - Contracted Amount`; negotiation efficiency, not prescription ROI | derived from doctor-wise report |
+| BTC/BTU expense | Expense components used for travel/accommodation/total expense handling | consolidated and doctor-wise expense fields |
+| official company FX | Company-provided rates only; no internet fallback | Sri Lanka 368.90, Nepal 89, Oman 0.46, UAE 1.00, Myanmar 4300, Malaysia 4.39 |
+| cumulative monthly RCPA | Unified all-BU monthly workbook that includes cumulative months and must be upserted/replaced idempotently | `RCPA Report All Bu's Apr'26 - 03 Jul'26.xlsx` |
+| historical RCPA backfill | Confirmed historical RCPA XLSB files used for older prescription context | root-level historical RCPA `.xlsb` files |
+| manual-before-1-Nov P-code mapping | Historical RCPA P-code mapping before 1 Nov is manual | Abhijeet clarification |
+| FS HQ | Smart Contract HQ/territory field; equivalent to meeting/email `FQ HQ` wording | raw consolidated and doctor-wise reports |
+| RCPA Location | RCPA territory/location field | monthly RCPA `Location` |
+| RCPA PATCHNAME | RCPA patch field | monthly RCPA `PATCHNAME` |
+| MSL Location/Patch | Doctor master territory enrichment used for doctor identity and territory metadata; may fill missing engagement P-codes only on unique country-plus-doctor-name matches | MSL `Location`, `Territory Id`, `Patch`, `Patchsname` |
+
 ## Phase 3 Source Workbooks
 
 Real workbooks live locally in `data/raw/` and are not committed.
@@ -155,9 +196,8 @@ Important mappings:
 Currency:
 
 - country default currency is used.
-- Sri Lanka uses LKR and official company FX `1 USD = 310 LKR`.
-- non-LKR currencies use documented public market FX as `provisional` when no company rate is provided.
-- provisional public FX rates are decision-support estimates only and must be replaced with company finance rates before official reporting.
+- All six scoped markets use company-provided official FX dated 2026-07-10: LKR 368.90, NPR 89, OMR 0.46, AED 1.00, MMK 4300, and MYR 4.39 per USD.
+- Internet/public FX fallback is not allowed for this phase.
 
 ### Consolidation Doctor Fields To `request_doctors`
 
@@ -224,9 +264,10 @@ source_file_id + country + month + brand_group + own_or_competitor + currency_co
 Summary usage:
 
 - `rcpa_doctor_month_summary` drives Doctor ROI trend, Cipla vs competitor split, no-RCPA flags, and ROI quadrants.
-- `rcpa_doctor_brand_summary` drives doctor detail brand mix without storing monthly SKU detail online.
+- `rcpa_doctor_brand_summary` is a slim serving table that drives doctor detail brand mix and brand filters without storing monthly SKU detail, doctor names, row UUIDs, or repeated first/last month metadata online.
 - `rcpa_country_brand_month_summary` drives country/month/brand market trend summaries.
 - `doctors` is seeded from RCPA doctor-month summaries using country-scoped Pcode uniqueness.
+- MSL doctor-master files are ingested as staging/reference enrichment. The durable outputs are doctor identity, doctor-master source coverage, territory fields on `doctors`, and safe missing-P-code enrichment on engagement facts; raw MSL mapping rows are not retained in Supabase.
 
 Pcode rules:
 
@@ -255,9 +296,8 @@ Financial source semantics:
 
 FX rules:
 
-- Sri Lanka LKR uses official company FX: `1 USD = 310 LKR`.
-- Non-LKR currencies use documented public market FX as `provisional` when no company FX exists.
-- `provisional` FX is allowed only when a documented non-official rate exists.
+- All scoped currencies use company-provided official FX only.
+- `provisional` FX remains a data-quality status for legacy rows, but new sponsorship/RCPA ingestion must not create public-rate fallback rows.
 - missing FX remains possible for unknown/unmapped currencies.
 
 Budget quality flags:
@@ -272,7 +312,7 @@ Budget aggregation rules:
 - matched requests are grouped under their matched `plan_event_id` before calculating summary unspent gap or overrun;
 - request-level rows are evidence rows and must not be summed as independent planned-budget gaps;
 - local money is grouped by `currency_code` and is never summed across currencies;
-- USD comparisons include rows with seeded official or provisional FX. LKR uses the official company rate `1 USD = 310 LKR`; NPR/MMK/OMR/AED/MYR use provisional public rates dated 2026-06-19 until company finance rates are supplied.
+- USD comparisons use the July 10 official company FX values for LKR, NPR, OMR, AED, MMK, and MYR.
 - top-level local totals are null when more than one currency is present; consumers must use `local_totals_by_currency`.
 
 ## Phase 6 Doctor ROI

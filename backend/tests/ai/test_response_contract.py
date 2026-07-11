@@ -88,6 +88,29 @@ def test_parse_structured_answer_rewrites_internal_paths_to_dashboard_copy() -> 
     assert "Workflow status cards" in parsed["limitations"][0]
 
 
+def test_parse_structured_answer_enforces_association_language() -> None:
+    parsed = parse_structured_answer(
+        json.dumps(
+            {
+                "markdownAnswer": "The sponsorship caused causal uplift in prescriptions.",
+                "evidenceRefs": [],
+                "assumptions": [],
+                "limitations": ["Causal uplift wording was requested."],
+                "confidence": "medium",
+            }
+        ),
+        {
+            "territory": {"topTerritoryRows": [{"territoryName": "Colombo"}]},
+            "limitations": [],
+            "dataQualityFlags": [],
+        },
+    )
+
+    assert "caused" not in parsed["answerMarkdown"].lower()
+    assert "uplift" not in parsed["answerMarkdown"].lower()
+    assert "associated" in parsed["answerMarkdown"].lower()
+
+
 def test_parse_structured_answer_rejects_malformed_json() -> None:
     with pytest.raises(AiResponseContractError):
         parse_structured_answer("not json", {"limitations": [], "dataQualityFlags": []})

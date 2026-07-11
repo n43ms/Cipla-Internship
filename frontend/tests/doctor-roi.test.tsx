@@ -29,10 +29,53 @@ describe("Doctor ROI page", () => {
     expect(screen.getByText("Doctor ROI interpretation notes")).toBeInTheDocument();
     expect(screen.getByText("Dr Test")).toBeInTheDocument();
     expect(screen.getByText("No RCPA rows")).toBeInTheDocument();
+    expect(screen.getByText("amount unavailable")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]);
     await waitFor(() => expect(screen.getByText("Engagement history")).toBeInTheDocument());
+    expect(screen.getByText("Sponsorship and engagement evidence")).toBeInTheDocument();
+    expect(screen.getByText("Associated movement: 35 Cipla prescriptions.")).toBeInTheDocument();
+    expect(screen.getByText("No-fee history")).toBeInTheDocument();
+    expect(screen.getByText("FMV")).toBeInTheDocument();
+    expect(screen.getByText("amount unavailable not counted as zero")).toBeInTheDocument();
     expect(screen.getByText("Prescription trend")).toBeInTheDocument();
     expect(screen.getByText("Brand mix")).toBeInTheDocument();
+  });
+
+  it("shows an empty sponsorship evidence state when a doctor has no outcome evidence", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes("/api/filters")) return ok(filters());
+      if (url.includes("/api/doctors/LK/1001")) return ok({ ...doctorDetail(), sponsorshipOutcome: null });
+      if (url.includes("/api/doctors/roi")) return ok(doctorRoi());
+      return ok({});
+    });
+
+    renderWithProviders(<DoctorRoi />);
+
+    await waitFor(() => expect(screen.getByText("Dr Test")).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]);
+    await waitFor(() => expect(screen.getByText("No sponsorship or engagement outcome evidence is available for this doctor.")).toBeInTheDocument());
+  });
+
+  it("keeps the drawer useful when the doctor detail endpoint fails", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes("/api/filters")) return ok(filters());
+      if (url.includes("/api/doctors/LK/1001")) {
+        return Promise.resolve(new Response(JSON.stringify({ error: "missing view" }), { status: 500 }));
+      }
+      if (url.includes("/api/doctors/roi")) return ok(doctorRoi());
+      return ok({});
+    });
+
+    renderWithProviders(<DoctorRoi />);
+
+    await waitFor(() => expect(screen.getByText("Dr Test")).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]);
+
+    await waitFor(() => expect(screen.getByText("Doctor drilldown could not load full history.")).toBeInTheDocument());
+    expect(screen.getByText("Selected row evidence")).toBeInTheDocument();
+    expect(screen.getByText("Sponsorships")).toBeInTheDocument();
   });
 });
 
@@ -78,7 +121,7 @@ function doctorRoi() {
     segmentCounts: { high_value_unengaged: 1, no_rcpa: 1 },
     rows: [
       doctorRow({ doctorName: "Dr Test", pcodeNormalized: "1001", hasRcpa: true, roiSegment: "high_value_unengaged" }),
-      doctorRow({ doctorName: "Dr Missing RCPA", pcodeNormalized: "2002", hasRcpa: false, roiSegment: "no_rcpa", quadrantLabel: "insufficient data" }),
+      doctorRow({ doctorName: "Dr Missing RCPA", pcodeNormalized: "2002", hasRcpa: false, roiSegment: "no_rcpa", quadrantLabel: "insufficient data", totalRoiSpendUsd: 0, sponsorshipEngagementAmountMissingCount: 1 }),
     ],
   };
 }
@@ -87,6 +130,24 @@ function doctorDetail() {
   return {
     meta: meta(),
     profile: doctorRow({ doctorName: "Dr Test", pcodeNormalized: "1001", hasRcpa: true, roiSegment: "high_value_unengaged" }),
+    sponsorshipOutcome: {
+      sponsorshipCount: 1,
+      paidEngagementCount: 1,
+      noFeeEngagementCount: 1,
+      paidServiceCount: 1,
+      contractedAmountUsd: 2400,
+      fmvAmountUsd: 3000,
+      contractSavingUsd: 600,
+      doctorAttributableExpenseLocal: 2000,
+      knownEngagementInvestmentUsd: 2400,
+      preWindowCiplaRxQty: 100,
+      postWindowCiplaRxQty: 135,
+      associatedRxMovementQty: 35,
+      preWindowMonthCount: 6,
+      postWindowMonthCount: 6,
+      evidenceConfidence: "high",
+      evidenceCaveats: ["amount_unavailable_not_counted_as_zero"],
+    },
     engagementHistory: [{ requestId: "REQ-1", interventionName: "Diabetes CME", interventionType: "CME", month: "2026-05", actualInterventionDate: "2026-05-10", totalRoiSpendUsd: 10, fxRateStatus: "official" }],
     prescriptionTrend: [{ month: "2026-05", ciplaPrescriptionQty: 100, competitorPrescriptionQty: 50, totalPrescriptionQty: 150 }],
     brandMix: [{ brandGroup: "Brand A", ownOrCompetitor: "own", prescriptionQty: 100, prescriptionValueLocal: 2500 }],
@@ -103,11 +164,18 @@ function doctorRow(overrides: Partial<Record<string, unknown>> = {}) {
     doctorClass: "A",
     activeStatus: "Active",
     engagementCount: 0,
+    sponsorshipCount: 1,
+    noFeeEngagementCount: 0,
+    paidEngagementCount: 1,
     firstEngagementDate: null,
     lastEngagementDate: null,
     directHcpBtuSpendUsd: 0,
     overheadBtcSpendUsd: 0,
-    totalRoiSpendUsd: 0,
+    totalRoiSpendUsd: 2400,
+    contractedEngagementAmountUsd: 2400,
+    fmvEngagementAmountUsd: 3000,
+    contractSavingUsd: 600,
+    sponsorshipEngagementAmountMissingCount: 0,
     ciplaPrescriptionQty: 100,
     competitorPrescriptionQty: 50,
     totalPrescriptionQty: 150,

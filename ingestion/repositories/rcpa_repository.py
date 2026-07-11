@@ -21,7 +21,9 @@ class RcpaRepository(CanonicalRepository):
             """
             insert into rcpa_doctor_month_summary (
                 source_file_id, ingestion_run_id, country_id, calendar_month_id, pcode_raw,
-                pcode_normalized, doctor_name, speciality, doctor_class, patch_name, active_status,
+                pcode_normalized, doctor_name, speciality, doctor_class, patch_name,
+                territory_name, active_status,
+                mapping_provenance, mapping_note, source_mapping_method, competitor_filter_note,
                 own_prescription_qty, own_prescription_value_local,
                 competitor_prescription_qty, competitor_prescription_value_local,
                 total_prescription_qty, total_prescription_value_local, currency_code,
@@ -29,7 +31,9 @@ class RcpaRepository(CanonicalRepository):
             )
             values (
                 :source_file_id, :ingestion_run_id, :country_id, :calendar_month_id, :pcode_raw,
-                :pcode_normalized, :doctor_name, :speciality, :doctor_class, :patch_name, :active_status,
+                :pcode_normalized, :doctor_name, :speciality, :doctor_class, :patch_name,
+                :territory_name, :active_status,
+                :mapping_provenance, :mapping_note, :source_mapping_method, :competitor_filter_note,
                 :own_prescription_qty, :own_prescription_value_local,
                 :competitor_prescription_qty, :competitor_prescription_value_local,
                 :total_prescription_qty, :total_prescription_value_local, :currency_code,
@@ -44,7 +48,12 @@ class RcpaRepository(CanonicalRepository):
                 speciality = excluded.speciality,
                 doctor_class = excluded.doctor_class,
                 patch_name = excluded.patch_name,
+                territory_name = excluded.territory_name,
                 active_status = excluded.active_status,
+                mapping_provenance = excluded.mapping_provenance,
+                mapping_note = excluded.mapping_note,
+                source_mapping_method = excluded.source_mapping_method,
+                competitor_filter_note = excluded.competitor_filter_note,
                 own_prescription_qty = excluded.own_prescription_qty,
                 own_prescription_value_local = excluded.own_prescription_value_local,
                 competitor_prescription_qty = excluded.competitor_prescription_qty,
@@ -61,6 +70,7 @@ class RcpaRepository(CanonicalRepository):
     def replace_rcpa_doctor_brand_summaries(
         self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
     ) -> None:
+        _ = ingestion_run_id
         self.session.execute(
             text("delete from rcpa_doctor_brand_summary where source_file_id = :source_file_id"),
             {"source_file_id": source_file_id},
@@ -70,25 +80,24 @@ class RcpaRepository(CanonicalRepository):
         statement = text(
             """
             insert into rcpa_doctor_brand_summary (
-                source_file_id, ingestion_run_id, country_id, first_calendar_month_id,
-                last_calendar_month_id, pcode_normalized, doctor_name, brand_group,
+                source_file_id, country_id, pcode_normalized, brand_group,
                 own_or_competitor, prescription_qty, prescription_value_local, currency_code,
                 row_count_aggregated
             )
             values (
-                :source_file_id, :ingestion_run_id, :country_id, :first_calendar_month_id,
-                :last_calendar_month_id, :pcode_normalized, :doctor_name, :brand_group,
+                :source_file_id, :country_id, :pcode_normalized, :brand_group,
                 :own_or_competitor, :prescription_qty, :prescription_value_local, :currency_code,
                 :row_count_aggregated
             )
             on conflict (
-                source_file_id, country_id, pcode_normalized, brand_group, own_or_competitor, currency_code
+                source_file_id,
+                country_id,
+                pcode_normalized,
+                brand_group,
+                own_or_competitor,
+                currency_code
             ) do update
             set
-                ingestion_run_id = excluded.ingestion_run_id,
-                first_calendar_month_id = excluded.first_calendar_month_id,
-                last_calendar_month_id = excluded.last_calendar_month_id,
-                doctor_name = excluded.doctor_name,
                 prescription_qty = excluded.prescription_qty,
                 prescription_value_local = excluded.prescription_value_local,
                 row_count_aggregated = excluded.row_count_aggregated
@@ -97,11 +106,8 @@ class RcpaRepository(CanonicalRepository):
         rows = [
             {
                 **record,
-                "ingestion_run_id": ingestion_run_id,
                 "source_file_id": source_file_id,
                 "country_id": self.country_id(str(record["country"])),
-                "first_calendar_month_id": self.month_id(record["first_month_start_date"]),
-                "last_calendar_month_id": self.month_id(record["last_month_start_date"]),
             }
             for record in records
         ]
@@ -112,7 +118,12 @@ class RcpaRepository(CanonicalRepository):
         self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
     ) -> None:
         self.session.execute(
-            text("delete from rcpa_country_brand_month_summary where source_file_id = :source_file_id"),
+            text(
+                """
+                delete from rcpa_country_brand_month_summary
+                where source_file_id = :source_file_id
+                """
+            ),
             {"source_file_id": source_file_id},
         )
         if not records:
@@ -130,7 +141,12 @@ class RcpaRepository(CanonicalRepository):
                 :row_count_aggregated
             )
             on conflict (
-                source_file_id, country_id, calendar_month_id, brand_group, own_or_competitor, currency_code
+                source_file_id,
+                country_id,
+                calendar_month_id,
+                brand_group,
+                own_or_competitor,
+                currency_code
             ) do update
             set
                 ingestion_run_id = excluded.ingestion_run_id,
@@ -150,7 +166,9 @@ class RcpaRepository(CanonicalRepository):
             month_start_date = record.get("month_start_date")
             rows_by_key[key] = {
                 "country_id": self.country_id(str(record["country"])),
-                "calendar_month_id": self.month_id(month_start_date) if month_start_date is not None else None,
+                "calendar_month_id": (
+                    self.month_id(month_start_date) if month_start_date is not None else None
+                ),
                 "pcode_normalized": record["pcode_normalized"],
                 "latest_doctor_name": record.get("doctor_name"),
                 "speciality": record.get("speciality"),
@@ -164,22 +182,41 @@ class RcpaRepository(CanonicalRepository):
         statement = text(
             """
             insert into doctors (
-                country_id, pcode_normalized, latest_doctor_name, speciality, doctor_class, patch_name,
+                country_id,
+                pcode_normalized,
+                latest_doctor_name,
+                speciality,
+                doctor_class,
+                patch_name,
                 active_status, first_seen_month_id, last_seen_month_id, source_count, updated_at
             )
             values (
-                :country_id, :pcode_normalized, :latest_doctor_name, :speciality, :doctor_class, :patch_name,
+                :country_id,
+                :pcode_normalized,
+                :latest_doctor_name,
+                :speciality,
+                :doctor_class,
+                :patch_name,
                 :active_status, :calendar_month_id, :calendar_month_id, :source_count, now()
             )
             on conflict (country_id, pcode_normalized) do update
             set
-                latest_doctor_name = coalesce(excluded.latest_doctor_name, doctors.latest_doctor_name),
+                latest_doctor_name = coalesce(
+                    excluded.latest_doctor_name,
+                    doctors.latest_doctor_name
+                ),
                 speciality = coalesce(excluded.speciality, doctors.speciality),
                 doctor_class = coalesce(excluded.doctor_class, doctors.doctor_class),
                 patch_name = coalesce(excluded.patch_name, doctors.patch_name),
                 active_status = coalesce(excluded.active_status, doctors.active_status),
-                first_seen_month_id = coalesce(doctors.first_seen_month_id, excluded.first_seen_month_id),
-                last_seen_month_id = coalesce(excluded.last_seen_month_id, doctors.last_seen_month_id),
+                first_seen_month_id = coalesce(
+                    doctors.first_seen_month_id,
+                    excluded.first_seen_month_id
+                ),
+                last_seen_month_id = coalesce(
+                    excluded.last_seen_month_id,
+                    doctors.last_seen_month_id
+                ),
                 source_count = doctors.source_count + 1,
                 updated_at = now()
             """

@@ -1,22 +1,26 @@
 import { lazy, Suspense, useState, type ReactNode } from "react";
-import { Activity, ArrowRight, DatabaseZap, LogOut, ShieldCheck, Sparkles, Stethoscope, WalletCards, type LucideIcon } from "lucide-react";
+import { Activity, ArrowRight, DatabaseZap, LogOut, MapPinned, Sparkles, Stethoscope, UploadCloud, WalletCards, type LucideIcon } from "lucide-react";
 
 import { AiAssistantPanel } from "./components/ai/AiAssistantPanel";
 import { DataFreshnessBanner, LoadingState } from "./components/common/DataStateComponents";
+import { SidePanel } from "./components/common/SidePanel";
 import { WarningCenterDock, WarningCenterProvider } from "./components/common/WarningCenter";
+import { DataUploadPanel } from "./components/ingestion/DataUploadPanel";
 import { useDashboardMeta } from "./hooks/useDashboardMeta";
 const BudgetUtilization = lazy(() => import("./pages/BudgetUtilization").then((module) => ({ default: module.BudgetUtilization })));
 const DataQuality = lazy(() => import("./pages/DataQuality").then((module) => ({ default: module.DataQuality })));
 const DoctorRoi = lazy(() => import("./pages/DoctorRoi").then((module) => ({ default: module.DoctorRoi })));
 const ExecutionMatrix = lazy(() => import("./pages/ExecutionMatrix").then((module) => ({ default: module.ExecutionMatrix })));
+const TerritoryIntelligence = lazy(() => import("./pages/TerritoryIntelligence").then((module) => ({ default: module.TerritoryIntelligence })));
 
-type PageKey = "execution" | "budget" | "doctors" | "quality";
+type PageKey = "execution" | "budget" | "doctors" | "territory" | "quality";
 type AiContext = { pageContext: string; filters: Record<string, unknown> };
 
 const PAGES: Array<{ key: PageKey; label: string; icon: LucideIcon }> = [
   { key: "execution", label: "Execution", icon: Activity },
   { key: "budget", label: "Budget", icon: WalletCards },
   { key: "doctors", label: "Doctor ROI", icon: Stethoscope },
+  { key: "territory", label: "Territory", icon: MapPinned },
   { key: "quality", label: "Data Quality", icon: DatabaseZap },
 ];
 
@@ -24,6 +28,7 @@ export default function App() {
   const [page, setPage] = useState<PageKey>("execution");
   const [entered, setEntered] = useState(false);
   const [entryExiting, setEntryExiting] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [aiContext, setAiContext] = useState<AiContext>({ pageContext: "execution", filters: {} });
   const meta = useDashboardMeta();
 
@@ -86,6 +91,16 @@ export default function App() {
               <div className="h-8 w-px shrink-0 bg-white/[0.08]" aria-hidden="true" />
               <button
                 type="button"
+                onClick={() => setUploadOpen(true)}
+                className="soft-button flex shrink-0 items-center gap-2 rounded-md border-accent/20 bg-accent/[0.07] px-3 py-2 text-sm text-cyan-100 hover:border-accent/40 hover:bg-accent/[0.13]"
+                aria-label="Upload new data files"
+                title="Upload new data/files"
+              >
+                <UploadCloud aria-hidden="true" className="h-4 w-4" />
+                Upload new data/files
+              </button>
+              <button
+                type="button"
                 onClick={returnToEntry}
                 className="soft-button flex shrink-0 items-center gap-2 rounded-md border-red-300/10 px-3 py-2 text-sm text-red-300/90 hover:border-red-300/25 hover:bg-red-400/[0.2] hover:text-red-50"
                 aria-label="Exit to loading screen"
@@ -106,11 +121,15 @@ export default function App() {
           {page === "execution" ? <ExecutionMatrix onAiContextChange={setAiContext} /> : null}
           {page === "budget" ? <BudgetUtilization onAiContextChange={setAiContext} /> : null}
           {page === "doctors" ? <DoctorRoi onAiContextChange={setAiContext} /> : null}
+          {page === "territory" ? <TerritoryIntelligence onAiContextChange={setAiContext} /> : null}
           {page === "quality" ? <DataQuality onAiContextChange={setAiContext} /> : null}
         </Suspense>
       </div>
       <WarningCenterDock />
       <AiAssistantPanel context={aiContext} />
+      <SidePanel open={uploadOpen} onClose={() => setUploadOpen(false)} widthClass="sm:max-w-2xl">
+        <DataUploadPanel onClose={() => setUploadOpen(false)} />
+      </SidePanel>
     </WarningCenterProvider>
   );
 }
@@ -125,7 +144,7 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
           <div className="transition-all duration-700 hover:scale-y-[1.05] hover:opacity-90"><CiplaLogoPlaceholder size="lg"/></div>
           
           <p className="mt-8 text-sm font-semibold uppercase tracking-[0.24em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Cipla EMEU/PBP analytics</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">
+          <h1 className="mt-4 pb-[6px] max-w-4xl text-4xl font-semibold bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">
             Doctor ROI and Execution Intelligence for regional investment decisions.
           </h1>
           <p className="mt-5 max-w-3xl text-base leading-7 text-zinc-300">

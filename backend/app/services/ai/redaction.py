@@ -4,6 +4,9 @@ import re
 from typing import Any
 
 PCODE_PATTERN = re.compile(r"\b(?:\d{4,}|\d{2,}\.\d+)\b")
+CONTRACT_ID_PATTERN = re.compile(
+    r"(?i)\b(?:contract|agreement)\s*(?:id|no\.?|number)?\s*[:#-]?\s*[A-Z]{0,4}[-/ ]?\d{2,}\b"
+)
 MONEY_PATTERN = re.compile(
     r"(?i)\b(?:usd|lkr|npr|mmk|aed|omr|myr|rs\.?|₹|\$)\s*[\d,]+(?:\.\d+)?\b|"
     r"\b[\d,]{5,}(?:\.\d+)?\s*(?:usd|lkr|npr|mmk|aed|omr|myr|rs\.?)\b"
@@ -21,6 +24,7 @@ def redact_text(value: str) -> tuple[str, bool]:
 
     redacted = value
     redacted = RAW_SOURCE_PATTERN.sub("[SOURCE_EXCERPT]", redacted)
+    redacted = CONTRACT_ID_PATTERN.sub("[CONTRACT_ID]", redacted)
     redacted = MONEY_PATTERN.sub("[AMOUNT]", redacted)
     redacted = PCODE_PATTERN.sub("[PCODE]", redacted)
 

@@ -126,6 +126,57 @@ def upgrade() -> None:
         ),
     )
     op.create_table(
+        "doctor_engagement_facts",
+        uuid_pk(),
+        *source_cols(),
+        sa.Column("country_id", sa.UUID(), sa.ForeignKey("countries.id"), nullable=False),
+        sa.Column("calendar_month_id", sa.UUID(), sa.ForeignKey("calendar_months.id"), nullable=False),
+        sa.Column("region", sa.Text()),
+        sa.Column("territory_code", sa.Text()),
+        sa.Column("fs_hq", sa.Text()),
+        sa.Column("request_date", sa.Date()),
+        sa.Column("expected_intervention_date", sa.Date()),
+        sa.Column("intervention_id", sa.Text(), nullable=False),
+        sa.Column("intervention_name", sa.Text()),
+        sa.Column("intervention_name_normalized", sa.Text()),
+        sa.Column("intervention_type", sa.Text()),
+        sa.Column("intervention_subtype", sa.Text()),
+        sa.Column("pcode_raw", sa.Text()),
+        sa.Column("pcode_normalized", sa.Text()),
+        sa.Column("doctor_segment", sa.Text()),
+        sa.Column("doctor_name", sa.Text(), nullable=False),
+        sa.Column("estimated_intervention_amount_local", sa.Numeric(18, 2)),
+        sa.Column("btu_expense_local", sa.Numeric(18, 2)),
+        sa.Column("expense_against_advance_local", sa.Numeric(18, 2)),
+        sa.Column("btc_expense_local", sa.Numeric(18, 2)),
+        sa.Column("total_actual_intervention_expense_local", sa.Numeric(18, 2)),
+        sa.Column("fmv_speciality", sa.Text()),
+        sa.Column("fmv_tier", sa.Text()),
+        sa.Column("fmv_role", sa.Text()),
+        sa.Column("fmv_amount_local", sa.Numeric(18, 2)),
+        sa.Column("contract_id", sa.Text()),
+        sa.Column("contracted_amount_local", sa.Numeric(18, 2)),
+        sa.Column("contract_saving_local", sa.Numeric(18, 2)),
+        sa.Column("status", sa.Text()),
+        sa.Column("is_sponsorship", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column("sponsorship_class", sa.Text()),
+        sa.Column("engagement_class", sa.Text(), nullable=False, server_default="unclassified"),
+        sa.Column("classification_reason", sa.Text()),
+        sa.Column("classification_confidence", sa.Numeric(5, 2)),
+        sa.Column("currency_code", sa.Text(), nullable=False),
+        sa.Column("fx_rate_to_usd", sa.Numeric(18, 10)),
+        sa.Column("fx_rate_source", sa.Text()),
+        sa.Column("fx_rate_date", sa.Date()),
+        sa.Column("fx_rate_status", sa.Text(), nullable=False),
+        sa.Column("fmv_amount_usd", sa.Numeric(18, 2)),
+        sa.Column("contracted_amount_usd", sa.Numeric(18, 2)),
+        sa.Column("contract_saving_usd", sa.Numeric(18, 2)),
+        sa.Column("source_sheet_name", sa.Text(), nullable=False),
+        sa.Column("source_row_number", sa.Integer(), nullable=False),
+        sa.Column("source_row_hash", sa.Text(), nullable=False),
+        sa.UniqueConstraint("source_file_id", "source_row_hash", name="uq_doctor_engagement_source_row_hash"),
+    )
+    op.create_table(
         "doctors",
         uuid_pk(),
         sa.Column("country_id", sa.UUID(), sa.ForeignKey("countries.id"), nullable=False),
@@ -162,6 +213,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("rcpa_prescriptions")
     op.drop_table("doctors")
+    op.drop_table("doctor_engagement_facts")
     op.drop_table("request_doctors")
     op.drop_table("execution_requests")
     op.drop_table("execution_snapshots")

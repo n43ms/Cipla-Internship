@@ -1,11 +1,11 @@
 INSERT INTO exchange_rates (currency_code, rate_to_usd, rate_date, source, rate_status)
 VALUES
-  ('LKR', 1.0 / 310.0, '2026-06-16', 'company', 'official'),
-  ('NPR', 1.0 / 151.06361, '2026-06-19', 'public_market_rate', 'provisional'),
-  ('MMK', 1.0 / 2104.074172, '2026-06-19', 'public_market_rate', 'provisional'),
-  ('OMR', 1.0 / 0.384497, '2026-06-19', 'public_market_rate', 'provisional'),
-  ('AED', 1.0 / 3.6725, '2026-06-19', 'public_market_rate', 'provisional'),
-  ('MYR', 1.0 / 4.114387, '2026-06-19', 'public_market_rate', 'provisional')
+  ('LKR', 1.0 / 368.90, '2026-07-10', 'company', 'official'),
+  ('NPR', 1.0 / 89.0, '2026-07-10', 'company', 'official'),
+  ('MMK', 1.0 / 4300.0, '2026-07-10', 'company', 'official'),
+  ('OMR', 1.0 / 0.46, '2026-07-10', 'company', 'official'),
+  ('AED', 1.0, '2026-07-10', 'company', 'official'),
+  ('MYR', 1.0 / 4.39, '2026-07-10', 'company', 'official')
 ON CONFLICT (currency_code, rate_date, source) DO UPDATE
 SET
   rate_to_usd = EXCLUDED.rate_to_usd,

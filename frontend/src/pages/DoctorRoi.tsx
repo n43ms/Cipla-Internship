@@ -7,7 +7,7 @@ import { DataFreshnessBanner, EmptyState, ErrorState, LoadingState } from "../co
 import { SidePanel } from "../components/common/SidePanel";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { WarningRegistration } from "../components/common/WarningCenter";
-import { DoctorRoiCards, DoctorRoiTable, DoctorScatter, QuadrantMatrix, type DoctorRoiSortKey } from "../components/doctors/DoctorRoiComponents";
+import { DoctorOutcomeEvidence, DoctorRoiCards, DoctorRoiTable, DoctorScatter, QuadrantMatrix, type DoctorRoiSortKey } from "../components/doctors/DoctorRoiComponents";
 import { nextSort, type SortState } from "../components/common/SortableTable";
 import type { DoctorRoiRow } from "../types/api";
 
@@ -122,13 +122,38 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
         {selected ? <>
           <button className="soft-button rounded-md border border-zinc-800 px-3 py-1 text-sm" onClick={() => setSelected(null)}>Close</button>
           <h2 className="mt-4 break-words text-xl font-semibold">{selected.doctorName ?? selected.pcodeNormalized}</h2>
-          <p className="break-words text-sm text-zinc-500">{selected.countryCode} - {selected.roiSegment.replaceAll("_", " ")}</p>
+          <p className="break-words text-sm text-zinc-500">{selected.countryCode} - {formatSegment(selected.roiSegment)}</p>
+          <div className="mt-3 grid gap-2 rounded-md border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-400">
+            <p>
+              Territory: <span className="text-zinc-200">{selected.territoryName ?? "not mapped"}</span>
+              {selected.territoryId ? <span className="text-zinc-500"> ({selected.territoryId})</span> : null}
+            </p>
+            <p>
+              Doctor master:{" "}
+              <span className={selected.hasDoctorMaster ? "text-emerald-300" : "text-zinc-500"}>
+                {selected.hasDoctorMaster ? "MSL mapped" : "not available"}
+              </span>
+            </p>
+          </div>
           <p className="mt-2 text-xs text-zinc-500">
             RCPA baseline: {formatDate(selected.rcpaFirstMonth)} to {formatDate(selected.rcpaLastMonth)}
           </p>
           {detail.isLoading ? <LoadingState label="Loading doctor detail" compact /> : null}
+          {detail.isError ? (
+            <div className="mt-5 grid gap-4 text-sm">
+              <div className="rounded-md border border-amber-300/20 bg-amber-300/[0.07] p-3 text-amber-100/85">
+                <p className="font-semibold">Doctor drilldown could not load full history.</p>
+                <p className="mt-1 text-xs leading-5">
+                  Showing the selected table row below. This usually means the backend detail endpoint
+                  or one of the new sponsorship/RCPA views is not migrated or refreshed yet.
+                </p>
+              </div>
+              <DoctorRowFallback selected={selected} />
+            </div>
+          ) : null}
           {detail.data ? (
             <div className="mt-5 grid min-w-0 gap-4 text-sm">
+              <DoctorOutcomeEvidence detail={detail.data} />
               <section>
                 <h3 className="font-semibold">Engagement history</h3>
                 {detail.data.engagementHistory.length ? detail.data.engagementHistory.map((item, index) => (
@@ -184,5 +209,41 @@ function Select({
 
 function formatDate(value: string | null) {
   if (!value) return "not available";
-  return new Date(value).toLocaleDateString();
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString();
+}
+
+function formatSegment(value: string | null | undefined) {
+  return value ? value.replaceAll("_", " ") : "segment unavailable";
+}
+
+function DoctorRowFallback({ selected }: { selected: DoctorRoiRow }) {
+  return (
+    <section className="grid gap-3">
+      <h3 className="font-semibold">Selected row evidence</h3>
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <FallbackMetric label="Spend" value={`$${selected.totalRoiSpendUsd.toLocaleString()}`} />
+        <FallbackMetric label="Cipla Rx" value={selected.ciplaPrescriptionQty.toLocaleString()} />
+        <FallbackMetric label="Engagements" value={selected.engagementCount.toLocaleString()} />
+        <FallbackMetric label="Sponsorships" value={selected.sponsorshipCount.toLocaleString()} />
+        <FallbackMetric label="Paid engagements" value={selected.paidEngagementCount.toLocaleString()} />
+        <FallbackMetric label="No-fee" value={selected.noFeeEngagementCount.toLocaleString()} />
+      </div>
+      {selected.sponsorshipEngagementAmountMissingCount > 0 ? (
+        <p className="rounded-md border border-amber-300/20 bg-amber-300/[0.06] p-2 text-xs text-amber-100/80">
+          Prior sponsorship or engagement evidence exists, but at least one amount is unavailable.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function FallbackMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-zinc-800 bg-zinc-900 p-2">
+      <p className="text-xs text-zinc-500">{label}</p>
+      <p className="mt-1 break-words font-semibold text-zinc-100">{value}</p>
+    </div>
+  );
 }

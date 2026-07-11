@@ -5,8 +5,7 @@ from pathlib import Path
 
 from ingestion.models import SourceFile
 
-
-SUPPORTED_EXTENSIONS = {".xlsx", ".xlsb"}
+SUPPORTED_EXTENSIONS = {".xlsx", ".xlsb", ".xls"}
 
 
 def calculate_file_hash(path: Path, chunk_size: int = 1024 * 1024) -> str:
@@ -43,6 +42,14 @@ def infer_country_scope(filename: str) -> str | None:
 
 def infer_source_type(filename: str) -> str:
     lower = filename.lower()
+    if "msl" in lower or "doctor master" in lower:
+        return "msl_doctor_master"
+    if "doctor" in lower or "dr wise" in lower:
+        return "doctor_contract"
+    if "ers" in lower:
+        return "ers_conference"
+    if "cleaned" in lower or "presentable" in lower:
+        return "cleaned_presentable"
     if "rcpa" in lower:
         return "rcpa"
     if "consolidation" in lower:
@@ -54,7 +61,11 @@ def infer_source_type(filename: str) -> str:
     return "unknown"
 
 
-def discover_source_files(data_dir: Path, *, require_gitignored_path: bool = True) -> list[SourceFile]:
+def discover_source_files(
+    data_dir: Path,
+    *,
+    require_gitignored_path: bool = True,
+) -> list[SourceFile]:
     if not data_dir.exists():
         return []
     discovered: list[SourceFile] = []

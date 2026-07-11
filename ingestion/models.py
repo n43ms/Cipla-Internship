@@ -6,7 +6,6 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-
 CellValue = str | int | float | bool | date | None
 
 
@@ -20,6 +19,65 @@ class SourceFile:
     country_scope: str | None = None
     period_start: date | None = None
     period_end: date | None = None
+
+
+@dataclass(frozen=True)
+class SourceManifestEntry:
+    label: str
+    path: Path
+    source_type: str
+    raw_or_cleaned: str
+    country_scope: tuple[str, ...] = ()
+    period_start: date | None = None
+    period_end: date | None = None
+    owner: str | None = None
+    export_timestamp: datetime | None = None
+    received_package_path: Path | None = None
+
+
+@dataclass(frozen=True)
+class SourceManifest:
+    path: Path
+    received_package_path: Path
+    files: list[SourceManifestEntry]
+    owner: str | None = None
+
+
+@dataclass(frozen=True)
+class SourceFingerprint:
+    path: Path
+    file_format: str
+    inferred_source_type: str
+    confidence: float
+    evidence: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class BatchFileValidation:
+    entry: SourceManifestEntry
+    file_hash: str | None
+    fingerprint: SourceFingerprint | None
+    accepted: bool
+    issues: list[ValidationIssue] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class BatchValidationResult:
+    manifest: SourceManifest
+    files: list[BatchFileValidation]
+
+    @property
+    def issues(self) -> list[ValidationIssue]:
+        return [issue for file_result in self.files for issue in file_result.issues]
+
+    @property
+    def accepted_files(self) -> list[BatchFileValidation]:
+        return [file_result for file_result in self.files if file_result.accepted]
+
+    @property
+    def quarantined_files(self) -> list[BatchFileValidation]:
+        return [file_result for file_result in self.files if not file_result.accepted]
 
 
 @dataclass(frozen=True)
@@ -55,6 +113,11 @@ class SheetProfile:
     column_names: list[str]
     required_column_coverage: float
     sample_rows: list[list[str | None]]
+    mapped_columns: dict[str, str] = field(default_factory=dict)
+    unknown_columns: list[str] = field(default_factory=list)
+    missing_required_columns: list[str] = field(default_factory=list)
+    empty_columns: list[str] = field(default_factory=list)
+    sample_values: dict[str, list[str]] = field(default_factory=dict)
     anomalies: list[str] = field(default_factory=list)
 
 
@@ -69,6 +132,8 @@ class WorkbookProfile:
     detected_sheet_count: int
     canonical_sheets: list[str]
     sheets: list[SheetProfile]
+    period_start: date | None = None
+    period_end: date | None = None
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -83,6 +148,8 @@ class WorkbookProfile:
             "file_type": self.file_type,
             "source_type": self.source_type,
             "country_scope": self.country_scope,
+            "period_start": self.period_start.isoformat() if self.period_start else None,
+            "period_end": self.period_end.isoformat() if self.period_end else None,
             "detected_sheet_count": self.detected_sheet_count,
             "canonical_sheets": self.canonical_sheets,
             "warnings": self.warnings,
@@ -97,6 +164,11 @@ class WorkbookProfile:
                     "column_names": sheet.column_names,
                     "required_column_coverage": sheet.required_column_coverage,
                     "sample_rows": sheet.sample_rows,
+                    "mapped_columns": sheet.mapped_columns,
+                    "unknown_columns": sheet.unknown_columns,
+                    "missing_required_columns": sheet.missing_required_columns,
+                    "empty_columns": sheet.empty_columns,
+                    "sample_values": sheet.sample_values,
                     "anomalies": sheet.anomalies,
                 }
                 for sheet in self.sheets

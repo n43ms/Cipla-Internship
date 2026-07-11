@@ -99,6 +99,24 @@ def test_doctor_detail_contract_returns_profile_history_trend_and_brand_mix(monk
         lambda self, country_code, pcode: {
             "meta": _meta({"countryCode": country_code, "pcode": pcode}),
             "profile": _doctor_row(),
+            "sponsorshipOutcome": {
+                "sponsorshipCount": 1,
+                "paidEngagementCount": 1,
+                "noFeeEngagementCount": 0,
+                "paidServiceCount": 0,
+                "contractedAmountUsd": Decimal("100"),
+                "fmvAmountUsd": Decimal("120"),
+                "contractSavingUsd": Decimal("20"),
+                "doctorAttributableExpenseLocal": Decimal("0"),
+                "knownEngagementInvestmentUsd": Decimal("100"),
+                "preWindowCiplaRxQty": Decimal("50"),
+                "postWindowCiplaRxQty": Decimal("70"),
+                "associatedRxMovementQty": Decimal("20"),
+                "preWindowMonthCount": 3,
+                "postWindowMonthCount": 3,
+                "evidenceConfidence": "high",
+                "evidenceCaveats": [],
+            },
             "engagementHistory": [
                 {
                     "requestId": "REQ-1",
@@ -137,6 +155,8 @@ def test_doctor_detail_contract_returns_profile_history_trend_and_brand_mix(monk
     assert response.status_code == 200
     body = response.json()
     assert body["profile"]["doctorName"] == "Dr Test"
+    assert body["sponsorshipOutcome"]["sponsorshipCount"] == 1
+    assert body["sponsorshipOutcome"]["associatedRxMovementQty"] == 20.0
     assert body["engagementHistory"][0]["requestId"] == "REQ-1"
     assert body["prescriptionTrend"][0]["ciplaPrescriptionQty"] == 100.0
     assert body["brandMix"][0]["brandGroup"] == "Brand A"

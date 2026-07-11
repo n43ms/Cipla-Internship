@@ -32,15 +32,15 @@
 
 ## Decision: Static Exchange-Rate Seeds for MVP
 
-**Rationale**: Currency normalization is needed for cross-country comparison, but live FX integration is not necessary for the MVP. The LKR seed must use the company-approved rate `1 USD = 310 LKR` (`rate_to_usd = 1/310`, `source = company`, `rate_status = official`). Other currencies may use documented provisional seeds or remain missing until company-approved rates are supplied.
+**Rationale**: Currency normalization is needed for cross-country comparison, but live FX integration is not necessary for the MVP. The July 10 company-provided official rates must be used for all six scoped markets: LKR 368.90, NPR 89, OMR 0.46, AED 1.00, MMK 4300, and MYR 4.39 per USD. Internet-rate fallback is not allowed.
 
 **Alternatives considered**: Live FX API integration was rejected as a deployment and reliability distraction. Ignoring FX entirely was rejected because it would make cross-country money charts misleading.
 
-## Decision: Official Company LKR FX Rate
+## Decision: Official Company FX Rates
 
-**Rationale**: The user has now provided the company-approved Sri Lanka exchange rate. LKR conversion must use `1 USD = 310 LKR` everywhere, stored as `rate_to_usd = 1/310`, `source = company`, and `rate_status = official`. This removes ambiguity for Sri Lanka while preserving stable business reporting.
+**Rationale**: The user has now provided the company-approved rates for every scoped market. Conversions must use the July 10 official values everywhere, stored with `source = company` and `rate_status = official`.
 
-**Alternatives considered**: Keeping LKR provisional was rejected because an official company rate is now available. Live internet rates remain rejected because they create moving business numbers. Other currencies may remain provisional or missing until company-approved rates are supplied.
+**Alternatives considered**: Keeping public/provisional rates was rejected because official company values are now available. Live internet rates remain rejected because they create moving business numbers.
 
 ## Decision: Confirmed + BTU/BTC Financial Mapping
 

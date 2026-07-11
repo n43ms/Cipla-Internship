@@ -2,10 +2,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ingestion.file_registry import SourceFile, calculate_file_hash, infer_country_scope, infer_source_type
+from ingestion.file_registry import (
+    SourceFile,
+    calculate_file_hash,
+    infer_country_scope,
+    infer_source_type,
+)
 from ingestion.models import HeaderMatch, SheetData, SheetProfile, WorkbookProfile
 from ingestion.schema_maps import SCHEMAS, SourceSchema, normalize_header
 from ingestion.workbook_reader import read_workbook
+
+MAX_SAMPLE_VALUES_PER_COLUMN = 3
+MAX_SAMPLE_VALUE_LENGTH = 80
 
 
 def _cell_text(value: object) -> str:
@@ -16,7 +24,11 @@ def _used_range(rows: list[list[object]]) -> tuple[int, int, str]:
     non_empty_rows = [row for row in rows if any(_cell_text(value) for value in row)]
     row_count = len(non_empty_rows)
     column_count = max((len(row) for row in non_empty_rows), default=0)
-    range_label = f"A1:{_excel_column_name(column_count)}{row_count}" if row_count and column_count else "empty"
+    range_label = (
+        f"A1:{_excel_column_name(column_count)}{row_count}"
+        if row_count and column_count
+        else "empty"
+    )
     return row_count, column_count, range_label
 
 
@@ -32,7 +44,9 @@ def _excel_column_name(index: int) -> str:
 
 def detect_header(sheet: SheetData, schema: SourceSchema, max_scan_rows: int = 30) -> HeaderMatch:
     lookup = schema.alias_lookup()
-    best = HeaderMatch(row_index=None, headers=[], canonical_columns={}, required_coverage=0, score=0)
+    best = HeaderMatch(
+        row_index=None, headers=[], canonical_columns={}, required_coverage=0, score=0
+    )
     for idx, row in enumerate(sheet.rows[:max_scan_rows]):
         canonical_columns: dict[str, int] = {}
         headers = [_cell_text(value) for value in row]
@@ -61,11 +75,92 @@ def classify_workbook(path: Path, sheets: list[SheetData]) -> str:
         scores[filename_guess] += 8
     for sheet in sheets:
         for source_type, schema in SCHEMAS.items():
-            if any(sheet.name.lower() == expected.lower() for expected in schema.canonical_sheet_names):
+            if any(
+                sheet.name.lower() == expected.lower() for expected in schema.canonical_sheet_names
+            ):
                 scores[source_type] += 4
             header = detect_header(sheet, schema)
             scores[source_type] += header.score
     return max(scores.items(), key=lambda item: item[1])[0] if any(scores.values()) else "unknown"
+
+
+def _schema_drift_metadata(
+    sheet: SheetData,
+    header: HeaderMatch,
+    schema: SourceSchema | None,
+) -> tuple[dict[str, str], list[str], list[str], list[str], dict[str, list[str]]]:
+    headers = header.headers
+    lookup = schema.alias_lookup() if schema else {}
+    mapped_columns: dict[str, str] = {}
+    mapped_indexes: set[int] = set()
+    unknown_columns: list[str] = []
+    empty_columns: list[str] = []
+    sample_values: dict[str, list[str]] = {}
+
+    for canonical, column_index in sorted(header.canonical_columns.items()):
+        mapped_indexes.add(column_index)
+        mapped_columns[canonical] = (
+            headers[column_index] if column_index < len(headers) else canonical
+        )
+
+    for column_index, column_name in enumerate(headers):
+        if not column_name:
+            continue
+        normalized = normalize_header(column_name)
+        if column_index not in mapped_indexes and normalized not in lookup:
+            unknown_columns.append(column_name)
+
+        values = _column_values_after_header(sheet.rows, header.row_index, column_index)
+        non_empty_values = [_cell_text(value) for value in values if _cell_text(value)]
+        if not non_empty_values:
+            empty_columns.append(column_name)
+
+        bounded = _bounded_sample_values(non_empty_values)
+        if bounded:
+            sample_key = _sample_key(column_name, column_index, header)
+            sample_values[sample_key] = bounded
+
+    missing_required_columns = (
+        sorted(schema.required.difference(header.canonical_columns)) if schema else []
+    )
+    return mapped_columns, unknown_columns, missing_required_columns, empty_columns, sample_values
+
+
+def _column_values_after_header(
+    rows: list[list[object]],
+    header_row_index: int | None,
+    column_index: int,
+) -> list[object]:
+    start = (header_row_index + 1) if header_row_index is not None else 0
+    values: list[object] = []
+    for row in rows[start:]:
+        values.append(row[column_index] if column_index < len(row) else None)
+    return values
+
+
+def _bounded_sample_values(values: list[str]) -> list[str]:
+    samples: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        normalized = value.strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        samples.append(
+            normalized
+            if len(normalized) <= MAX_SAMPLE_VALUE_LENGTH
+            else f"{normalized[: MAX_SAMPLE_VALUE_LENGTH - 3]}..."
+        )
+        if len(samples) >= MAX_SAMPLE_VALUES_PER_COLUMN:
+            break
+    return samples
+
+
+def _sample_key(column_name: str, column_index: int, header: HeaderMatch) -> str:
+    for canonical, mapped_index in header.canonical_columns.items():
+        if mapped_index == column_index:
+            return canonical
+    return column_name
 
 
 def select_canonical_sheets(source_type: str, sheet_profiles: list[SheetProfile]) -> list[str]:
@@ -79,21 +174,33 @@ def select_canonical_sheets(source_type: str, sheet_profiles: list[SheetProfile]
     if source_type == "consolidation" and "working" in lowered:
         return [lowered["working"]]
     if source_type == "execution_snapshot":
-        preferred = [name for name in names if name.lower() in {"yp", "nepal", "myanmar", "sri lanka"}]
+        preferred = [
+            name for name in names if name.lower() in {"yp", "nepal", "myanmar", "sri lanka"}
+        ]
         return preferred or names[:1]
     if source_type == "rcpa":
         return [
             sheet.sheet_name
             for sheet in sheet_profiles
-            if sheet.required_column_coverage >= 0.6 or sheet.sheet_name.lower() in {"rcpa", "data", "sheet1"}
+            if sheet.required_column_coverage >= 0.6
+            or sheet.sheet_name.lower() in {"rcpa", "data", "sheet1"}
         ][:3]
+    if source_type == "msl_doctor_master":
+        return [
+            sheet.sheet_name
+            for sheet in sheet_profiles
+            if sheet.required_column_coverage >= 0.6
+            or sheet.sheet_name.lower() in {"msl", "doctor master", "sheet1"}
+        ][:1]
     return names[:1]
 
 
 def profile_source_file(source_file: SourceFile) -> WorkbookProfile:
     workbook = read_workbook(source_file.path)
     source_type = (
-        source_file.source_type if source_file.source_type != "unknown" else classify_workbook(source_file.path, workbook.sheets)
+        source_file.source_type
+        if source_file.source_type != "unknown"
+        else classify_workbook(source_file.path, workbook.sheets)
     )
     schema = SCHEMAS.get(source_type)
     sheet_profiles: list[SheetProfile] = []
@@ -102,9 +209,15 @@ def profile_source_file(source_file: SourceFile) -> WorkbookProfile:
         row_count, column_count, used_range = _used_range(sheet.rows)
         header = detect_header(sheet, schema) if schema else HeaderMatch(None, [], {}, 0, 0)
         anomalies: list[str] = []
-        if schema and header.required_coverage < 1 and header.score > 0:
-            missing = sorted(schema.required.difference(header.canonical_columns))
-            anomalies.append(f"missing required aliases: {', '.join(missing)}")
+        (
+            mapped_columns,
+            unknown_columns,
+            missing_required_columns,
+            empty_columns,
+            sample_values,
+        ) = _schema_drift_metadata(sheet, header, schema)
+        if schema and missing_required_columns and header.score > 0:
+            anomalies.append(f"missing required aliases: {', '.join(missing_required_columns)}")
         if row_count == 0:
             anomalies.append("empty sheet")
         sample_rows = [
@@ -118,10 +231,17 @@ def profile_source_file(source_file: SourceFile) -> WorkbookProfile:
                 column_count=column_count,
                 used_range=used_range,
                 likely_header_row=(header.row_index + 1 if header.row_index is not None else None),
-                likely_data_start_row=(header.row_index + 2 if header.row_index is not None else None),
+                likely_data_start_row=(
+                    header.row_index + 2 if header.row_index is not None else None
+                ),
                 column_names=header.headers,
                 required_column_coverage=header.required_coverage,
                 sample_rows=sample_rows,
+                mapped_columns=mapped_columns,
+                unknown_columns=unknown_columns,
+                missing_required_columns=missing_required_columns,
+                empty_columns=empty_columns,
+                sample_values=sample_values,
                 anomalies=anomalies,
             )
         )
@@ -134,10 +254,13 @@ def profile_source_file(source_file: SourceFile) -> WorkbookProfile:
         file_hash=source_file.file_hash,
         file_type=source_file.file_type,
         source_type=source_type,
-        country_scope=source_file.country_scope or infer_country_scope(source_file.original_filename),
+        country_scope=source_file.country_scope
+        or infer_country_scope(source_file.original_filename),
         detected_sheet_count=len(workbook.sheets),
         canonical_sheets=canonical_sheets,
         sheets=sheet_profiles,
+        period_start=source_file.period_start,
+        period_end=source_file.period_end,
         warnings=warnings,
     )
 
@@ -152,4 +275,3 @@ def profile_path(path: Path) -> WorkbookProfile:
         country_scope=infer_country_scope(path.name),
     )
     return profile_source_file(source_file)
-

@@ -44,6 +44,8 @@ def test_data_quality_filters_and_latest_ingestion_contract(monkeypatch) -> None
 
     assert quality["loadedFileCount"] == 8
     assert quality["matchCoverage"] == 0.6138
+    assert quality["rcpaCoveredMonthEnd"] == "2026-07-01"
+    assert quality["rcpaManualMappingCount"] == 42
     assert quality["validationIssues"][0]["errorCode"] == "missing_field"
     assert quality["fxQuality"][0]["rateStatus"] == "official"
     assert filters["latestIngestionStatus"] == "completed_with_warnings"
@@ -66,6 +68,12 @@ def _summary() -> dict:
         "matchCoverage": Decimal("0.6138"),
         "pcodeCoverage": Decimal("1"),
         "rcpaCoverage": Decimal("0.9926"),
+        "rcpaManualMappingCount": 42,
+        "rcpaSystemMappingCount": 120,
+        "rcpaSourceMappingCount": 8,
+        "rcpaUnknownMappingCount": 0,
+        "rcpaCoveredMonthStart": "2024-04-01",
+        "rcpaCoveredMonthEnd": "2026-07-01",
         "missingFxCount": 0,
         "provisionalFxCount": 1555,
         "btuBtcReconciliationIssueCount": 0,

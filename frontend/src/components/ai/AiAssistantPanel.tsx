@@ -25,8 +25,9 @@ type AiContext = {
 
 const PROMPTS = [
   "Where is execution risk highest?",
-  "Summarize budget and BTU/BTC risk.",
-  "Which doctor ROI signals need attention?",
+  "Explain this doctor's sponsorship, FMV, and RCPA evidence.",
+  "Which territory signals are underserved or overserved?",
+  "Where do no-fee or paid engagements affect Doctor ROI?",
   "What data-quality limitations should I mention?",
 ];
 

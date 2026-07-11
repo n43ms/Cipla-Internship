@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.app.repositories.base import pagination
@@ -219,31 +220,73 @@ class DoctorRepository:
         return [dict(row) for row in rows]
 
     def engagement_history(self, country_code: str, pcode: str) -> list[dict[str, Any]]:
-        rows = self.session.execute(
-            text(
-                """
-                select
-                    er.req_id as request_id,
-                    er.intervention_name,
-                    er.intervention_type,
-                    cm.month_label as month,
-                    er.actual_intervention_date,
-                    er.total_roi_spend_usd,
-                    er.fx_rate_status
-                from request_doctors rd
-                join execution_requests er on er.id = rd.execution_request_id
-                join countries c on c.id = er.country_id
-                join calendar_months cm on cm.id = er.calendar_month_id
-                where lower(c.code) = lower(:country_code)
-                  and rd.pcode_normalized = :pcode
-                  and rd.attendance_type = 'actual'
-                order by cm.month_start_date desc, er.actual_intervention_date desc nulls last
-                limit 50
-                """
-            ),
-            {"country_code": country_code, "pcode": pcode},
-        ).mappings()
-        return [dict(row) for row in rows]
+        rows = list(
+            self.session.execute(
+                text(
+                    """
+                    select
+                        er.req_id as request_id,
+                        er.intervention_name,
+                        er.intervention_type,
+                        er.intervention_sub_type as intervention_subtype,
+                        cm.month_label as month,
+                        er.actual_intervention_date,
+                        null::date as expected_intervention_date,
+                        er.total_roi_spend_usd,
+                        null::numeric as contracted_amount_usd,
+                        null::numeric as fmv_amount_usd,
+                        null::numeric as contract_saving_usd,
+                        er.fx_rate_status,
+                        'execution_request' as evidence_source
+                    from request_doctors rd
+                    join execution_requests er on er.id = rd.execution_request_id
+                    join countries c on c.id = er.country_id
+                    join calendar_months cm on cm.id = er.calendar_month_id
+                    where lower(c.code) = lower(:country_code)
+                      and rd.pcode_normalized = :pcode
+                      and rd.attendance_type = 'actual'
+                    order by month desc, actual_intervention_date desc nulls last
+                    limit 50
+                    """
+                ),
+                {"country_code": country_code, "pcode": pcode},
+            ).mappings()
+        )
+        try:
+            contract_rows = list(
+                self.session.execute(
+                    text(
+                        """
+                        select
+                            def.intervention_id as request_id,
+                            def.intervention_name,
+                            def.intervention_type,
+                            def.intervention_subtype,
+                            cm.month_label as month,
+                            null::date as actual_intervention_date,
+                            def.expected_intervention_date,
+                            def.contracted_amount_usd as total_roi_spend_usd,
+                            def.contracted_amount_usd,
+                            def.fmv_amount_usd,
+                            def.contract_saving_usd,
+                            def.fx_rate_status,
+                            'doctor_wise_contract' as evidence_source
+                        from doctor_engagement_facts def
+                        join countries c on c.id = def.country_id
+                        join calendar_months cm on cm.id = def.calendar_month_id
+                        where lower(c.code) = lower(:country_code)
+                          and def.pcode_normalized = :pcode
+                        order by month desc, expected_intervention_date desc nulls last
+                        limit 50
+                        """
+                    ),
+                    {"country_code": country_code, "pcode": pcode},
+                ).mappings()
+            )
+            rows.extend(contract_rows)
+        except SQLAlchemyError:
+            self.session.rollback()
+        return [dict(row) for row in rows[:50]]
 
     def prescription_trend(self, country_code: str, pcode: str) -> list[dict[str, Any]]:
         rows = self.session.execute(
@@ -282,6 +325,25 @@ class DoctorRepository:
             {"country_code": country_code, "pcode": pcode},
         ).mappings()
         return [dict(row) for row in rows]
+
+    def sponsorship_outcome(self, country_code: str, pcode: str) -> dict[str, Any] | None:
+        try:
+            row = self.session.execute(
+                text(
+                    """
+                    select *
+                    from mv_sponsorship_outcomes
+                    where lower(country_code) = lower(:country_code)
+                      and pcode_normalized = :pcode
+                    limit 1
+                    """
+                ),
+                {"country_code": country_code, "pcode": pcode},
+            ).mappings().first()
+        except SQLAlchemyError:
+            self.session.rollback()
+            return None
+        return dict(row) if row else None
 
 
 def _doctor_order_by(sort: str, direction: str) -> str:

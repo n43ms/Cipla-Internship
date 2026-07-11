@@ -1,6 +1,7 @@
 # ruff: noqa: E501
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -101,6 +102,7 @@ def deterministic_answer(
         f"{budget.get('spendWithoutPlanCount', 0)} spend-without-plan rows, "
         f"{doctor.get('darkHorseCount', 0)} dark-horse doctor opportunities, and "
         f"{quality.get('validationWarningCount', 0)} validation warnings. "
+        "Sponsorship, engagement, RCPA, and territory movement should be read as associated evidence, not causal uplift. "
         "Use the dashboard pointers below to verify the exact cards, tables, and rows "
         "behind the answer before making a final business decision."
     )
@@ -129,6 +131,7 @@ def evidence_refs_for_context(context: dict[str, Any]) -> list[dict[str, Any]]:
         ("workflow.requestRows", "requestRows", "reqId"),
         ("budget.topGapRows", "topGapRows", "eventName"),
         ("doctorRoi.topDoctorOpportunityRows", "topDoctorOpportunityRows", "doctorName"),
+        ("territory.topTerritoryRows", "topTerritoryRows", "territoryName"),
         ("interventions.topRows", "topRows", "interventionType"),
     ):
         parent_name = section.split(".")[0]
@@ -165,6 +168,14 @@ def evidence_refs_for_context(context: dict[str, Any]) -> list[dict[str, Any]]:
     return refs[:12]
 
 
+def association_only_text(value: str) -> str:
+    safe = re.sub(r"\bcausal uplift\b", "associated movement", value, flags=re.I)
+    safe = re.sub(r"\buplift\b", "movement", safe, flags=re.I)
+    safe = re.sub(r"\bcaused\b", "is associated with", safe, flags=re.I)
+    safe = re.sub(r"\bcauses\b", "is associated with", safe, flags=re.I)
+    return safe
+
+
 def _compact_ref_value(row: dict[str, Any]) -> str | int | float | bool | None:
     for key in (
         "pcodeNormalized",
@@ -173,6 +184,7 @@ def _compact_ref_value(row: dict[str, Any]) -> str | int | float | bool | None:
         "requestApprovalStatus",
         "unspentGapUsd",
         "totalRoiSpendUsd",
+        "opportunityLabel",
         "requestCount",
     ):
         value = row.get(key)
@@ -289,6 +301,20 @@ _POINTERS_BY_TOPIC: dict[str, list[dict[str, str]]] = {
             "section": "Doctor ROI table and doctor detail drawer",
             "detail": "Open individual doctors for Pcode, name, specialty, class, spend, prescriptions, RCPA trend, brand mix, and engagement history.",
             "reason": "Specific doctor recommendations must be verified at doctor-row and detail-drawer level.",
+        },
+    ],
+    "territory": [
+        {
+            "page": "Territory",
+            "section": "Territory opportunity table",
+            "detail": "Review territory, patch, doctor count, RCPA volume, engagement count, known investment, evidence confidence, and source caveats.",
+            "reason": "Territory questions depend on source-backed RCPA Location/PATCHNAME and engagement FS HQ evidence.",
+        },
+        {
+            "page": "Doctor ROI",
+            "section": "Doctor detail drawer",
+            "detail": "Use doctor detail evidence to verify sponsorship, paid engagement, no-fee, FMV, contracted value, and RCPA trend behind territory signals.",
+            "reason": "Territory labels should be validated against doctor-level evidence before acting.",
         },
     ],
     "quality": [

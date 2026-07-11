@@ -30,7 +30,7 @@ class RoiSegment(StrEnum):
     INSUFFICIENT_DATA = "insufficient_data"
 
 
-OFFICIAL_LKR_PER_USD = 310.0
+OFFICIAL_LKR_PER_USD = 368.90
 
 PHASE4_PRIMARY_COUNTRIES = ("Nepal", "Sri Lanka")
 PHASE4_EXECUTION_MONTHS = ("2026-04", "2026-05")

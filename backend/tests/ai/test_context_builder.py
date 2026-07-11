@@ -263,6 +263,21 @@ def test_context_builder_fetches_specific_doctor_detail_from_pcode(monkeypatch) 
         "brand_mix",
         lambda self, country_code, pcode: [{"brand_group": "Brand A", "prescription_qty": 80}],
     )
+    monkeypatch.setattr(
+        DoctorRepository,
+        "sponsorship_outcome",
+        lambda self, country_code, pcode: {
+            "sponsorship_count": 1,
+            "paid_engagement_count": 1,
+            "no_fee_engagement_count": 0,
+            "contracted_amount_usd": Decimal("200"),
+            "fmv_amount_usd": Decimal("250"),
+            "contract_saving_usd": Decimal("50"),
+            "associated_rx_movement_qty": Decimal("20"),
+            "evidence_confidence": "medium",
+            "evidence_caveats": ["manual_rcpa_mapping_period"],
+        },
+    )
 
     context = build_compact_context(
         object(),
@@ -275,7 +290,64 @@ def test_context_builder_fetches_specific_doctor_detail_from_pcode(monkeypatch) 
     details = context["doctorRoi"]["matchedDoctorDetails"]
     assert details[0]["profile"]["doctorName"] == "Dr Specific Name"
     assert details[0]["profile"]["pcodeNormalized"] == "12345"
+    assert details[0]["sponsorshipOutcome"]["sponsorship_count"] == 1
+    assert details[0]["sponsorshipOutcome"]["associated_rx_movement_qty"] == 20
     assert details[0]["engagementHistory"][0]["request_id"] == "REQ-1"
+
+
+def test_context_builder_includes_territory_rows_only_when_planned(monkeypatch) -> None:
+    from backend.app.services.data_quality_service import DataQualityService
+    from backend.app.services.doctor_service import DoctorService
+    from backend.app.services.territory_service import TerritoryService
+
+    monkeypatch.setattr(
+        TerritoryService,
+        "opportunities",
+        lambda self, **kwargs: {
+            "meta": _meta(["manual_rcpa_mapping"], ["Territory labels are deterministic."]),
+            "total": 1,
+            "labelCounts": {"underserved": 1},
+            "rows": [
+                {
+                    "countryCode": "LK",
+                    "countryName": "Sri Lanka",
+                    "territoryName": "Colombo",
+                    "patchName": "Patch A",
+                    "doctorCount": 3,
+                    "engagedDoctorCount": 0,
+                    "ciplaPrescriptionQty": 100,
+                    "competitorPrescriptionQty": 30,
+                    "totalPrescriptionQty": 130,
+                    "knownInvestmentUsd": 0,
+                    "opportunityLabel": "underserved",
+                    "evidenceConfidence": "medium",
+                    "sourceCaveats": ["manual_rcpa_mapping_period"],
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        DoctorService,
+        "roi",
+        lambda self, **kwargs: {"meta": _meta([], []), "total": 0, "rows": []},
+    )
+    monkeypatch.setattr(
+        DataQualityService,
+        "summary",
+        lambda self: {"meta": _meta([], []), "validationWarningCount": 0},
+    )
+
+    context = build_compact_context(
+        object(),
+        question="Which territory is underserved?",
+        page_context="territory",
+        filters={"country": "LK", "opportunityLabel": "underserved"},
+        query_plan=plan_query("Which territory is underserved?", "territory", 20),
+    )
+
+    assert context["territory"]["topTerritoryRows"][0]["territoryName"] == "Colombo"
+    assert context["territory"]["topTerritoryRows"][0]["opportunityLabel"] == "underserved"
+    assert "Territory labels are deterministic." in context["limitations"]
 
 
 def _meta(flags: list[str], limitations: list[str]) -> dict:

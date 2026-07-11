@@ -11,13 +11,18 @@ export function TableLoadingOverlay({
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-[#111315]/55 backdrop-blur-[1px]"
+      className="pointer-events-none absolute inset-0 z-10 bg-[#111315]/18 backdrop-blur-[1.5px]"
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center gap-2 rounded-lg border border-accent/15 bg-zinc-950/85 px-3 py-2 text-xs text-zinc-300 shadow-lg shadow-black/25">
-        <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin text-accent" />
-        {label}
+      <div className="absolute inset-x-0 top-[5.95rem] flex justify-center px-4">
+        <div className="flex items-center gap-3 rounded-full border border-accent/20 bg-zinc-950/65 px-4 py-3 text-sm font-medium text-zinc-300 shadow-2xl shadow-black/30 ring-1 ring-white/[0.035] backdrop-blur-xl">
+        <span className="relative flex h-9 w-9 items-center justify-center">
+          <span className="absolute inset-0 animate-ping rounded-full bg-accent/10" />
+          <LoaderCircle aria-hidden="true" className="relative h-9 w-9 animate-spin text-accent/90" strokeWidth={1.8} />
+        </span>
+        <span>{label}</span>
+        </div>
       </div>
     </div>
   );

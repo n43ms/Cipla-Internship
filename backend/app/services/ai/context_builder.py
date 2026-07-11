@@ -13,6 +13,7 @@ from backend.app.services.data_quality_service import DataQualityService
 from backend.app.services.doctor_service import DoctorService
 from backend.app.services.execution_service import ExecutionService
 from backend.app.services.intervention_service import InterventionService
+from backend.app.services.territory_service import TerritoryService
 from backend.app.services.workflow_service import WorkflowService
 
 DEFAULT_MAX_CONTEXT_CHARS = 24000
@@ -60,6 +61,7 @@ def build_compact_context(
     budget: dict[str, Any] = {}
     doctor: dict[str, Any] = {}
     quality: dict[str, Any] = {}
+    territory: dict[str, Any] = {}
     doctor_details: list[dict[str, Any]] = []
 
     if "execution" in sections:
@@ -126,6 +128,15 @@ def build_compact_context(
             )
     if "dataQuality" in sections:
         quality = _dump(DataQualityService(session).summary())
+    if "territory" in sections:
+        territory = _dump(
+            TerritoryService(session).opportunities(
+                country=country,
+                opportunity_label=_string_or_none(safe_filters.get("opportunityLabel")),
+                page=1,
+                page_size=detail_row_limit,
+            )
+        )
 
     context = {
         "question": question,
@@ -396,6 +407,37 @@ def build_compact_context(
             ),
             }
         )
+    if territory:
+        context["territory"] = {
+            "total": territory.get("total"),
+            "labelCounts": territory.get("labelCounts", {}),
+            "topTerritoryRows": _top_rows(
+                territory.get("rows", []),
+                [
+                    "countryCode",
+                    "countryName",
+                    "territoryName",
+                    "patchName",
+                    "doctorCount",
+                    "engagedDoctorCount",
+                    "ciplaPrescriptionQty",
+                    "competitorPrescriptionQty",
+                    "totalPrescriptionQty",
+                    "ciplaShareQty",
+                    "prescriptionsPerDoctor",
+                    "engagementCount",
+                    "sponsorshipCount",
+                    "paidEngagementCount",
+                    "noFeeEngagementCount",
+                    "engagementsPerDoctor",
+                    "knownInvestmentUsd",
+                    "opportunityLabel",
+                    "evidenceConfidence",
+                    "sourceCaveats",
+                ],
+                detail_row_limit,
+            ),
+        }
     context["limitations"] = _topic_limitations(
         _collect_limitations(
             execution,
@@ -406,6 +448,7 @@ def build_compact_context(
             budget,
             doctor,
             quality,
+            territory,
         ),
         query_plan.topics if query_plan else [],
     )
@@ -418,6 +461,7 @@ def build_compact_context(
             budget,
             doctor,
             quality,
+            territory,
         )
     return _fit_context(context, max_chars=max_chars)
 
@@ -439,6 +483,7 @@ def context_scope(context: dict[str, Any]) -> dict[str, Any]:
                 "interventions",
                 "budget",
                 "doctorRoi",
+                "territory",
                 "dataQuality",
             )
             if key in context
@@ -462,6 +507,7 @@ def _normalize_filters(filters: dict[str, Any]) -> dict[str, Any]:
         "speciality",
         "doctorClass",
         "roiSegment",
+        "opportunityLabel",
     }
     return {
         key: value
@@ -504,11 +550,20 @@ def _doctor_rows(rows: Any, limit: int = DEFAULT_ROW_LIMIT) -> list[dict[str, An
                 "doctorClass": row.get("doctorClass"),
                 "activeStatus": row.get("activeStatus"),
                 "engagementCount": row.get("engagementCount"),
+                "sponsorshipCount": row.get("sponsorshipCount"),
+                "paidEngagementCount": row.get("paidEngagementCount"),
+                "noFeeEngagementCount": row.get("noFeeEngagementCount"),
                 "firstEngagementDate": row.get("firstEngagementDate"),
                 "lastEngagementDate": row.get("lastEngagementDate"),
                 "directHcpBtuSpendUsd": row.get("directHcpBtuSpendUsd"),
                 "overheadBtcSpendUsd": row.get("overheadBtcSpendUsd"),
                 "totalRoiSpendUsd": row.get("totalRoiSpendUsd"),
+                "contractedEngagementAmountUsd": row.get("contractedEngagementAmountUsd"),
+                "fmvEngagementAmountUsd": row.get("fmvEngagementAmountUsd"),
+                "contractSavingUsd": row.get("contractSavingUsd"),
+                "sponsorshipEngagementAmountMissingCount": row.get(
+                    "sponsorshipEngagementAmountMissingCount"
+                ),
                 "ciplaPrescriptionQty": row.get("ciplaPrescriptionQty"),
                 "competitorPrescriptionQty": row.get("competitorPrescriptionQty"),
                 "totalPrescriptionQty": row.get("totalPrescriptionQty"),
@@ -552,6 +607,9 @@ def _doctor_detail_evidence(
                 {
                     "matchedTerm": term,
                     "profile": _doctor_profile_evidence(row),
+                    "sponsorshipOutcome": _dump(
+                        repository.sponsorship_outcome(country_code, pcode) or {}
+                    ),
                     "engagementHistory": _top_rows(
                         _dump(repository.engagement_history(country_code, pcode)),
                         [
@@ -561,7 +619,11 @@ def _doctor_detail_evidence(
                             "month",
                             "actual_intervention_date",
                             "total_roi_spend_usd",
+                            "contracted_amount_usd",
+                            "fmv_amount_usd",
+                            "contract_saving_usd",
                             "fx_rate_status",
+                            "evidence_source",
                         ],
                         8,
                     ),
@@ -600,11 +662,20 @@ def _doctor_profile_evidence(row: dict[str, Any]) -> dict[str, Any]:
         "doctorClass": row.get("doctor_class"),
         "activeStatus": row.get("active_status"),
         "engagementCount": row.get("engagement_count"),
+        "sponsorshipCount": row.get("sponsorship_count"),
+        "paidEngagementCount": row.get("paid_engagement_count"),
+        "noFeeEngagementCount": row.get("no_fee_engagement_count"),
         "firstEngagementDate": row.get("first_engagement_date"),
         "lastEngagementDate": row.get("last_engagement_date"),
         "directHcpBtuSpendUsd": row.get("direct_hcp_btu_spend_usd"),
         "overheadBtcSpendUsd": row.get("overhead_btc_spend_usd"),
         "totalRoiSpendUsd": row.get("total_roi_spend_usd"),
+        "contractedEngagementAmountUsd": row.get("contracted_engagement_amount_usd"),
+        "fmvEngagementAmountUsd": row.get("fmv_engagement_amount_usd"),
+        "contractSavingUsd": row.get("contract_saving_usd"),
+        "sponsorshipEngagementAmountMissingCount": row.get(
+            "sponsorship_engagement_amount_missing_count"
+        ),
         "ciplaPrescriptionQty": row.get("cipla_prescription_qty"),
         "competitorPrescriptionQty": row.get("competitor_prescription_qty"),
         "totalPrescriptionQty": row.get("total_prescription_qty"),
@@ -637,6 +708,7 @@ def _topic_limitations(limitations: list[str], topics: list[str]) -> list[str]:
         "intervention": ("intervention", "program", "type", "request", "report"),
         "budget": ("budget", "spend", "expense", "fx", "currency", "btu", "btc", "amount"),
         "doctor": ("doctor", "hcp", "pcode", "rcpa", "prescription", "roi", "fx", "spend"),
+        "territory": ("territory", "patch", "location", "underserved", "overserved"),
         "quality": (
             "quality",
             "validation",
@@ -709,6 +781,13 @@ def _fit_context(context: dict[str, Any], max_chars: int) -> dict[str, Any]:
         trimmed["interventions"] = {
             "topRows": context.get("interventions", {}).get("topRows", [])[:TRIMMED_ROW_LIMIT]
         }
+    if "territory" in context:
+        trimmed["territory"] = dict(context.get("territory", {})) | {
+            "topTerritoryRows": context.get("territory", {}).get(
+                "topTerritoryRows",
+                [],
+            )[:TRIMMED_ROW_LIMIT]
+        }
     trimmed["limitations"] = context.get("limitations", [])[:8]
     trimmed["contextPolicy"] = dict(context.get("contextPolicy", {})) | {
         "truncated": True,
@@ -730,6 +809,7 @@ def _fit_context(context: dict[str, Any], max_chars: int) -> dict[str, Any]:
             "interventions",
             "budget",
             "doctorRoi",
+            "territory",
             "dataQuality",
             "limitations",
             "dataQualityFlags",
@@ -745,6 +825,8 @@ def _fit_context(context: dict[str, Any], max_chars: int) -> dict[str, Any]:
     if "doctorRoi" in compact:
         compact["doctorRoi"].pop("topDoctorOpportunityRows", None)
         compact["doctorRoi"].pop("matchedDoctorDetails", None)
+    if "territory" in compact:
+        compact["territory"].pop("topTerritoryRows", None)
     compact["contextPolicy"] = dict(compact["contextPolicy"]) | {
         "truncatedToSummariesOnly": True
     }

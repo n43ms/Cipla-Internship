@@ -4,7 +4,11 @@ import json
 import re
 from typing import Any
 
-from backend.app.services.ai.answer_policy import confidence_for_context, evidence_refs_for_context
+from backend.app.services.ai.answer_policy import (
+    association_only_text,
+    confidence_for_context,
+    evidence_refs_for_context,
+)
 
 
 class AiResponseContractError(ValueError):
@@ -13,7 +17,9 @@ class AiResponseContractError(ValueError):
 
 def parse_structured_answer(raw_answer: str, context: dict[str, Any]) -> dict[str, Any]:
     payload = _extract_json(raw_answer)
-    markdown = _dashboard_safe_markdown(_string_field(payload, "markdownAnswer"))
+    markdown = association_only_text(
+        _dashboard_safe_markdown(_string_field(payload, "markdownAnswer"))
+    )
     if not markdown:
         raise AiResponseContractError("Gemini response did not include markdownAnswer.")
 
@@ -23,11 +29,11 @@ def parse_structured_answer(raw_answer: str, context: dict[str, Any]) -> dict[st
         valid_refs = evidence_refs_for_context(context)
 
     limitations = [
-        _dashboard_safe_markdown(item)
+        association_only_text(_dashboard_safe_markdown(item))
         for item in _string_list(payload.get("limitations"))
     ]
     assumptions = [
-        _dashboard_safe_markdown(item)
+        association_only_text(_dashboard_safe_markdown(item))
         for item in _string_list(payload.get("assumptions"))
     ]
     if assumptions:
@@ -168,6 +174,7 @@ _INTERNAL_PATH_LABELS = {
     "budget.overrunAmountUsd": "Budget summary cards",
     "doctorRoi.topDoctorOpportunityRows": "Doctor ROI table",
     "doctorRoi.matchedDoctorDetails": "Doctor detail drawer",
+    "territory.topTerritoryRows": "Territory opportunity table",
     "dataQuality.validationWarningCount": "Data Quality validation panels",
     "dataQuality.matchCoverage": "Data Quality coverage cards",
     "dataQuality.pcodeCoverage": "Data Quality coverage cards",
@@ -181,6 +188,7 @@ _SECTION_LABELS = {
     "interventions": "Intervention Mix",
     "budget": "Budget",
     "doctorRoi": "Doctor ROI",
+    "territory": "Territory",
     "dataQuality": "Data Quality",
 }
 

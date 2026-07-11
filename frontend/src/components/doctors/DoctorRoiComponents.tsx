@@ -1,6 +1,6 @@
 import { Scatter, ScatterChart, ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts";
 
-import type { DoctorRoiResponse, DoctorRoiRow } from "../../types/api";
+import type { DoctorDetailResponse, DoctorRoiResponse, DoctorRoiRow } from "../../types/api";
 import { KpiCard } from "../common/DataStateComponents";
 import { money } from "../budget/BudgetComponents";
 import { TableLoadingOverlay } from "../common/TableLoadingOverlay";
@@ -114,6 +114,10 @@ export function DoctorRoiTable({
                 </td>
                 <td className="px-4 py-3">
                   {row.roiSegment.replaceAll("_", " ")}
+                  {row.sponsorshipCount > 0 ? <span className="ml-2 rounded-full bg-sky-400/10 px-2 py-1 text-xs text-sky-300">sponsored</span> : null}
+                  {row.paidEngagementCount > 0 ? <span className="ml-2 rounded-full bg-violet-400/10 px-2 py-1 text-xs text-violet-300">paid engagement</span> : null}
+                  {row.noFeeEngagementCount > 0 ? <span className="ml-2 rounded-full bg-zinc-500/10 px-2 py-1 text-xs text-zinc-300">no fee</span> : null}
+                  {row.sponsorshipEngagementAmountMissingCount > 0 ? <span className="ml-2 rounded-full bg-amber-400/10 px-2 py-1 text-xs text-amber-300">amount unavailable</span> : null}
                   {row.darkHorseUnengagedFlag ? <span className="ml-2 rounded-full bg-emerald-400/10 px-2 py-1 text-xs text-emerald-300">unengaged opportunity</span> : null}
                   {row.highValueEngagedFlag ? <span className="ml-2 rounded-full bg-cyan-400/10 px-2 py-1 text-xs text-cyan-300">engaged value</span> : null}
                   {!row.hasRcpa ? <span className="ml-2 rounded-full bg-amber-400/10 px-2 py-1 text-xs text-amber-300">no RCPA</span> : null}
@@ -121,7 +125,11 @@ export function DoctorRoiTable({
                 <td className="px-4 py-3">{row.quadrantLabel}</td>
                 <td className="px-4 py-3">{row.engagementCount}</td>
                 <td className="px-4 py-3 text-xs text-zinc-400">{rcpaPeriod(row)}</td>
-                <td className="px-4 py-3">{money(row.totalRoiSpendUsd, "USD")}</td>
+                <td className="px-4 py-3">
+                  {money(row.totalRoiSpendUsd, "USD")}
+                  {row.totalRoiSpendUsd === 0 && row.sponsorshipCount === 0 && row.paidEngagementCount === 0 ? <p className="text-xs text-zinc-500">true zero evidence</p> : null}
+                  {row.totalRoiSpendUsd === 0 && row.sponsorshipEngagementAmountMissingCount > 0 ? <p className="text-xs text-amber-300">prior evidence, amount unavailable</p> : null}
+                </td>
                 <td className="px-4 py-3">{row.ciplaPrescriptionQty.toLocaleString()}</td>
                 <td className="px-4 py-3">
                   <button className="soft-button rounded-md border border-zinc-800 px-3 py-1 text-xs" onClick={() => onSelect(row)}>Open</button>
@@ -138,6 +146,56 @@ export function DoctorRoiTable({
           <button className="soft-button rounded-md border border-zinc-800 px-3 py-1 disabled:opacity-50" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Next</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+export function DoctorOutcomeEvidence({ detail }: { detail: DoctorDetailResponse }) {
+  const outcome = detail.sponsorshipOutcome;
+  if (!outcome) {
+    return (
+      <section>
+        <h3 className="font-semibold">Sponsorship and engagement evidence</h3>
+        <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-2 text-zinc-500">No sponsorship or engagement outcome evidence is available for this doctor.</p>
+      </section>
+    );
+  }
+  return (
+    <section className="grid gap-3">
+      <div>
+        <h3 className="font-semibold">Sponsorship and engagement evidence</h3>
+        <p className="mt-1 text-xs text-zinc-500">Associated RCPA movement uses pre/post windows as directional context.</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <EvidenceMetric label="Sponsorships" value={outcome.sponsorshipCount.toLocaleString()} />
+        <EvidenceMetric label="Paid engagements" value={outcome.paidEngagementCount.toLocaleString()} />
+        <EvidenceMetric label="No-fee history" value={outcome.noFeeEngagementCount.toLocaleString()} />
+        <EvidenceMetric label="Confidence" value={outcome.evidenceConfidence} />
+        <EvidenceMetric label="Contracted" value={money(outcome.contractedAmountUsd, "USD")} />
+        <EvidenceMetric label="FMV" value={money(outcome.fmvAmountUsd, "USD")} />
+        <EvidenceMetric label="Saving" value={money(outcome.contractSavingUsd, "USD")} />
+        <EvidenceMetric label="Known investment" value={money(outcome.knownEngagementInvestmentUsd, "USD")} />
+        <EvidenceMetric label="Pre-window Rx" value={outcome.preWindowCiplaRxQty.toLocaleString()} detail={`${outcome.preWindowMonthCount} months`} />
+        <EvidenceMetric label="Post-window Rx" value={outcome.postWindowCiplaRxQty.toLocaleString()} detail={`${outcome.postWindowMonthCount} months`} />
+      </div>
+      <p className="rounded-md border border-zinc-800 bg-zinc-900 p-2 text-sm">
+        Associated movement: {outcome.associatedRxMovementQty.toLocaleString()} Cipla prescriptions.
+      </p>
+      {outcome.evidenceCaveats.length ? (
+        <div className="rounded-md border border-amber-300/20 bg-amber-300/5 p-2 text-xs text-amber-100">
+          {outcome.evidenceCaveats.map((caveat) => <p key={caveat}>{caveat.replaceAll("_", " ")}</p>)}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function EvidenceMetric({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="rounded-md border border-zinc-800 bg-zinc-900 p-2">
+      <p className="text-xs text-zinc-500">{label}</p>
+      <p className="mt-1 break-words font-semibold text-zinc-100">{value}</p>
+      {detail ? <p className="text-xs text-zinc-500">{detail}</p> : null}
     </div>
   );
 }

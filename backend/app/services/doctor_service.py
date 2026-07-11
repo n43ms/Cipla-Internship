@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import date, datetime
+from typing import Any
+
 from sqlalchemy.orm import Session
 
 from backend.app.repositories.doctor_repository import DoctorRepository
@@ -10,6 +13,7 @@ from backend.app.schemas.doctors import (
     DoctorPrescriptionTrendRow,
     DoctorRoiResponse,
     DoctorRoiRow,
+    SponsorshipOutcomeSummary,
 )
 from backend.app.services.dashboard_meta import build_meta
 from backend.app.services.filter_validation import validate_country_month_filters
@@ -64,14 +68,26 @@ class DoctorService:
             flags.append("provisional_fx")
         limitations = [
             "Doctor spend is allocated evenly across parsed actual-attendance Pcodes per request.",
-            "RCPA is treated as historical prescription baseline; engagement month filters do not imply same-period prescription lift.",
+            (
+                "RCPA is treated as historical prescription baseline; engagement month filters do "
+                "not imply same-period prescription lift."
+            ),
         ]
         if not include_out_of_scope and not country:
-            limitations.append("Doctor ROI defaults to Nepal and Sri Lanka primary markets; select a country or include out-of-scope rows to inspect all loaded markets.")
+            limitations.append(
+                "Doctor ROI defaults to Nepal and Sri Lanka primary markets; select a country "
+                "or include out-of-scope rows to inspect all loaded markets."
+            )
         if brand:
-            limitations.append("Brand filter identifies doctors with that brand in the RCPA baseline; displayed ROI metrics remain all-brand doctor totals.")
+            limitations.append(
+                "Brand filter identifies doctors with that brand in the RCPA baseline; displayed "
+                "ROI metrics remain all-brand doctor totals."
+            )
         if month_start or month_end:
-            limitations.append("Month range filters apply to engagement evidence; unengaged RCPA doctors remain visible as opportunity candidates.")
+            limitations.append(
+                "Month range filters apply to engagement evidence; unengaged RCPA doctors remain "
+                "visible as opportunity candidates."
+            )
         return DoctorRoiResponse(
             meta=build_meta(
                 self.session,
@@ -114,19 +130,52 @@ class DoctorService:
     def detail(self, country_code: str, pcode: str) -> DoctorDetailResponse:
         profile = self.repository.doctor_profile(country_code, pcode)
         if not profile:
-            raise AppError("not_found", "Doctor not found for the selected country and Pcode.", status_code=404)
+            raise AppError(
+                "not_found", "Doctor not found for the selected country and Pcode.", status_code=404
+            )
         mapped_profile = _doctor_row(profile)
         flags = []
         limitations = ["Doctor profile is country-scoped by Pcode."]
         if not mapped_profile.has_rcpa:
             flags.append("no_rcpa")
             limitations.append("No RCPA coverage is available for this doctor.")
+        if mapped_profile.sponsorship_engagement_amount_missing_count:
+            flags.append("sponsorship_engagement_amount_missing")
+            limitations.append(
+                "Prior sponsorship or engagement evidence exists, but at least one amount is "
+                "unavailable and is not counted as zero spend."
+            )
+        outcome = self.repository.sponsorship_outcome(country_code, pcode)
+        if outcome and outcome.get("evidence_confidence") == "low":
+            flags.append("low_sponsorship_outcome_confidence")
+            limitations.append(
+                "Sponsorship and engagement outcome evidence has insufficient pre/post RCPA "
+                "windows."
+            )
+        if outcome and outcome.get("evidence_caveats"):
+            limitations.extend(_outcome_caveats(outcome.get("evidence_caveats")))
         return DoctorDetailResponse(
-            meta=build_meta(self.session, filters_applied={"countryCode": country_code, "pcode": pcode}, flags=flags, limitations=limitations),
+            meta=build_meta(
+                self.session,
+                filters_applied={"countryCode": country_code, "pcode": pcode},
+                flags=flags,
+                limitations=limitations,
+            ),
             profile=mapped_profile,
-            engagement_history=[DoctorEngagementRow(**row) for row in self.repository.engagement_history(country_code, pcode)],
-            prescription_trend=[DoctorPrescriptionTrendRow(**row) for row in self.repository.prescription_trend(country_code, pcode)],
-            brand_mix=[DoctorBrandMixRow(**row) for row in self.repository.brand_mix(country_code, pcode)],
+            sponsorship_outcome=(
+                SponsorshipOutcomeSummary(**_sponsorship_outcome_row(outcome)) if outcome else None
+            ),
+            engagement_history=[
+                DoctorEngagementRow(**_doctor_engagement_row(row))
+                for row in self.repository.engagement_history(country_code, pcode)
+            ],
+            prescription_trend=[
+                DoctorPrescriptionTrendRow(**_prescription_trend_row(row))
+                for row in self.repository.prescription_trend(country_code, pcode)
+            ],
+            brand_mix=[
+                DoctorBrandMixRow(**row) for row in self.repository.brand_mix(country_code, pcode)
+            ],
         )
 
 
@@ -138,13 +187,29 @@ def _doctor_row(row: dict[str, object]) -> DoctorRoiRow:
         doctor_name=row.get("doctor_name"),
         speciality=row.get("speciality"),
         doctor_class=row.get("doctor_class"),
+        territory_name=row.get("territory_name"),
+        territory_id=row.get("territory_id"),
+        has_doctor_master=bool(row.get("has_doctor_master")),
         active_status=row.get("active_status"),
         engagement_count=int(row.get("engagement_count") or 0),
-        first_engagement_date=str(row.get("first_engagement_date")) if row.get("first_engagement_date") else None,
-        last_engagement_date=str(row.get("last_engagement_date")) if row.get("last_engagement_date") else None,
+        sponsorship_count=int(row.get("sponsorship_count") or 0),
+        no_fee_engagement_count=int(row.get("no_fee_engagement_count") or 0),
+        paid_engagement_count=int(row.get("paid_engagement_count") or 0),
+        first_engagement_date=str(row.get("first_engagement_date"))
+        if row.get("first_engagement_date")
+        else None,
+        last_engagement_date=str(row.get("last_engagement_date"))
+        if row.get("last_engagement_date")
+        else None,
         direct_hcp_btu_spend_usd=row.get("direct_hcp_btu_spend_usd") or 0,
         overhead_btc_spend_usd=row.get("overhead_btc_spend_usd") or 0,
         total_roi_spend_usd=row.get("total_roi_spend_usd") or 0,
+        contracted_engagement_amount_usd=row.get("contracted_engagement_amount_usd") or 0,
+        fmv_engagement_amount_usd=row.get("fmv_engagement_amount_usd") or 0,
+        contract_saving_usd=row.get("contract_saving_usd") or 0,
+        sponsorship_engagement_amount_missing_count=int(
+            row.get("sponsorship_engagement_amount_missing_count") or 0
+        ),
         cipla_prescription_qty=row.get("cipla_prescription_qty") or 0,
         competitor_prescription_qty=row.get("competitor_prescription_qty") or 0,
         total_prescription_qty=row.get("total_prescription_qty") or 0,
@@ -168,3 +233,72 @@ def _doctor_row(row: dict[str, object]) -> DoctorRoiRow:
 
 def _filters(**values: object) -> dict[str, object]:
     return {key: value for key, value in values.items() if value not in (None, "")}
+
+
+def _doctor_engagement_row(row: dict[str, Any]) -> dict[str, Any]:
+    mapped = dict(row)
+    for field in ("month", "actual_intervention_date", "expected_intervention_date"):
+        mapped[field] = _iso_date(mapped.get(field))
+    return mapped
+
+
+def _prescription_trend_row(row: dict[str, Any]) -> dict[str, Any]:
+    mapped = dict(row)
+    mapped["month"] = _iso_date(mapped.get("month")) or ""
+    return mapped
+
+
+def _iso_date(value: object) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value)
+
+
+def _sponsorship_outcome_row(row: dict[str, object]) -> dict[str, object]:
+    return {
+        "sponsorship_count": int(row.get("sponsorship_count") or 0),
+        "paid_engagement_count": int(row.get("paid_engagement_count") or 0),
+        "no_fee_engagement_count": int(row.get("no_fee_engagement_count") or 0),
+        "paid_service_count": int(row.get("paid_service_count") or 0),
+        "contracted_amount_usd": row.get("contracted_amount_usd") or 0,
+        "fmv_amount_usd": row.get("fmv_amount_usd") or 0,
+        "contract_saving_usd": row.get("contract_saving_usd") or 0,
+        "doctor_attributable_expense_local": row.get("doctor_attributable_expense_local") or 0,
+        "known_engagement_investment_usd": row.get("known_engagement_investment_usd") or 0,
+        "pre_window_cipla_rx_qty": row.get("pre_window_cipla_rx_qty") or 0,
+        "post_window_cipla_rx_qty": row.get("post_window_cipla_rx_qty") or 0,
+        "associated_rx_movement_qty": row.get("associated_rx_movement_qty") or 0,
+        "pre_window_month_count": int(row.get("pre_window_month_count") or 0),
+        "post_window_month_count": int(row.get("post_window_month_count") or 0),
+        "evidence_confidence": str(row.get("evidence_confidence") or "low"),
+        "evidence_caveats": list(row.get("evidence_caveats") or []),
+    }
+
+
+def _outcome_caveats(values: object) -> list[str]:
+    caveats = [str(value) for value in (values or [])]
+    messages = {
+        "amount_unavailable_not_counted_as_zero": (
+            "Some sponsorship or engagement evidence has unavailable amount and is not counted "
+            "as zero."
+        ),
+        "insufficient_pre_window_rcpa": (
+            "Pre-engagement RCPA coverage is insufficient for a stable comparison."
+        ),
+        "insufficient_post_window_rcpa": (
+            "Post-engagement RCPA coverage is insufficient for a stable comparison."
+        ),
+        "manual_rcpa_mapping_period": (
+            "Some RCPA evidence comes from manual P-code mapping periods."
+        ),
+        "unknown_rcpa_mapping_period": "Some RCPA evidence has unknown P-code mapping provenance.",
+        "missing_fx": (
+            "Some engagement economics cannot be normalized to USD because FX is missing."
+        ),
+        "provisional_fx": "Some engagement economics use provisional FX.",
+    }
+    return [messages.get(caveat, caveat) for caveat in caveats]

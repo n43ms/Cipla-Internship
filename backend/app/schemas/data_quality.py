@@ -87,6 +87,12 @@ class DataQualitySummary(ApiModel):
     match_coverage: Decimal = Decimal("0")
     pcode_coverage: Decimal = Decimal("0")
     rcpa_coverage: Decimal = Decimal("0")
+    rcpa_manual_mapping_count: int = 0
+    rcpa_system_mapping_count: int = 0
+    rcpa_source_mapping_count: int = 0
+    rcpa_unknown_mapping_count: int = 0
+    rcpa_covered_month_start: str | None = None
+    rcpa_covered_month_end: str | None = None
     missing_fx_count: int = 0
     provisional_fx_count: int = 0
     btu_btc_reconciliation_issue_count: int = 0
