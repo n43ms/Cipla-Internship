@@ -75,5 +75,9 @@ post report approval pending with Sajita Joshi Piya PM] is not centered and is i
 
  - workflow request drilldown table is messi and cluttered (out of scope shown often, report status duplicated)
  - remove the last table - event execution matrix.
-
+-remove fx quality and mentions of fx across columnseverywhere except data quality - it is implicit the fx is company fx now that we have all the values
 pages in the order doctor roi, then execution then territory then budget then data quality
+- add an about this software section crediting Aditya nema and giving some details about the coding, language used etc
+- the doctor roi and execution should be one belowthe other, the rest 3 should also be one below the other. color the md icons and make the menu a bit large
+
+

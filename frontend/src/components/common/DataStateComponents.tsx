@@ -62,14 +62,61 @@ export function LoadingState({ label = "Loading dashboard data", compact = false
   );
 }
 
-export function KpiCard({ label, value, detail }: { label: string; value: string | number; detail?: string }) {
+type KpiTone = "cyan" | "sky" | "emerald" | "amber" | "red" | "violet";
+
+const KPI_TONE_CLASSES: Record<KpiTone, { card: string; label: string; value: string }> = {
+  cyan: {
+    card: "bg-[linear-gradient(135deg,rgba(103,232,249,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-cyan-200/75",
+    value: "text-cyan-50",
+  },
+  sky: {
+    card: "bg-[linear-gradient(135deg,rgba(125,211,252,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-sky-200/75",
+    value: "text-sky-50",
+  },
+  emerald: {
+    card: "bg-[linear-gradient(135deg,rgba(110,231,183,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-emerald-200/75",
+    value: "text-emerald-50",
+  },
+  amber: {
+    card: "bg-[linear-gradient(135deg,rgba(251,191,36,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-amber-200/75",
+    value: "text-amber-50",
+  },
+  red: {
+    card: "bg-[linear-gradient(135deg,rgba(248,113,113,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-red-200/75",
+    value: "text-red-50",
+  },
+  violet: {
+    card: "bg-[linear-gradient(135deg,rgba(196,181,253,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-violet-200/75",
+    value: "text-violet-50",
+  },
+};
+
+export function KpiCard({ label, value, detail, tone }: { label: string; value: string | number; detail?: string; tone?: KpiTone }) {
+  const toneClasses = KPI_TONE_CLASSES[tone ?? inferKpiTone(label)];
   return (
-    <div className="dashboard-card p-4">
-      <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-zinc-50">{value}</p>
+    <div className={`dashboard-card relative p-4 ${toneClasses.card}`}>
+      <p className={`text-xs uppercase tracking-wide ${toneClasses.label}`}>{label}</p>
+      <p className={`mt-2 text-2xl font-semibold ${toneClasses.value}`}>{value}</p>
       {detail ? <p className="mt-1 text-xs text-zinc-500">{detail}</p> : null}
     </div>
   );
+}
+
+function inferKpiTone(label: string): KpiTone {
+  const normalized = label.toLowerCase();
+  if (/\b(missing|issue|skipped|unmatched|gap|unspent|no rcpa)\b/.test(normalized)) return "amber";
+  if (/\b(error|rejected|failed|leakage|overrun)\b/.test(normalized)) return "red";
+  if (/\b(confirmed|approved|executed|loaded|reliability|integrity)\b/.test(normalized)) return "emerald";
+  if (/\b(doctor|roi|rcpa|pcode|match|coverage|quality|confidence)\b/.test(normalized)) return "cyan";
+  if (/\b(budget|planned|program|source|architecture)\b/.test(normalized)) return "sky";
+  if (/\b(segment|territory|module|view|data foundation)\b/.test(normalized)) return "violet";
+  return "cyan";
 }
 
 function humanize(value: string) {

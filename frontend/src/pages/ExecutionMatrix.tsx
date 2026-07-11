@@ -151,12 +151,12 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
         />
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-          <KpiCard icon={<FileWarning size={18} />} label="Planned events" value={formatCount(summaryData?.plannedEvents ?? 0)} />
-          <KpiCard icon={<CheckCircle2 size={18} />} label="Matched plan/request evidence" value={formatCount(summaryData?.matchedEvents ?? 0)} />
-          <KpiCard icon={<RefreshCw size={18} />} label="Executed planned events" value={formatCount(summaryData?.plannedEventsWithExecutedEvidence ?? summaryData?.executedEvents ?? 0)} />
-          <KpiCard icon={<Clock3 size={18} />} label="Action-due planned events" value={formatCount(summaryData?.plannedEventsWithActionDueEvidence ?? summaryData?.actionDueEvents ?? 0)} />
-          <KpiCard icon={<AlertTriangle size={18} />} label="Match coverage" value={formatPercent(summaryData?.matchCoverage ?? 0)} />
-          <KpiCard icon={<CheckCircle2 size={18} />} label="Event execution" value={formatPercent(summaryData?.eventExecutionRate ?? 0)} />
+          <KpiCard tone="sky" icon={<FileWarning size={18} />} label="Planned events" value={formatCount(summaryData?.plannedEvents ?? 0)} />
+          <KpiCard tone="cyan" icon={<CheckCircle2 size={18} />} label="Matched plan/request evidence" value={formatCount(summaryData?.matchedEvents ?? 0)} />
+          <KpiCard tone="emerald" icon={<RefreshCw size={18} />} label="Executed planned events" value={formatCount(summaryData?.plannedEventsWithExecutedEvidence ?? summaryData?.executedEvents ?? 0)} />
+          <KpiCard tone="amber" icon={<Clock3 size={18} />} label="Action-due planned events" value={formatCount(summaryData?.plannedEventsWithActionDueEvidence ?? summaryData?.actionDueEvents ?? 0)} />
+          <KpiCard tone="violet" icon={<AlertTriangle size={18} />} label="Match coverage" value={formatPercent(summaryData?.matchCoverage ?? 0)} />
+          <KpiCard tone="emerald" icon={<CheckCircle2 size={18} />} label="Event execution" value={formatPercent(summaryData?.eventExecutionRate ?? 0)} />
         </div>
 
         <div className="mt-6">
@@ -442,14 +442,45 @@ function WorkflowRequestTable({
   );
 }
 
-function KpiCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+type ExecutionKpiTone = "cyan" | "sky" | "emerald" | "amber" | "violet";
+
+const EXECUTION_KPI_TONE_CLASSES: Record<ExecutionKpiTone, { card: string; label: string; value: string }> = {
+  cyan: {
+    card: "bg-[linear-gradient(135deg,rgba(103,232,249,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-cyan-200/75",
+    value: "text-cyan-50",
+  },
+  sky: {
+    card: "bg-[linear-gradient(135deg,rgba(125,211,252,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-sky-200/75",
+    value: "text-sky-50",
+  },
+  emerald: {
+    card: "bg-[linear-gradient(135deg,rgba(110,231,183,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-emerald-200/75",
+    value: "text-emerald-50",
+  },
+  amber: {
+    card: "bg-[linear-gradient(135deg,rgba(251,191,36,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-amber-200/75",
+    value: "text-amber-50",
+  },
+  violet: {
+    card: "bg-[linear-gradient(135deg,rgba(196,181,253,0.07),rgba(21,23,25,0.96)_42%)]",
+    label: "text-violet-200/75",
+    value: "text-violet-50",
+  },
+};
+
+function KpiCard({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string; tone: ExecutionKpiTone }) {
+  const toneClasses = EXECUTION_KPI_TONE_CLASSES[tone];
   return (
-    <div className="dashboard-card p-4">
-      <div className="flex items-center gap-2 text-muted">
+    <div className={`dashboard-card relative p-4 ${toneClasses.card}`}>
+      <div className={`flex items-center gap-2 ${toneClasses.label}`}>
         {icon}
         <p className="text-sm">{label}</p>
       </div>
-      <p className="mt-3 text-2xl font-semibold">{value}</p>
+      <p className={`mt-3 text-2xl font-semibold ${toneClasses.value}`}>{value}</p>
     </div>
   );
 }

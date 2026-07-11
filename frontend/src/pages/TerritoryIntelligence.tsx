@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getFilters } from "../api/filters";
 import { getTerritoryOpportunities } from "../api/territory";
-import { DataFreshnessBanner, EmptyState, ErrorState, LoadingState } from "../components/common/DataStateComponents";
+import { DataFreshnessBanner, EmptyState, ErrorState, KpiCard, LoadingState } from "../components/common/DataStateComponents";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { TableLoadingOverlay } from "../components/common/TableLoadingOverlay";
 import { WarningRegistration } from "../components/common/WarningCenter";
@@ -110,11 +110,11 @@ function TerritoryCards({ rows, labelCounts }: { rows: TerritoryOpportunityRow[]
   const totalRx = rows.reduce((sum, row) => sum + row.totalPrescriptionQty, 0);
   return (
     <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      <Metric title="Territories" value={String(rows.length)} detail="Current filtered rows" />
-      <Metric title="Underserved" value={String(labelCounts.underserved ?? 0)} detail="High Rx with no engagement evidence" />
-      <Metric title="Overserved" value={String(labelCounts.overserved ?? 0)} detail="Spend/engagement exceeds current Rx signal" />
-      <Metric title="Balanced" value={String(labelCounts.balanced ?? 0)} detail="No exception signal from current evidence" />
-      <Metric title="Known investment" value={`$${knownInvestment.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} detail={`${totalRx.toLocaleString()} total Rx in view`} />
+      <Metric tone="violet" title="Territories" value={String(rows.length)} detail="Current filtered rows" />
+      <Metric tone="amber" title="Underserved" value={String(labelCounts.underserved ?? 0)} detail="High Rx with no engagement evidence" />
+      <Metric tone="red" title="Overserved" value={String(labelCounts.overserved ?? 0)} detail="Spend/engagement exceeds current Rx signal" />
+      <Metric tone="emerald" title="Balanced" value={String(labelCounts.balanced ?? 0)} detail="No exception signal from current evidence" />
+      <Metric tone="sky" title="Known investment" value={`$${knownInvestment.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} detail={`${totalRx.toLocaleString()} total Rx in view`} />
     </section>
   );
 }
@@ -139,14 +139,8 @@ function TerritoryRow({ row }: { row: TerritoryOpportunityRow }) {
   );
 }
 
-function Metric({ title, value, detail }: { title: string; value: string; detail: string }) {
-  return (
-    <div className="dashboard-card p-4">
-      <p className="text-xs uppercase tracking-wide text-zinc-500">{title}</p>
-      <p className="mt-2 text-2xl font-semibold text-zinc-50">{value}</p>
-      <p className="mt-1 text-xs text-zinc-500">{detail}</p>
-    </div>
-  );
+function Metric({ title, value, detail, tone }: { title: string; value: string; detail: string; tone: "cyan" | "sky" | "emerald" | "amber" | "red" | "violet" }) {
+  return <KpiCard tone={tone} label={title} value={value} detail={detail} />;
 }
 
 function Select({
