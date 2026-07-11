@@ -17,7 +17,7 @@ def test_territory_opportunity_view_defines_deterministic_labels() -> None:
 
     assert "'underserved'" in sql
     assert "'overserved'" in sql
-    assert "'self_serving'" in sql
+    assert "'self_serving'" not in sql
     assert "prescriptions_per_doctor" in sql
     assert "engagements_per_doctor" in sql
     assert "known_investment_usd" in sql

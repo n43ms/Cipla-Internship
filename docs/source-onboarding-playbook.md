@@ -162,7 +162,6 @@ Territory signals are deterministic planning labels, not performance causality:
 
 - `underserved`: high prescription volume per doctor with no engagement evidence.
 - `overserved`: spend or engagement exists while prescription signal is weak.
-- `self_serving`: paid engagement evidence exists without sponsorship and prescription signal is meaningful.
 - `balanced`: no deterministic exception label.
 - `insufficient_data`: missing doctor/RCPA base.
 

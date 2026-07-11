@@ -70,6 +70,7 @@ class RcpaRepository(CanonicalRepository):
     def replace_rcpa_doctor_brand_summaries(
         self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
     ) -> None:
+        _ = ingestion_run_id
         self.session.execute(
             text("delete from rcpa_doctor_brand_summary where source_file_id = :source_file_id"),
             {"source_file_id": source_file_id},
@@ -79,14 +80,12 @@ class RcpaRepository(CanonicalRepository):
         statement = text(
             """
             insert into rcpa_doctor_brand_summary (
-                source_file_id, ingestion_run_id, country_id, first_calendar_month_id,
-                last_calendar_month_id, pcode_normalized, doctor_name, brand_group,
+                source_file_id, country_id, pcode_normalized, brand_group,
                 own_or_competitor, prescription_qty, prescription_value_local, currency_code,
                 row_count_aggregated
             )
             values (
-                :source_file_id, :ingestion_run_id, :country_id, :first_calendar_month_id,
-                :last_calendar_month_id, :pcode_normalized, :doctor_name, :brand_group,
+                :source_file_id, :country_id, :pcode_normalized, :brand_group,
                 :own_or_competitor, :prescription_qty, :prescription_value_local, :currency_code,
                 :row_count_aggregated
             )
@@ -99,10 +98,6 @@ class RcpaRepository(CanonicalRepository):
                 currency_code
             ) do update
             set
-                ingestion_run_id = excluded.ingestion_run_id,
-                first_calendar_month_id = excluded.first_calendar_month_id,
-                last_calendar_month_id = excluded.last_calendar_month_id,
-                doctor_name = excluded.doctor_name,
                 prescription_qty = excluded.prescription_qty,
                 prescription_value_local = excluded.prescription_value_local,
                 row_count_aggregated = excluded.row_count_aggregated
@@ -111,11 +106,8 @@ class RcpaRepository(CanonicalRepository):
         rows = [
             {
                 **record,
-                "ingestion_run_id": ingestion_run_id,
                 "source_file_id": source_file_id,
                 "country_id": self.country_id(str(record["country"])),
-                "first_calendar_month_id": self.month_id(record["first_month_start_date"]),
-                "last_calendar_month_id": self.month_id(record["last_month_start_date"]),
             }
             for record in records
         ]

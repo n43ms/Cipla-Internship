@@ -34,8 +34,6 @@ TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "location",
         "underserved",
         "overserved",
-        "self-serving",
-        "self serving",
     ),
     "quality": ("quality", "data", "validation", "coverage", "unmatched", "freshness", "missing"),
 }

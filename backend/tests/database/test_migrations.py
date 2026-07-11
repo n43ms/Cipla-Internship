@@ -82,3 +82,33 @@ def test_execution_governance_migration_file_exists(migration_files: list[str]) 
 def test_phase4_repair_migrations_are_tracked(migration_files: list[str]) -> None:
     assert "0011_phase4_execution_matrix_fixes.py" in migration_files
     assert "0012_phase4_real_data_repairs.py" in migration_files
+
+
+def test_storage_slimming_migration_keeps_only_serving_columns() -> None:
+    migration_path = Path("database/migrations/versions/0030_storage_slimming.py")
+    migration_sql = migration_path.read_text(encoding="utf-8")
+
+    assert "drop_table(\"doctor_master_mappings\")" in migration_sql
+    assert "rcpa_doctor_brand_summary_slim" in migration_sql
+    assert "ix_rcpa_doctor_brand_summary_lookup" in migration_sql
+    upgrade_sql = migration_sql.split("def upgrade() -> None:", 1)[1].split(
+        "def downgrade() -> None:", 1
+    )[0]
+    assert "first_calendar_month_id" not in upgrade_sql
+    assert "doctor_name" not in upgrade_sql
+
+
+def test_slim_brand_summary_keeps_idempotency_constraint() -> None:
+    migration_path = Path("database/migrations/versions/0031_rcpa_brand_summary_grain.py")
+    migration_sql = migration_path.read_text(encoding="utf-8")
+
+    assert "uq_rcpa_doctor_brand_summary_grain" in migration_sql
+    for column_name in [
+        "source_file_id",
+        "country_id",
+        "pcode_normalized",
+        "brand_group",
+        "own_or_competitor",
+        "currency_code",
+    ]:
+        assert column_name in migration_sql

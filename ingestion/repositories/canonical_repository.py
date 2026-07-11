@@ -416,6 +416,149 @@ class CanonicalRepository:
         for batch in _chunks(rows):
             self.session.execute(statement, batch)
 
+    def insert_msl_doctor_master_records(
+        self, *, ingestion_run_id: str, source_file_id: str, records: list[dict[str, Any]]
+    ) -> dict[str, int]:
+        if not records:
+            return {
+                "doctor_master_mapping_count": 0,
+                "doctor_dimension_upsert_count": 0,
+                "engagement_rows_enriched_from_msl": 0,
+            }
+        self._create_temp_msl_doctor_master_table()
+        statement = text(
+            """
+            insert into tmp_msl_doctor_master_mappings (
+                country_id, pcode_raw, pcode_normalized, doctor_name_normalized,
+                territory_name, territory_id, doctor_class
+            )
+            values (
+                :country_id, :pcode_raw, :pcode_normalized, :doctor_name_normalized,
+                :territory_name, :territory_id, :doctor_class
+            )
+            """
+        )
+        rows = [self._params_without_month(ingestion_run_id, source_file_id, record) for record in records]
+        for batch in _chunks(rows):
+            self.session.execute(statement, batch)
+        doctor_count = self._upsert_doctors_from_msl(rows, source_file_id)
+        enriched_count = self._enrich_engagements_from_msl()
+        return {
+            "doctor_master_mapping_count": len(records),
+            "doctor_dimension_upsert_count": doctor_count,
+            "engagement_rows_enriched_from_msl": enriched_count,
+        }
+
+    def _create_temp_msl_doctor_master_table(self) -> None:
+        self.session.execute(
+            text(
+                """
+                create temporary table if not exists tmp_msl_doctor_master_mappings (
+                    country_id uuid not null,
+                    pcode_raw text,
+                    pcode_normalized text not null,
+                    doctor_name_normalized text not null,
+                    territory_name text,
+                    territory_id text,
+                    doctor_class text
+                ) on commit drop
+                """
+            )
+        )
+        self.session.execute(text("truncate table tmp_msl_doctor_master_mappings"))
+
+    def _upsert_doctors_from_msl(self, rows: list[dict[str, Any]], source_file_id: str) -> int:
+        latest_by_pcode: dict[tuple[str, str], dict[str, Any]] = {}
+        for row in rows:
+            key = (str(row["country_id"]), str(row["pcode_normalized"]))
+            current = latest_by_pcode.setdefault(key, row)
+            for field in (
+                "doctor_name",
+                "doctor_name_normalized",
+                "speciality",
+                "doctor_class",
+                "patch_name",
+                "territory_name",
+                "territory_id",
+                "legacy_code",
+            ):
+                if not current.get(field) and row.get(field):
+                    current[field] = row[field]
+        if not latest_by_pcode:
+            return 0
+        statement = text(
+            """
+            insert into doctors (
+                country_id, pcode_normalized, latest_doctor_name, doctor_name_normalized,
+                speciality, doctor_class, patch_name, territory_name, territory_id, legacy_code,
+                doctor_master_source_file_id, source_count
+            )
+            values (
+                :country_id, :pcode_normalized, :doctor_name, :doctor_name_normalized,
+                :speciality, :doctor_class, :patch_name, :territory_name, :territory_id, :legacy_code,
+                :doctor_master_source_file_id, 1
+            )
+            on conflict (country_id, pcode_normalized) do update
+            set
+                latest_doctor_name = coalesce(excluded.latest_doctor_name, doctors.latest_doctor_name),
+                doctor_name_normalized = coalesce(
+                    excluded.doctor_name_normalized,
+                    doctors.doctor_name_normalized
+                ),
+                speciality = coalesce(excluded.speciality, doctors.speciality),
+                doctor_class = coalesce(excluded.doctor_class, doctors.doctor_class),
+                patch_name = coalesce(excluded.patch_name, doctors.patch_name),
+                territory_name = coalesce(excluded.territory_name, doctors.territory_name),
+                territory_id = coalesce(excluded.territory_id, doctors.territory_id),
+                legacy_code = coalesce(excluded.legacy_code, doctors.legacy_code),
+                doctor_master_source_file_id = excluded.doctor_master_source_file_id,
+                source_count = doctors.source_count + 1,
+                updated_at = now()
+            """
+        )
+        doctor_rows = [
+            {**row, "doctor_master_source_file_id": source_file_id}
+            for row in latest_by_pcode.values()
+        ]
+        for batch in _chunks(doctor_rows):
+            self.session.execute(statement, batch)
+        return len(doctor_rows)
+
+    def _enrich_engagements_from_msl(self) -> int:
+        result = self.session.execute(
+            text(
+                """
+                with unique_name_mappings as (
+                    select
+                        country_id,
+                        doctor_name_normalized,
+                        min(pcode_raw) filter (where pcode_raw is not null) as pcode_raw,
+                        min(pcode_normalized) as pcode_normalized,
+                        min(territory_id) filter (where territory_id is not null) as territory_id,
+                        min(territory_name) filter (where territory_name is not null) as territory_name,
+                        min(doctor_class) filter (where doctor_class is not null) as doctor_class
+                    from tmp_msl_doctor_master_mappings
+                    group by country_id, doctor_name_normalized
+                    having count(distinct pcode_normalized) = 1
+                )
+                update doctor_engagement_facts def
+                set
+                    pcode_raw = coalesce(def.pcode_raw, unique_name_mappings.pcode_raw),
+                    pcode_normalized = unique_name_mappings.pcode_normalized,
+                    territory_code = coalesce(def.territory_code, unique_name_mappings.territory_id),
+                    fs_hq = coalesce(def.fs_hq, unique_name_mappings.territory_name),
+                    doctor_segment = coalesce(def.doctor_segment, unique_name_mappings.doctor_class)
+                from unique_name_mappings
+                where def.pcode_normalized is null
+                  and def.country_id = unique_name_mappings.country_id
+                  and btrim(
+                    regexp_replace(lower(def.doctor_name), '[^a-z0-9]+', ' ', 'g')
+                  ) = unique_name_mappings.doctor_name_normalized
+                """
+            )
+        )
+        return int(result.rowcount or 0)
+
     def _execute_many(
         self,
         sql: str,
@@ -441,6 +584,15 @@ class CanonicalRepository:
         params["calendar_month_id"] = self.month_id(record["month_start_date"])
         params["approval_chain_json"] = json.dumps(record.get("approval_chain_json") or {})
         params["source_derivation_json"] = json.dumps(record.get("source_derivation_json") or {})
+        return params
+
+    def _params_without_month(
+        self, ingestion_run_id: str, source_file_id: str, record: dict[str, Any]
+    ) -> dict[str, Any]:
+        params = dict(record)
+        params["ingestion_run_id"] = ingestion_run_id
+        params["source_file_id"] = source_file_id
+        params["country_id"] = self.country_id(str(record["country"]))
         return params
 
     def _clear_derived_matches(self) -> None:

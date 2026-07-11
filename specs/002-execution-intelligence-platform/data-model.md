@@ -385,12 +385,9 @@ Compact online all-period brand mix by doctor.
 
 Fields:
 
-- `id`
-- `source_file_id`, `ingestion_run_id`
+- `source_file_id`
 - `country_id`
-- `first_calendar_month_id`, `last_calendar_month_id`
 - `pcode_normalized`
-- `doctor_name`
 - `brand_group`
 - `own_or_competitor`
 - `prescription_qty`
@@ -401,7 +398,7 @@ Fields:
 Validation:
 
 - unique conflict target: `source_file_id`, `country_id`, `pcode_normalized`, `brand_group`, `own_or_competitor`, `currency_code`,
-- supports doctor detail brand mix without storing every monthly SKU row online,
+- supports doctor detail brand mix and brand filters without storing row UUIDs, doctor names, repeated month metadata, or every monthly SKU row online,
 - detailed SKU-level aggregate evidence is retained in local compressed extracts under `data/processed/`.
 
 ### rcpa_country_brand_month_summary

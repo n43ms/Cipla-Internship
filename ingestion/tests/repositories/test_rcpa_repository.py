@@ -96,6 +96,11 @@ def test_rcpa_repository_writes_brand_summary_tables() -> None:
     sql = "\n".join(call[0] for call in session.calls)
     assert "delete from rcpa_doctor_brand_summary" in sql
     assert "insert into rcpa_doctor_brand_summary" in sql
+    assert "source_file_id,\n                country_id,\n                pcode_normalized" in sql
+    assert "prescription_qty = excluded.prescription_qty" in sql
+    assert "first_calendar_month_id" not in sql
+    assert "last_calendar_month_id" not in sql
+    assert "doctor_name, brand_group" not in sql
     assert "delete from rcpa_country_brand_month_summary" in sql
     assert "insert into rcpa_country_brand_month_summary" in sql
 

@@ -249,6 +249,7 @@
 - [X] T080C [US6] Add preload validation output for loaded files, held-out file, rejected files, row counts, warnings, and caveats in `ingestion/report.py`
 - [X] T080D [US6] Run the preload against the received package, refresh Supabase materialized views, and record sanitized verification results in `docs/ingestion-runbook.md`
 - [X] T080E [US6] Verify one held-out file can be uploaded through **Upload new data/files** and reaches the same accepted-batch ingestion path without changing loader semantics in `backend/tests/api/` and `frontend/tests/`
+- [X] T080F [US6] Ingest the MSL doctor master as compact reference enrichment, upsert doctor-master coverage, and deterministically fill missing engagement P-codes only for unique country-plus-doctor-name matches in `ingestion/loaders/msl_doctor_master.py`, `ingestion/repositories/canonical_repository.py`, and `database/migrations/versions/0027_msl_doctor_master.py`
 
 **Checkpoint**: The current dashboard is seeded from the received package, and dashboard upload remains the future-refresh and demo-validation path.
 
@@ -315,15 +316,16 @@
 
 - [X] T096 [P] [US9] Add territory field profiling tests in `ingestion/tests/test_territory_profile.py`
 - [X] T097 [P] [US9] Add territory observation loader tests for country, patch, territory, period, doctor count, prescription quantity, engagement count, and spend in `ingestion/tests/loaders/test_territory_loader.py`
-- [X] T098 [P] [US9] Add deterministic tests for underserved, overserved, and self-serving territory labels in `backend/tests/database/test_territory_opportunity.py`
+- [X] T098 [P] [US9] Add deterministic tests for underserved and overserved territory labels, and assert no separate self-serving label is emitted, in `backend/tests/database/test_territory_opportunity.py`
 
 ### Implementation
 
 - [X] T099 [US9] Implement territory observation extraction from confirmed report fields in `ingestion/normalizers/territory.py`
-- [X] T100 [US9] Use the received MSL doctor master only if report-level territory fields are insufficient, documenting the decision in `docs/source-onboarding-playbook.md`
+- [X] T100 [US9] Use the received MSL doctor master as reference enrichment for doctor identity, territory metadata, and safe missing-P-code backfill while keeping source-backed report fields as transaction facts
 - [X] T101 [US9] Add compact territory opportunity view in `database/views/` after data quality is sufficient
 - [X] T102 [US9] Add backend territory service and route only after view validation in `backend/app/services/` and `backend/app/routers/`
 - [X] T103 [US9] Add a Territory Intelligence page only after validation examples pass in `frontend/src/pages/`
+- [X] T103A [US9] Expose MSL territory metadata and doctor-master coverage in Doctor ROI rows and the detail drawer without changing ROI spend math in `database/views/mv_doctor_roi.sql`, `backend/app/schemas/doctors.py`, `backend/app/services/doctor_service.py`, `frontend/src/types/api.ts`, and `frontend/src/pages/DoctorRoi.tsx`
 
 **Checkpoint**: Territory remains a controlled add-on, not a distraction from finishing Doctor ROI.
 
@@ -362,8 +364,9 @@
 - [ ] T114 [P] Validate one no-fee or prior-sponsorship doctor if present and record caveats in `docs/source-onboarding-playbook.md`
 - [ ] T115 [P] Validate one FMV greater than contracted value example and record expected saving math in `docs/source-onboarding-playbook.md`
 - [ ] T116 [P] Validate one cumulative RCPA rerun and record idempotency result in `docs/ingestion-runbook.md`
-- [ ] T117 [P] Validate one self-serving or underserved territory against source-level territory/RCPA/spend reconciliation if territory data is available in `docs/source-onboarding-playbook.md`
+- [ ] T117 [P] Validate one underserved or overserved territory against source-level territory/RCPA/spend reconciliation if territory data is available in `docs/source-onboarding-playbook.md`
 - [ ] T118 [P] Run storage budget report before and after historical RCPA load and record sanitized output in `docs/storage-budget.md`
+- [X] T118A [P] Apply post-preload Supabase storage cleanup by removing persistent MSL staging rows, slimming doctor-brand RCPA serving storage, retaining doctor-month ROI history, and recording before/after size results in `docs/storage-budget.md`
 - [ ] T119 [P] Compare selected Doctor ROI rankings against deterministic source-data reconciliation from the same dataset and record mismatches for review in `docs/source-onboarding-playbook.md`
 
 **Checkpoint**: The system is not just technically passing tests; it agrees with business-known examples or documents why it differs.
@@ -456,6 +459,7 @@ Blocked until territory fields are confirmed and core Doctor ROI is stable:
 - [X] Doctor ROI calculation credits sponsorship/engagement investment when the amount is source-backed.
 - [X] Doctors with prior sponsorship/engagement but missing amount are shown with an explicit caveat instead of a misleading plain zero.
 - [X] Doctor ROI table shows summary evidence flags; Doctor ROI detail drawer shows full doctor history.
+- [X] Doctor ROI detail drawer shows MSL doctor-master coverage and territory mapping where available.
 - [X] Data Quality shows upload, join, missing amount, missing P-code, and manual RCPA mapping caveats.
 - [X] ExecAI answers sponsorship/engagement/RCPA questions from refreshed backend evidence only.
 - [X] No raw workbook rows, generated upload batches, secrets, or generated reports are committed to git.

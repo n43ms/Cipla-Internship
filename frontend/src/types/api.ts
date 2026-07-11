@@ -238,6 +238,9 @@ export type DoctorRoiRow = {
   doctorName: string | null;
   speciality: string | null;
   doctorClass: string | null;
+  territoryName: string | null;
+  territoryId: string | null;
+  hasDoctorMaster: boolean;
   activeStatus: string | null;
   engagementCount: number;
   sponsorshipCount: number;

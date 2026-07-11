@@ -281,7 +281,8 @@ Accommodation and travel are under expenses.
 BTC / BTU = total expense basis for accommodation/travel handling.
 Doctor-level contract report is part of Point 1, so no separate doctor-contract file is expected.
 Territory is in the consolidated report as the highlighted HQ column and in MSL as Location.
-MSL Doctor Master has been provided, though it remains optional unless report-level territory is insufficient.
+MSL Doctor Master has been provided and is used as compact doctor-master reference enrichment,
+not as a transaction/spend source.
 Monthly RCPA has a standard format, headers stay the same, P-code is always present, and files are cumulative.
 Monthly RCPA arrives around the 3rd of each month.
 Daily extracts are saved in SharePoint, but this app phase still uses manual batch upload.
@@ -622,7 +623,6 @@ patch
 territory
 country
 possibly region, cluster, rep, or task force if present
-self-serving territory candidates
 underserved or overserved territory candidates
 untapped opportunity analysis
 ```
@@ -801,9 +801,9 @@ Power BI may become the later mass-production environment with Anil, but this re
 Current known database constraint:
 
 ```text
-current database size: 321 MB
+current database size after July 11 storage cleanup: 347 MB
 Supabase Free database limit: 500 MB
-remaining budget: about 179 MB
+remaining budget: about 153 MB
 ```
 
 Hard storage rules:
@@ -812,6 +812,8 @@ Hard storage rules:
 raw workbooks remain local and gitignored
 RCPA detailed rows stay local unless explicit storage budget is approved
 Supabase stores compact canonical facts and KPI-ready summaries
+MSL doctor-master rows are temporary staging inputs; durable enrichment is stored on doctors and engagement facts
+rcpa_doctor_brand_summary is a slim serving table for brand mix and filters, not a raw/detail table
 materialized views must not duplicate full RCPA summaries unnecessarily
 source-row JSON must be bounded or avoided
 database size must be measured before and after historical RCPA loads
@@ -846,7 +848,7 @@ The implementation should follow this mapping unless profiling proves a field is
 | ERS workbook | International conference evidence | sponsorship/engagement facts with ERS as subtype/evidence | Doctor ROI detail, sponsorship history |
 | Historical RCPA XLSB files | Two-year prescription baseline/backfill | compact doctor-month and doctor-brand summaries with mapping provenance | Doctor ROI calculation and caveats |
 | Monthly cumulative RCPA workbook | Recurring RCPA refresh | replace/upsert compact doctor-month and doctor-brand summaries | Doctor ROI and data freshness |
-| MSL doctor master | Doctor/P-code/territory reference if report fields are insufficient | doctor master/reference and territory mapping | Doctor ROI joins, territory caveats |
+| MSL doctor master | Doctor/P-code/territory reference enrichment | temporary staging, durable doctor dimension enrichment, safe missing-P-code backfill, and territory metadata | Doctor ROI joins, detail drawer territory, territory caveats |
 
 ## Implementation Acceptance Gates
 
@@ -1107,7 +1109,9 @@ completed against Supabase with the July 10 received package
 1 source row skipped with a warning
 4,545 data-quality warnings retained for dashboard caveats
 0 loader errors after Myanmar and ERS source-shape repairs
-MSL.xlsx held-out upload validation accepted as msl_doctor_master
+MSL.xlsx ingested as msl_doctor_master reference enrichment
+25,190 MSL doctor records processed; durable enrichment retained on doctors and safe engagement P-code links
+post-preload storage cleanup reduced Supabase from 447 MB to 347 MB while retaining RCPA doctor-month history, doctor-brand serving rows, and idempotent brand-grain constraints
 Doctor ROI, Data Quality, Territory Opportunity, latest ingestion, and doctor detail APIs verified
 ```
 
@@ -1310,7 +1314,7 @@ Work:
 profile territory fields
 decide whether report fields are enough or MSL master is required
 build territory observations
-define underserved, overserved, and self-serving rules from distributions
+define underserved and overserved rules from distributions
 validate output against source-level reconciliations and selected business spot checks only if available
 ```
 
@@ -1318,7 +1322,7 @@ Exit criteria:
 
 ```text
 territory labels are deterministic
-one self-serving or underserved territory can be validated manually
+one underserved or overserved territory can be validated manually
 territory page is added only if there is enough reliable data
 ```
 
@@ -1383,7 +1387,7 @@ one doctor with no-fee activity after prior sponsorship if present
 one paid advisory/speaker/consultancy doctor if present
 one FMV greater than contracted value example
 one cumulative RCPA refresh rerun
-one self-serving or underserved territory if data supports it
+one underserved or overserved territory if data supports it
 Sri Lanka Q1 execution sanity check if the cleaned report includes it
 ```
 
@@ -1472,7 +1476,7 @@ Mitigation:
 
 ```text
 derive territory only from confirmed fields
-use the received MSL/doctor master only if needed
+use the received MSL/doctor master as reference enrichment, not as transaction evidence
 keep territory page gated until validation examples exist
 ```
 
@@ -1555,9 +1559,9 @@ O4. Extend ExecAI context and answer policy.
 
 ```text
 T1. Profile territory/patch fields.
-T2. Decide whether MSL/doctor master is needed.
+T2. Ingest MSL/doctor master as reference enrichment and expose safe coverage/caveats.
 T3. Build territory observations.
-T4. Define underserved, overserved, and self-serving rules.
+T4. Define underserved and overserved rules.
 T5. Add territory UI only after validation examples pass.
 ```
 

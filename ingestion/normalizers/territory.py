@@ -118,12 +118,6 @@ def classify_territory_opportunity(
         return "underserved"
     if spend_usd > 0 and prescriptions_per_doctor < Decimal("10"):
         return "overserved"
-    if (
-        paid_engagement_count > 0
-        and sponsorship_count == 0
-        and prescriptions_per_doctor >= Decimal("25")
-    ):
-        return "self_serving"
     if engagements_per_doctor > Decimal("2") and prescriptions_per_doctor < Decimal("20"):
         return "overserved"
     return "balanced"

@@ -16,7 +16,7 @@ def test_query_planner_routes_sponsorship_and_contract_questions_to_doctor_conte
 
 
 def test_query_planner_routes_territory_questions_to_territory_context() -> None:
-    plan = plan_query("Which territories are underserved or self-serving?", "territory", 40)
+    plan = plan_query("Which territories are underserved or overserved?", "territory", 40)
 
     assert "territory" in plan.topics
     assert "territory" in plan.sections

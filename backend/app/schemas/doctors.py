@@ -14,6 +14,9 @@ class DoctorRoiRow(ApiModel):
     doctor_name: str | None = None
     speciality: str | None = None
     doctor_class: str | None = None
+    territory_name: str | None = None
+    territory_id: str | None = None
+    has_doctor_master: bool = False
     active_status: str | None = None
     engagement_count: int = 0
     sponsorship_count: int = 0

@@ -123,6 +123,18 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
           <button className="soft-button rounded-md border border-zinc-800 px-3 py-1 text-sm" onClick={() => setSelected(null)}>Close</button>
           <h2 className="mt-4 break-words text-xl font-semibold">{selected.doctorName ?? selected.pcodeNormalized}</h2>
           <p className="break-words text-sm text-zinc-500">{selected.countryCode} - {formatSegment(selected.roiSegment)}</p>
+          <div className="mt-3 grid gap-2 rounded-md border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-400">
+            <p>
+              Territory: <span className="text-zinc-200">{selected.territoryName ?? "not mapped"}</span>
+              {selected.territoryId ? <span className="text-zinc-500"> ({selected.territoryId})</span> : null}
+            </p>
+            <p>
+              Doctor master:{" "}
+              <span className={selected.hasDoctorMaster ? "text-emerald-300" : "text-zinc-500"}>
+                {selected.hasDoctorMaster ? "MSL mapped" : "not available"}
+              </span>
+            </p>
+          </div>
           <p className="mt-2 text-xs text-zinc-500">
             RCPA baseline: {formatDate(selected.rcpaFirstMonth)} to {formatDate(selected.rcpaLastMonth)}
           </p>

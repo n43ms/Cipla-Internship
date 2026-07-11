@@ -12,7 +12,6 @@ import type { TerritoryOpportunityRow } from "../types/api";
 const LABEL_OPTIONS = [
   { value: "underserved", label: "Underserved" },
   { value: "overserved", label: "Overserved" },
-  { value: "self_serving", label: "Self-serving" },
   { value: "balanced", label: "Balanced" },
   { value: "insufficient_data", label: "Insufficient data" },
 ];
@@ -47,7 +46,7 @@ export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange
           <p className="eyebrow">Territory Intelligence</p>
           <h1 className="page-title">Territory opportunity signals</h1>
           <p className="page-copy">
-            Uses source-backed RCPA territory/patch and engagement HQ fields to flag underserved, overserved, and transactional territory patterns.
+            Uses source-backed RCPA territory/patch and engagement HQ fields to flag underserved and overserved territory patterns.
           </p>
         </header>
         <DataFreshnessBanner meta={query.data.meta} />
@@ -110,10 +109,11 @@ function TerritoryCards({ rows, labelCounts }: { rows: TerritoryOpportunityRow[]
   const knownInvestment = rows.reduce((sum, row) => sum + row.knownInvestmentUsd, 0);
   const totalRx = rows.reduce((sum, row) => sum + row.totalPrescriptionQty, 0);
   return (
-    <section className="grid grid-cols-1 gap-3 md:grid-cols-4">
+    <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <Metric title="Territories" value={String(rows.length)} detail="Current filtered rows" />
       <Metric title="Underserved" value={String(labelCounts.underserved ?? 0)} detail="High Rx with no engagement evidence" />
       <Metric title="Overserved" value={String(labelCounts.overserved ?? 0)} detail="Spend/engagement exceeds current Rx signal" />
+      <Metric title="Balanced" value={String(labelCounts.balanced ?? 0)} detail="No exception signal from current evidence" />
       <Metric title="Known investment" value={`$${knownInvestment.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} detail={`${totalRx.toLocaleString()} total Rx in view`} />
     </section>
   );

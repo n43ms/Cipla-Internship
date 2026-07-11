@@ -71,6 +71,37 @@ Do not load raw workbook rows into Supabase.
 Future RCPA expansion needs storage review before another full historical backfill.
 ```
 
+## July 11 Storage Cleanup
+
+Measured after the MSL reference enrichment and historical/current RCPA preload pushed the
+database close to the Supabase free-tier limit.
+
+```text
+Before cleanup database size: 447 MB
+After cleanup database size: 347 MB
+Storage reclaimed: 100 MB
+
+RCPA doctor-month summary: 264 MB -> 229 MB, 325,535 rows retained
+RCPA doctor-brand summary: 85 MB -> 37 MB, 162,770 rows retained
+MSL doctor-master staging table: 17 MB -> removed after enrichment
+Doctor dimension rows with MSL source: 25,190 retained
+Current Alembic head: 0031_brand_grain
+```
+
+Decision:
+
+```text
+Keep doctor-month RCPA summaries online because they drive Doctor ROI history, quadrant math,
+RCPA credit, territory opportunity, and caveats.
+Keep doctor-brand RCPA summaries online only as a slim serving table for doctor detail brand mix
+and brand filters, with a retained unique source/country/P-code/brand/own-vs-competitor/currency
+grain constraint for idempotent future uploads.
+Do not keep persistent MSL raw mapping rows in Supabase after they enrich the doctors dimension
+and safe engagement P-code links.
+Keep raw MSL and RCPA files outside Supabase and outside git.
+Future uploads must write compact facts and summaries, not raw workbook rows.
+```
+
 ## Compact-Mode Rules
 
 - raw files stay out of Supabase,
@@ -78,6 +109,10 @@ Future RCPA expansion needs storage review before another full historical backfi
 - large raw RCPA detail stays out of Supabase,
 - detailed RCPA evidence stays under `data/processed/`,
 - RCPA mapping provenance is stored on compact doctor-month summaries, not as raw rows,
+- MSL doctor-master files are staging inputs; persistent doctor identity and territory enrichment
+  belongs in `doctors`, not in a retained raw MSL mapping table,
+- `rcpa_doctor_brand_summary` is a slim serving table with source file, country, P-code, brand,
+  own/competitor, quantity, value, currency, and aggregate row count only,
 - territory opportunity is a compact materialized view over RCPA doctor-month summaries and doctor engagement facts, not a raw territory table,
 - Supabase stores compact canonical facts, summaries, materialized views, and audit metadata,
 - avoid duplicating large RCPA summaries into multiple materialized views.

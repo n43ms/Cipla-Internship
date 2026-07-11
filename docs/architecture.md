@@ -11,6 +11,10 @@ The platform has three runtime boundaries:
 Supabase PostgreSQL is the shared persistence layer. The frontend must not connect
 directly to Supabase or any AI provider.
 
+Supabase is the compact serving database, not the raw workbook archive. Large source rows remain
+outside Supabase; PostgreSQL keeps canonical facts, KPI-ready summaries, materialized views, file
+hashes, provenance, and caveats required by the dashboard.
+
 ## Data Ownership
 
 - Raw workbook evidence belongs to local storage under `data/raw/`.
@@ -71,7 +75,15 @@ The following require real Supabase preload or business spot checks before being
 
 Manual dashboard upload is the target refresh mechanism for this project phase. SFTP, SharePoint polling, and CRM/data-lake auto-discovery are out of scope. Upload validation alone does not update live KPI data; the dashboard reflects new files only after accepted-batch ingestion writes Supabase facts and refreshes the materialized views.
 
-Territory intelligence remains source-backed and caveated. It uses RCPA `Location`/`PATCHNAME` and Smart Contract `FS HQ`/territory fields first. The MSL doctor master is optional enrichment and should only be promoted to a required source if report-level territory fields prove insufficient.
+Territory intelligence remains source-backed and caveated. It uses RCPA `Location`/`PATCHNAME`,
+Smart Contract `FS HQ`/territory fields, and the ingested MSL doctor master. MSL is reference
+enrichment only: it adds doctor-master coverage and territory metadata, and it fills missing
+engagement P-codes only when country plus normalized doctor name maps to exactly one P-code.
+Raw MSL mapping rows are temporary ingestion staging, not retained in Supabase after enrichment.
+
+RCPA storage is compact by design. Doctor-month summaries remain online because they drive ROI
+math, RCPA credit, territory opportunity, and caveats. Doctor-brand summaries are retained only as
+a slim serving table for detail-drawer brand mix and brand filters.
 
 ExecAI uses deterministic FastAPI service responses for Doctor ROI, sponsorship/engagement outcome evidence, RCPA trend, data-quality caveats, and territory rows. It must use association-only language for pre/post movement and must not claim causal uplift.
 

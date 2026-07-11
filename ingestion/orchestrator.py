@@ -14,6 +14,7 @@ from ingestion.loaders import (
     load_doctor_wise_intervention,
     load_ers_conference,
     load_execution_snapshot,
+    load_msl_doctor_master,
     load_planner,
     load_rcpa,
 )
@@ -35,6 +36,7 @@ LOADERS = {
     "consolidation": load_consolidation,
     "doctor_contract": load_doctor_wise_intervention,
     "ers_conference": load_ers_conference,
+    "msl_doctor_master": load_msl_doctor_master,
     "rcpa": load_rcpa,
 }
 
@@ -373,6 +375,13 @@ def _persist(
                     records=result.records,
                 )
                 audit.update_source_file_period_from_canonical(source_file_id)
+            elif result.source_type == "msl_doctor_master":
+                enrichment_summary = canonical.insert_msl_doctor_master_records(
+                    ingestion_run_id=run_id,
+                    source_file_id=source_file_id,
+                    records=result.records,
+                )
+                result.summaries.update(enrichment_summary)
             elif result.source_type == "rcpa":
                 detail_export_path = export_rcpa_detail_records(
                     profile=profile,

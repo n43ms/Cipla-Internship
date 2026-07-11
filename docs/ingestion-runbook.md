@@ -84,17 +84,17 @@ is supposed to be, while fingerprinting verifies the claim from file type, filen
 ## July 10 Received-Package Preload
 
 The already received package under `files/` is preloaded by engineering through the same manifest
-ingestion path used by dashboard upload. The dashboard upload path remains for future refreshes and
-for one optional held-out demo file.
+ingestion path used by dashboard upload. The dashboard upload path remains for future refreshes.
 
-Recommended held-out demo file:
+Recommended initial demo file before final preload:
 
 ```text
 files/MSL Doctor Master File Point 7/MSL.xlsx
 ```
 
-Reason: MSL is optional territory enrichment, while core Doctor ROI needs the raw consolidated,
-doctor-wise, ERS/conference, historical RCPA, and monthly RCPA files first.
+Final state: MSL is now ingested as compact doctor-master reference data. It enriches doctor
+identity and territory metadata and resolves missing engagement P-codes only when the country plus
+normalized doctor-name mapping is unique. It does not create spend, RCPA, or execution facts.
 
 Create `files/source-manifest.json` locally with this structure:
 
@@ -250,10 +250,11 @@ Source files loaded: 12.
 Rows seen: 1,319,717.
 Materialized views refreshed: Doctor ROI, sponsorship outcomes, territory opportunity,
 data quality, and core execution views.
-Held-out upload validation: MSL.xlsx accepted as msl_doctor_master with 25,191 rows profiled.
-Held-out upload ingestion was intentionally not run after preload because MSL is profile/reference
-only in this phase and would replace the latest full-package ingestion summary with a non-core
-profile-only run.
+MSL doctor-master preload: MSL.xlsx accepted as msl_doctor_master and ingested as compact
+reference data with 25,190 loaded mappings, 0 skipped rows, 0 warnings, and 0 errors.
+Doctor-master enrichment: 25,190 doctor dimension rows gained MSL source/territory metadata, and
+222 previously weak sponsorship/engagement rows received deterministic P-code links from unique
+country-plus-doctor-name mappings. Ambiguous doctor-name mappings were left unresolved.
 Dashboard API verification: Doctor ROI, Data Quality, Territory Opportunity, latest ingestion,
 and Doctor ROI detail endpoints returned 200 from Supabase-backed data.
 Canonical fact verification: execution requests, doctor engagement facts, compact RCPA
@@ -265,6 +266,27 @@ no Month column, and Intervention No is used as the request identifier.
 ERS repair: ERS is loaded as international-conference engagement evidence; rows without P-code
 remain weakly linked, and rows without doctor name are skipped with a warning instead of failing
 the batch.
+```
+
+MSL activation verification:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m ingestion.main batch-ingest --manifest files\msl-source-manifest.json
+.\.venv\Scripts\python.exe -m pytest ingestion\tests\loaders\test_msl_doctor_master_loader.py backend\tests\api\test_doctor_api.py -q
+npm --prefix frontend run build
+```
+
+Result:
+
+```text
+MSL rows loaded: 25,190.
+Doctor master staging rows retained in Supabase: 0.
+Doctors with MSL source/territory metadata: 25,190.
+Sponsorship/engagement rows still missing P-code after safe enrichment: 1,068.
+Doctor ROI rows: 33,414.
+Focused tests: 3 passed.
+Frontend production build: passed.
 ```
 
 Still required before final business acceptance:
@@ -567,6 +589,19 @@ currency_code
 This means re-ingesting the same RCPA workbook updates the same summary rows instead of duplicating
 them. Detailed SKU-level aggregate evidence is preserved locally in `data/processed/*.csv.gz`, not
 in Supabase.
+
+Storage note:
+
+```text
+rcpa_doctor_brand_summary is intentionally slimmed for serving. It keeps the fields needed for
+doctor detail brand mix and brand filters, but does not retain row UUIDs, doctor names,
+ingestion_run_id, or first/last month columns. Source-file periods come from doctor-month and
+country-brand-month summaries.
+
+MSL doctor-master files use temporary staging during ingestion. After the run, the durable
+Supabase data is the enriched doctors dimension plus safe engagement P-code backfills. The raw
+MSL mapping table is not retained online.
+```
 
 ## Failure Recovery
 

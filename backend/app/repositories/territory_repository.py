@@ -54,9 +54,8 @@ class TerritoryRepository:
                     case opportunity_label
                         when 'underserved' then 0
                         when 'overserved' then 1
-                        when 'self_serving' then 2
-                        when 'balanced' then 3
-                        else 4
+                        when 'balanced' then 2
+                        else 3
                     end,
                     total_prescription_qty desc nulls last,
                     known_investment_usd desc nulls last,

@@ -87,4 +87,4 @@ def test_territory_labels_are_deterministic() -> None:
         engagement_count=1,
         paid_engagement_count=1,
         sponsorship_count=0,
-    ) == "self_serving"
+    ) == "balanced"

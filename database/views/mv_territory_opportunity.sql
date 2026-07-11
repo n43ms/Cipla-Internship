@@ -36,7 +36,9 @@ engagement_territory as (
         count(distinct def.pcode_normalized) filter (where def.pcode_normalized is not null)::integer as engaged_doctor_count,
         count(*)::integer as engagement_count,
         count(*) filter (where def.is_sponsorship)::integer as sponsorship_count,
-        count(*) filter (where def.engagement_class in ('paid_engagement', 'paid_service', 'speaker', 'consultancy', 'advisory'))::integer as paid_engagement_count,
+        count(*) filter (
+            where def.engagement_class in ('paid_speaker', 'paid_consultancy', 'paid_advisory')
+        )::integer as paid_engagement_count,
         count(*) filter (where def.engagement_class = 'no_fee')::integer as no_fee_engagement_count,
         coalesce(sum(coalesce(def.contracted_amount_usd, 0)), 0)::numeric(18, 2) as contracted_amount_usd,
         coalesce(sum(coalesce(def.fmv_amount_usd, 0)), 0)::numeric(18, 2) as fmv_amount_usd,
@@ -122,9 +124,6 @@ select
             then 'underserved'
         when known_investment_usd > 0 and (total_prescription_qty / nullif(doctor_count, 0)) < 10
             then 'overserved'
-        when paid_engagement_count > 0 and sponsorship_count = 0
-             and (total_prescription_qty / nullif(doctor_count, 0)) >= 25
-            then 'self_serving'
         when (engagement_count::numeric / nullif(doctor_count, 0)) > 2
              and (total_prescription_qty / nullif(doctor_count, 0)) < 20
             then 'overserved'

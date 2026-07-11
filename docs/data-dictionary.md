@@ -39,7 +39,7 @@ These terms are clarified by the July 10 source package and should be used consi
 | FS HQ | Smart Contract HQ/territory field; equivalent to meeting/email `FQ HQ` wording | raw consolidated and doctor-wise reports |
 | RCPA Location | RCPA territory/location field | monthly RCPA `Location` |
 | RCPA PATCHNAME | RCPA patch field | monthly RCPA `PATCHNAME` |
-| MSL Location/Patch | Optional doctor master territory enrichment | MSL `Location`, `Territory Id`, `Patch`, `Patchsname` |
+| MSL Location/Patch | Doctor master territory enrichment used for doctor identity and territory metadata; may fill missing engagement P-codes only on unique country-plus-doctor-name matches | MSL `Location`, `Territory Id`, `Patch`, `Patchsname` |
 
 ## Phase 3 Source Workbooks
 
@@ -264,9 +264,10 @@ source_file_id + country + month + brand_group + own_or_competitor + currency_co
 Summary usage:
 
 - `rcpa_doctor_month_summary` drives Doctor ROI trend, Cipla vs competitor split, no-RCPA flags, and ROI quadrants.
-- `rcpa_doctor_brand_summary` drives doctor detail brand mix without storing monthly SKU detail online.
+- `rcpa_doctor_brand_summary` is a slim serving table that drives doctor detail brand mix and brand filters without storing monthly SKU detail, doctor names, row UUIDs, or repeated first/last month metadata online.
 - `rcpa_country_brand_month_summary` drives country/month/brand market trend summaries.
 - `doctors` is seeded from RCPA doctor-month summaries using country-scoped Pcode uniqueness.
+- MSL doctor-master files are ingested as staging/reference enrichment. The durable outputs are doctor identity, doctor-master source coverage, territory fields on `doctors`, and safe missing-P-code enrichment on engagement facts; raw MSL mapping rows are not retained in Supabase.
 
 Pcode rules:
 
