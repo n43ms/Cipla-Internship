@@ -196,7 +196,7 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
             </div>
             <div className="mt-4 rounded-lg border border-white/[0.08] bg-black/20 p-4">
               <p className="text-xs uppercase tracking-wide text-zinc-500">Built for</p>
-              <p className="mt-2 text-lg font-semibold text-zinc-50">Cipla Emerging Markets and Europe Patient Benefits Program</p>
+              <p className="mt-2 text-lg font-semibold text-zinc-50">Cipla Emerging Markets and Europe Patient Benefits Program (EMEU/PBP)</p>
               <p className="mt-1 text-sm text-zinc-400">One decision surface for ROI, execution, budget, territory, and data-quality governance.</p>
             </div>
           </div>
