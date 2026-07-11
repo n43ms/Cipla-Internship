@@ -43,7 +43,7 @@ describe("Phase 5-7 dashboard pages", () => {
     await vi.dynamicImportSettled();
     await waitFor(() => expect(screen.getByText("Budget utilization")).toBeInTheDocument());
     expect(screen.getByText("Confirmed contracted")).toBeInTheDocument();
-    expect(screen.getByText("Budget split")).toBeInTheDocument();
+    expect(screen.getByText("Spend split")).toBeInTheDocument();
     expect(screen.getByText("Diabetes CME")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Doctor ROI" }));
@@ -137,8 +137,8 @@ function budgetSummary() {
     confirmedContractedAmountUsd: 900,
     confirmedVsEstimatedVarianceLocal: -31000,
     confirmedVsEstimatedVarianceUsd: -100,
-    directHcpBtuSpendLocal: 155000,
-    directHcpBtuSpendUsd: 500,
+    directHcpBtuSpendLocal: 0,
+    directHcpBtuSpendUsd: 0,
     overheadBtcSpendLocal: 62000,
     overheadBtcSpendUsd: 200,
     actualTotalSpendLocal: 217000,
@@ -153,7 +153,7 @@ function budgetSummary() {
     provisionalFxCount: 0,
     currencyCodes: ["LKR"],
     fxRateStatuses: ["official"],
-    localTotalsByCurrency: [{ currencyCode: "LKR", estimatedInterventionLocal: 310000, confirmedContractedAmountLocal: 279000, directHcpBtuSpendLocal: 155000, overheadBtcSpendLocal: 62000, actualTotalSpendLocal: 217000, associationAmountLocal: 0, rowCount: 1, missingFxCount: 0, provisionalFxCount: 0 }],
+    localTotalsByCurrency: [{ currencyCode: "LKR", estimatedInterventionLocal: 310000, confirmedContractedAmountLocal: 279000, directHcpBtuSpendLocal: 0, overheadBtcSpendLocal: 62000, actualTotalSpendLocal: 217000, associationAmountLocal: 0, rowCount: 1, missingFxCount: 0, provisionalFxCount: 0 }],
     page: 1,
     pageSize: 25,
     total: 1,

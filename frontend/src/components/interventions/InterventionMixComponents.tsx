@@ -15,7 +15,6 @@ const INTERVENTION_SORT_ACCESSORS = {
   matchedWithoutExecution: (row: InterventionMixRow) => row.matchedWithoutExecutionCount,
   pendingReport: (row: InterventionMixRow) => row.reportPendingCount,
   actualSpend: (row: InterventionMixRow) => row.totalActualSpend,
-  fx: (row: InterventionMixRow) => row.fxRateStatus,
 };
 
 export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
@@ -87,7 +86,6 @@ export function InterventionMixTable({ rows }: { rows: InterventionMixRow[] }) {
                 <SortableHeader column="matchedWithoutExecution" label="Matched without execution" sort={sorted.sort} onSort={sorted.onSort} />
                 <SortableHeader column="pendingReport" label="Pending report" sort={sorted.sort} onSort={sorted.onSort} />
                 <SortableHeader column="actualSpend" label="Actual spend" sort={sorted.sort} onSort={sorted.onSort} />
-                <SortableHeader column="fx" label="FX" sort={sorted.sort} onSort={sorted.onSort} />
               </tr>
             </thead>
             <tbody>
@@ -107,7 +105,6 @@ export function InterventionMixTable({ rows }: { rows: InterventionMixRow[] }) {
                   <td className="px-4 py-3">{formatCount(row.matchedWithoutExecutionCount)}</td>
                   <td className="px-4 py-3">{formatCount(row.reportPendingCount)}</td>
                   <td className="px-4 py-3">{formatAmount(row.totalActualSpend)}</td>
-                  <td className="px-4 py-3">{row.fxRateStatus}</td>
                 </tr>
               ))}
             </tbody>

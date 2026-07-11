@@ -153,7 +153,7 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
           <div className="mt-7 grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2">
             <EntryFeature icon={<Stethoscope className="h-4 w-4" />} title="Doctor ROI" detail="Surfaces ROI quadrants, dark-horse doctors, high-value engaged physicians, and no-RCPA limitations." />
             <EntryFeature icon={<Activity className="h-4 w-4" />} title="Execution governance" detail="Reconciles planned events, execution snapshots, consolidation requests, workflow owners, and intervention mix." />
-            <EntryFeature icon={<WalletCards className="h-4 w-4" />} title="Budget control" detail="Separates planned, confirmed, BTU, BTC, actual spend, unspent gaps, overruns, and FX quality." />
+            <EntryFeature icon={<WalletCards className="h-4 w-4" />} title="Budget control" detail="Separates planned, confirmed, direct, overhead, actual spend, unspent gaps, and overruns." />
             <EntryFeature icon={<Sparkles className="h-4 w-4" />} title="ExecAI" detail="Embedded structured RAG assistant with query planning, evidence validation, redaction, and deterministic fallback." />
           </div>
           <div className="mt-9 flex flex-wrap items-center gap-4">

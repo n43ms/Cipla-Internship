@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { getBudgetSummary } from "../api/budget";
 import { getFilters } from "../api/filters";
-import { BudgetCards, BudgetGapTable, BudgetSpendChart, FxWarning, LocalCurrencyBreakdown, type BudgetGapSortKey } from "../components/budget/BudgetComponents";
+import { BudgetCards, BudgetGapTable, BudgetQualityNotice, BudgetSpendChart, LocalCurrencyBreakdown, type BudgetGapSortKey } from "../components/budget/BudgetComponents";
 import { DataFreshnessBanner, EmptyState, ErrorState, LoadingState } from "../components/common/DataStateComponents";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { nextSort, type SortState } from "../components/common/SortableTable";
@@ -36,7 +36,7 @@ export function BudgetUtilization({ onAiContextChange }: { onAiContextChange?: (
           <p className="eyebrow">Budget governance</p>
           <h1 className="page-title">Budget utilization</h1>
           <p className="page-copy">
-            Separates planned budget, confirmed contracted value, BTU direct spend, BTC overhead spend, total actual spend, FX status, and unmatched spend.
+            Tracks planned budget, confirmed contracting, actual spend, overhead, source-backed direct spend splits, and unmatched spend.
           </p>
         </header>
         <DataFreshnessBanner meta={budget.data.meta} />
@@ -53,7 +53,7 @@ export function BudgetUtilization({ onAiContextChange }: { onAiContextChange?: (
             <button className="soft-button w-full self-end rounded-md px-4 py-2 text-sm md:w-auto" onClick={() => { setCountry(""); setMonth(""); setPage(1); }}>Clear</button>
           </div>
         </section>
-        <FxWarning data={budget.data} />
+        <BudgetQualityNotice data={budget.data} />
         <BudgetCards data={budget.data} />
         <LocalCurrencyBreakdown data={budget.data} />
         {budget.data.rows.length ? (

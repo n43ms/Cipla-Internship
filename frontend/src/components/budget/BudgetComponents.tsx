@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import type { BudgetSummaryResponse, LocalCurrencyTotal } from "../../types/api";
@@ -13,10 +14,9 @@ const LOCAL_CURRENCY_SORT_ACCESSORS = {
   btc: (row: LocalCurrencyTotal) => row.overheadBtcSpendLocal,
   actual: (row: LocalCurrencyTotal) => row.actualTotalSpendLocal,
   rows: (row: LocalCurrencyTotal) => row.rowCount,
-  fx: (row: LocalCurrencyTotal) => row.missingFxCount || row.provisionalFxCount,
 };
 
-export type BudgetGapSortKey = "eventName" | "matchStatus" | "plannedBudgetUsd" | "actualSpendUsd" | "unspentGapUsd" | "fxRateStatus" | "btuBtcReconciliationStatus";
+export type BudgetGapSortKey = "eventName" | "matchStatus" | "plannedBudgetUsd" | "actualSpendUsd" | "unspentGapUsd";
 
 export function BudgetCards({ data }: { data: BudgetSummaryResponse }) {
   return (
@@ -36,11 +36,12 @@ export function LocalCurrencyBreakdown({ data }: { data: BudgetSummaryResponse }
 
 function LocalCurrencyTable({ data }: { data: BudgetSummaryResponse }) {
   const sorted = useSortableRows(data.localTotalsByCurrency, LOCAL_CURRENCY_SORT_ACCESSORS);
+  const showBtuColumn = hasMeaningfulBtuSplit(data);
   return (
     <div className="dashboard-card overflow-hidden">
       <div className="border-b border-zinc-800 p-4">
         <h2 className="font-semibold text-zinc-50">Local currency totals</h2>
-        <p className="text-sm text-zinc-500">Local money is grouped by currency. Missing-FX currencies are not silently mixed into USD comparisons.</p>
+        <p className="text-sm text-zinc-500">Local money is grouped by currency. Direct-spend split is shown only when the source provides it.</p>
       </div>
       <div className="table-scroll">
         <table className="min-w-full text-left text-sm">
@@ -48,11 +49,10 @@ function LocalCurrencyTable({ data }: { data: BudgetSummaryResponse }) {
             <tr>
               <SortableHeader column="currency" label="Currency" sort={sorted.sort} onSort={sorted.onSort} />
               <SortableHeader column="confirmed" label="Confirmed" sort={sorted.sort} onSort={sorted.onSort} />
-              <SortableHeader column="btu" label="BTU" sort={sorted.sort} onSort={sorted.onSort} />
+              {showBtuColumn ? <SortableHeader column="btu" label="Direct spend" sort={sorted.sort} onSort={sorted.onSort} /> : null}
               <SortableHeader column="btc" label="BTC" sort={sorted.sort} onSort={sorted.onSort} />
               <SortableHeader column="actual" label="Actual" sort={sorted.sort} onSort={sorted.onSort} />
               <SortableHeader column="rows" label="Rows" sort={sorted.sort} onSort={sorted.onSort} />
-              <SortableHeader column="fx" label="FX quality" sort={sorted.sort} onSort={sorted.onSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
@@ -60,11 +60,10 @@ function LocalCurrencyTable({ data }: { data: BudgetSummaryResponse }) {
               <tr key={row.currencyCode} className="transition-colors duration-150 hover:bg-zinc-800/45">
                 <td className="px-4 py-3 font-medium">{row.currencyCode}</td>
                 <td className="px-4 py-3">{money(row.confirmedContractedAmountLocal, row.currencyCode)}</td>
-                <td className="px-4 py-3">{money(row.directHcpBtuSpendLocal, row.currencyCode)}</td>
+                {showBtuColumn ? <td className="px-4 py-3">{localBtuCell(row)}</td> : null}
                 <td className="px-4 py-3">{money(row.overheadBtcSpendLocal, row.currencyCode)}</td>
                 <td className="px-4 py-3">{money(row.actualTotalSpendLocal, row.currencyCode)}</td>
                 <td className="px-4 py-3">{row.rowCount}</td>
-                <td className="px-4 py-3">{row.missingFxCount ? `${row.missingFxCount} missing FX` : row.provisionalFxCount ? `${row.provisionalFxCount} provisional` : "official/normalized"}</td>
               </tr>
             ))}
           </tbody>
@@ -79,12 +78,14 @@ export function BudgetSpendChart({ data }: { data: BudgetSummaryResponse }) {
     { label: "Planned", amount: data.plannedBudgetUsd },
     { label: "Confirmed", amount: data.confirmedContractedAmountUsd },
     { label: "Actual", amount: data.actualTotalSpendUsd },
-    { label: "BTU", amount: data.directHcpBtuSpendUsd },
     { label: "BTC", amount: data.overheadBtcSpendUsd },
   ];
+  if (hasMeaningfulBtuSplit(data)) {
+    rows.splice(3, 0, { label: "Direct", amount: data.directHcpBtuSpendUsd });
+  }
   return (
     <div className="dashboard-card p-4">
-      <h2 className="font-semibold text-zinc-50">Budget split</h2>
+      <h2 className="font-semibold text-zinc-50">Spend split</h2>
       <div className="chart-frame mt-3 h-80">
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={100}>
           <BarChart data={rows} margin={{ top: 12, right: 20, left: 8, bottom: 20 }}>
@@ -133,8 +134,6 @@ export function BudgetGapTable({
               <SortableHeader column="plannedBudgetUsd" label="Planned USD" sort={sort} onSort={onSort} />
               <SortableHeader column="actualSpendUsd" label="Actual USD" sort={sort} onSort={onSort} />
               <SortableHeader column="unspentGapUsd" label="Gap" sort={sort} onSort={onSort} />
-              <SortableHeader column="fxRateStatus" label="FX" sort={sort} onSort={onSort} />
-              <SortableHeader column="btuBtcReconciliationStatus" label="BTU/BTC" sort={sort} onSort={onSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
@@ -144,12 +143,15 @@ export function BudgetGapTable({
                   <p className="truncate font-medium text-zinc-100">{row.eventName ?? "Unlabeled activity"}</p>
                   <p className="text-xs text-zinc-500">{row.country} - {row.month}</p>
                 </td>
-                <td className="px-4 py-3">{row.matchStatus.replaceAll("_", " ")}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-start gap-2">
+                    <span>{row.matchStatus.replaceAll("_", " ")}</span>
+                    <ExpenseSplitFlag status={row.btuBtcReconciliationStatus} />
+                  </div>
+                </td>
                 <td className="px-4 py-3">{money(row.plannedBudgetUsd, "USD")}</td>
                 <td className="px-4 py-3">{money(row.actualTotalExpenseUsd, "USD")}</td>
                 <td className="px-4 py-3">{money(row.unspentGapUsd ?? row.overrunAmountUsd, "USD")}</td>
-                <td className="px-4 py-3"><span className={row.fxRateStatus === "missing" ? "rounded-full bg-amber-400/10 px-2 py-1 text-xs text-amber-300" : ""}>{row.fxRateStatus}</span></td>
-                <td className="px-4 py-3"><span className={row.btuBtcReconciliationStatus === "mismatch" ? "rounded-full bg-red-400/10 px-2 py-1 text-xs text-red-300" : ""}>{row.btuBtcReconciliationStatus.replaceAll("_", " ")}</span></td>
               </tr>
             ))}
           </tbody>
@@ -166,18 +168,17 @@ export function BudgetGapTable({
   );
 }
 
-export function FxWarning({ data }: { data: BudgetSummaryResponse }) {
+export function BudgetQualityNotice({ data }: { data: BudgetSummaryResponse }) {
   const items = [
-    data.missingFxCount ? `${data.missingFxCount} rows have missing company FX and remain local-currency only.` : "",
-    data.provisionalFxCount ? `${data.provisionalFxCount} rows use provisional FX.` : "",
-    data.btuBtcReconciliationIssueCount ? `${data.btuBtcReconciliationIssueCount} rows have BTU/BTC reconciliation issues.` : "",
+    data.btuBtcReconciliationIssueCount ? `${data.btuBtcReconciliationIssueCount} rows have source expense split reconciliation issues.` : "",
   ].filter(Boolean);
+  if (!items.length) return null;
   return (
     <WarningRegistration
       record={{
         id: "budget-quality",
         title: "Budget quality notes",
-        detail: "FX and BTU/BTC checks",
+        detail: "Expense split checks",
         tone: "warning",
         items,
       }}
@@ -192,4 +193,68 @@ export function money(value: number | null | undefined, currency = "") {
 
 function compact(value: number) {
   return Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
+
+function hasMeaningfulBtuSplit(data: BudgetSummaryResponse) {
+  return (
+    Number(data.directHcpBtuSpendUsd || 0) > 0 ||
+    data.localTotalsByCurrency.some((row) => Number(row.directHcpBtuSpendLocal || 0) > 0) ||
+    data.rows.some((row) => Number(row.directHcpBtuSpendLocal || 0) > 0)
+  );
+}
+
+function localBtuCell(row: LocalCurrencyTotal) {
+  if (Number(row.directHcpBtuSpendLocal || 0) === 0 && Number(row.actualTotalSpendLocal || 0) > 0) {
+    return <span className="text-zinc-500">Not provided</span>;
+  }
+  return money(row.directHcpBtuSpendLocal, row.currencyCode);
+}
+
+function ExpenseSplitFlag({ status }: { status: string }) {
+  const issue = expenseSplitIssue(status);
+  if (!issue) return null;
+  return (
+    <details className="group max-w-[15rem]">
+      <summary
+        className={`inline-flex cursor-pointer list-none items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors duration-150 marker:hidden ${issue.badgeClass}`}
+        aria-label={`Show expense split note: ${issue.label}`}
+      >
+        <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+        <span>{issue.label}</span>
+      </summary>
+      <div className="mt-2 rounded-md border border-zinc-800 bg-zinc-950 p-2 text-xs leading-5 text-zinc-300 shadow-xl">
+        {issue.detail}
+      </div>
+    </details>
+  );
+}
+
+function expenseSplitIssue(status: string) {
+  if (status === "reconciled") return null;
+  if (status === "missing_total_actual") {
+    return {
+      label: "Missing total",
+      detail: "Total actual spend is missing, so the row cannot be reconciled against the direct and overhead split.",
+      badgeClass: "border-zinc-700 bg-zinc-800/55 text-zinc-300 hover:bg-zinc-800",
+    };
+  }
+  if (status === "missing_btu_btc_split") {
+    return {
+      label: "Split missing",
+      detail: "The source did not provide direct and overhead spend split fields for this row.",
+      badgeClass: "border-zinc-700 bg-zinc-800/55 text-zinc-300 hover:bg-zinc-800",
+    };
+  }
+  if (status === "mismatch") {
+    return {
+      label: "Review split",
+      detail: "Direct spend plus overhead does not match total actual spend in the source row.",
+      badgeClass: "border-amber-300/25 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15",
+    };
+  }
+  return {
+    label: "Review",
+    detail: status.replaceAll("_", " "),
+    badgeClass: "border-amber-300/25 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15",
+  };
 }

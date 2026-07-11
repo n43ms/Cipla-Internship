@@ -11,7 +11,7 @@ describe("Budget utilization page", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders budget cards, FX warning, BTU/BTC split, and event gaps", async () => {
+  it("renders budget cards, source-aware spend split warning, and event gaps", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(input);
       if (url.includes("/api/filters")) return ok(filters());
@@ -23,12 +23,12 @@ describe("Budget utilization page", () => {
 
     await waitFor(() => expect(screen.getByText("Budget utilization")).toBeInTheDocument());
     expect(screen.getByText("Confirmed contracted")).toBeInTheDocument();
-    expect(screen.getByText("Budget split")).toBeInTheDocument();
+    expect(screen.getByText("Spend split")).toBeInTheDocument();
     expect(screen.getByText("Local currency totals")).toBeInTheDocument();
-    expect(screen.getByText("1 rows use provisional FX.")).not.toBeVisible();
+    expect(screen.queryByText("Direct spend")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /open data warning notes/i }));
     expect(screen.getByText("Budget quality notes")).toBeInTheDocument();
-    expect(screen.getByText("1 rows use provisional FX.")).toBeInTheDocument();
+    expect(screen.getByText("1 rows have source expense split reconciliation issues.")).toBeInTheDocument();
     expect(screen.getByText("Diabetes CME")).toBeInTheDocument();
     expect(screen.getByText("Event budget gaps and unmatched spend")).toBeInTheDocument();
   });
@@ -53,8 +53,8 @@ function budgetSummary() {
       generatedAt: "2026-06-19T00:00:00Z",
       latestIngestionStatus: "completed_with_warnings",
       filtersApplied: {},
-      dataQualityFlags: ["provisional_fx"],
-      limitations: ["Some amounts use provisional FX."],
+      dataQualityFlags: [],
+      limitations: [],
       sourceDerivationNotes: [],
     },
     plannedBudgetUsd: 1000,
@@ -64,8 +64,8 @@ function budgetSummary() {
     confirmedContractedAmountUsd: 900,
     confirmedVsEstimatedVarianceLocal: -31000,
     confirmedVsEstimatedVarianceUsd: -100,
-    directHcpBtuSpendLocal: 155000,
-    directHcpBtuSpendUsd: 500,
+    directHcpBtuSpendLocal: 0,
+    directHcpBtuSpendUsd: 0,
     overheadBtcSpendLocal: 62000,
     overheadBtcSpendUsd: 200,
     actualTotalSpendLocal: 217000,
@@ -75,9 +75,9 @@ function budgetSummary() {
     overrunAmountUsd: 0,
     planWithoutSpendCount: 1,
     spendWithoutPlanCount: 0,
-    btuBtcReconciliationIssueCount: 0,
+    btuBtcReconciliationIssueCount: 1,
     missingFxCount: 0,
-    provisionalFxCount: 1,
+    provisionalFxCount: 0,
     currencyCodes: ["LKR"],
     fxRateStatuses: ["official", "provisional"],
     localTotalsByCurrency: [
@@ -85,7 +85,7 @@ function budgetSummary() {
         currencyCode: "LKR",
         estimatedInterventionLocal: 310000,
         confirmedContractedAmountLocal: 279000,
-        directHcpBtuSpendLocal: 155000,
+        directHcpBtuSpendLocal: 0,
         overheadBtcSpendLocal: 62000,
         actualTotalSpendLocal: 217000,
         associationAmountLocal: 0,
@@ -110,7 +110,7 @@ function budgetSummary() {
         estimatedInterventionLocal: 310000,
         confirmedContractedAmountLocal: 279000,
         actualTotalExpenseLocal: 217000,
-        directHcpBtuSpendLocal: 155000,
+        directHcpBtuSpendLocal: 0,
         overheadBtcSpendLocal: 62000,
         actualTotalExpenseUsd: 700,
         unspentGapUsd: 300,

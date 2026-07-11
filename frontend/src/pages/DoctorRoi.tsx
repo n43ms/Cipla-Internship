@@ -158,7 +158,7 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
                 <h3 className="font-semibold">Engagement history</h3>
                 {detail.data.engagementHistory.length ? detail.data.engagementHistory.map((item, index) => (
                   <p key={`${item.requestId}-${index}`} className="mt-2 break-words rounded-md border border-zinc-800 bg-zinc-900 p-2">
-                    {item.month}: {item.interventionName ?? "Activity"} - {item.fxRateStatus ?? "fx unknown"}
+                    {item.month}: {item.interventionName ?? "Activity"}
                   </p>
                 )) : <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-2 text-zinc-500">No actual engagement rows for this doctor.</p>}
               </section>
