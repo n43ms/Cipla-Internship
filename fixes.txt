@@ -1,0 +1,77 @@
+- now that all the data is ingested - for the execution - choose what is the best default behaviour as to include audit only out of score or keep everything- also check the planner coverage is it just sri lanka or everything
+- clutter
+ - execution page has unnecessary clutters detracting attention from the kpis 
+remove - planner coverage, snapshorot coverage, consolidation coverage and out of scope policy.
+ - layout of the execution page is messed up (all this - [Pending requests
+
+0
+
+Pending reports
+
+65
+
+Reports approved
+
+67
+
+Reports correction
+
+17
+
+Request confirmation
+approved
+300
+sent for correction
+33
+deleted
+58
+draft
+14
+rejected
+38
+Post confirmation
+draft
+38
+not created
+309
+sent for correction
+17
+approved
+67
+pending owner
+10
+rejected
+2
+Expense submitted coverage
+
+22%
+
+Expense confirmed coverage
+
+15%
+
+Current blocker / owner stage
+post report not submitted
+38
+unknown
+47
+request approved; report pending
+168
+post report approval pending
+17
+request deleted
+58
+post report approved
+67
+post report approval pending with Tanmayee Sardesai
+1
+request rejected
+38
+post report approval pending with Chathuranga Dissanayake
+3
+post report approval pending with Central Marketing
+3
+post report approval pending with Sajita Joshi Piya PM] is not centered and is in none big column to the right)
+
+ - workflow request drilldown table is messi and cluttered (out of scope shown often, report status duplicated)
+ - remove the last table - event execution matrix.

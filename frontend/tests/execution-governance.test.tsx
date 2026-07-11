@@ -46,36 +46,6 @@ describe("Execution governance page", () => {
           scopeReasons: ["Primary Phase 4 scope: planner, execution snapshot, and consolidation evidence are all available."],
         });
       }
-      if (url.includes("/api/execution/events")) {
-        return ok({
-          meta: { generatedAt: "now", latestIngestionStatus: "completed", filtersApplied: {}, dataQualityFlags: [], limitations: [] },
-          page: 1,
-          pageSize: 25,
-          total: 1,
-          rows: [{
-            sourceType: "planner_execution",
-            eventName: "Diabetes CME",
-            eventType: "CME",
-            country: "Sri Lanka",
-            month: "May 2026",
-            matchStatus: "weak_match",
-            confidence: 0.75,
-            candidateMatch: "Diabetes CME May",
-            plannedHcps: 10,
-            engagedHcps: 5,
-            executionStatus: "executed",
-            snapshotSource: "derived_from_consolidation",
-            sourceDerivationNote: "Derived from consolidation because the monthly execution country tab was missing.",
-            unmatchedReasonCode: "name_mismatch",
-            unmatchedReasonDetail: "The event name matched only weakly and must be reviewed before treating it as final execution evidence.",
-            isPrimaryPhase4Scope: true,
-            scopeStatus: "primary_phase4_scope",
-            scopeReason: "Primary Phase 4 scope.",
-            matchGrain: "single_match",
-            sourceReferences: { planEventId: "plan-1" },
-          }],
-        });
-      }
       if (url.includes("/api/workflow/summary")) {
         return ok({
           meta: { generatedAt: "now", latestIngestionStatus: "completed", dataQualityFlags: [], limitations: [] },
@@ -156,22 +126,19 @@ describe("Execution governance page", () => {
       () => expect(screen.getByText("Scope: 2026-05")).toBeInTheDocument(),
       { timeout: 10000 },
     );
-    expect(screen.getByText("Planner coverage")).toBeInTheDocument();
-    expect(screen.getByText("Snapshot coverage")).toBeInTheDocument();
-    expect(screen.getByText("Out-of-scope policy")).toBeInTheDocument();
+    expect(screen.queryByText("Planner coverage")).not.toBeInTheDocument();
+    expect(screen.queryByText("Snapshot coverage")).not.toBeInTheDocument();
+    expect(screen.queryByText("Out-of-scope policy")).not.toBeInTheDocument();
     expect(screen.getByText(/The page opens on 2026-05/)).toBeInTheDocument();
+    expect(screen.getByText(/Default KPIs use Nepal\/Sri Lanka Apr-May planner coverage/)).toBeInTheDocument();
     expect(screen.getByText("1 derived from consolidation")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /open data warning notes/i }));
     expect(screen.getByText("Execution evidence notes")).toBeInTheDocument();
     expect(screen.getByText(/weak or unmatched reconciliation records require review/)).toBeInTheDocument();
     expect(screen.getByText("Planned vs engaged HCPs")).toBeInTheDocument();
-    expect(screen.getByText("Event execution matrix")).toBeInTheDocument();
-    expect(screen.getByText("Diabetes CME")).toBeInTheDocument();
-    expect(screen.getByText("name mismatch")).toBeInTheDocument();
-    expect(screen.getByText("10 planned / 5 engaged")).toBeInTheDocument();
+    expect(screen.queryByText("Event execution matrix")).not.toBeInTheDocument();
     expect(screen.getByText("Pending reports")).toBeInTheDocument();
-    expect(screen.getByText("Expense submitted coverage")).toBeInTheDocument();
-    expect(screen.getByText("Expense confirmed coverage")).toBeInTheDocument();
+    expect(screen.getByText("Expense coverage")).toBeInTheDocument();
     expect(screen.getByText("Request confirmation")).toBeInTheDocument();
     expect(screen.getByText("Post confirmation")).toBeInTheDocument();
     expect(screen.getByText("Intervention mix")).toBeInTheDocument();
@@ -182,10 +149,7 @@ describe("Execution governance page", () => {
     expect(screen.getByText("Anil Arial")).toBeInTheDocument();
     expect(screen.getByText("Submitted: 2026-05-20")).toBeInTheDocument();
     expect(screen.getByText("Confirmed: -")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("View"));
-    expect(screen.getByText("Execution drilldown")).toBeInTheDocument();
-    expect(screen.getByText("Diabetes CME May")).toBeInTheDocument();
+    expect(screen.queryByText("Primary Phase 4")).not.toBeInTheDocument();
   });
 
   it("renders an API error state", async () => {
@@ -231,15 +195,6 @@ describe("Execution governance page", () => {
           scopeReasons: [],
         });
       }
-      if (url.includes("/api/execution/events")) {
-        return ok({
-          meta: { generatedAt: "now", latestIngestionStatus: "completed", filtersApplied: {}, dataQualityFlags: [], limitations: [] },
-          page: 1,
-          pageSize: 25,
-          total: 0,
-          rows: [],
-        });
-      }
       if (url.includes("/api/workflow/summary")) {
         return ok({
           meta: { generatedAt: "now", latestIngestionStatus: "completed", filtersApplied: {}, dataQualityFlags: [], limitations: [] },
@@ -274,7 +229,7 @@ describe("Execution governance page", () => {
     renderWithProviders(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
-    await waitFor(() => expect(screen.getByText(/No execution rows match the current filters/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Workflow request drilldown")).toBeInTheDocument());
     const countryInput = screen.getByLabelText("Country");
     fireEvent.change(countryInput, { target: { value: "LK" } });
     await waitFor(() => expect(screen.getByDisplayValue("Sri Lanka")).toBeInTheDocument());
@@ -284,6 +239,7 @@ describe("Execution governance page", () => {
     await waitFor(() => {
       const urls = fetchMock.mock.calls.map(([input]) => String(input));
       expect(urls.some((url) => url.includes("country=LK") && url.includes("month=2026-05"))).toBe(true);
+      expect(urls.some((url) => url.includes("/api/execution/events"))).toBe(false);
     });
   });
 });

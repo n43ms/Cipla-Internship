@@ -17,6 +17,37 @@ def test_supported_topic_routing_and_unsupported_refusal() -> None:
     assert "execution" in (unsupported.refusal or "").lower()
 
 
+def test_answer_policy_is_lenient_for_typos_and_bad_phrasing() -> None:
+    decision = route_question(
+        "plz explain docotr sponserd hstory and qadrant roi problms",
+    )
+
+    assert decision.supported is True
+    assert "doctor" in decision.topics
+
+
+def test_answer_policy_uses_page_context_for_ambiguous_dashboard_questions() -> None:
+    decision = route_question("why is this looking bad?", page_context="doctor_roi")
+
+    assert decision.supported is True
+    assert "doctor" in decision.topics
+    assert "quality" in decision.topics
+
+
+def test_answer_policy_allows_general_dashboard_questions_without_exact_keywords() -> None:
+    decision = route_question("what should i look at in this dashboard?")
+
+    assert decision.supported is True
+    assert {"execution", "doctor", "quality"}.issubset(set(decision.topics))
+
+
+def test_answer_policy_allows_messy_business_question_with_generic_external_word() -> None:
+    decision = route_question("which doctors are winning roi and sponserhip?")
+
+    assert decision.supported is True
+    assert "doctor" in decision.topics
+
+
 def test_confidence_downgrades_for_missing_or_weak_data() -> None:
     assert confidence_for_context({"limitations": [], "dataQualityFlags": []}) == "high"
     assert (

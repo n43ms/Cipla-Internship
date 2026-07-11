@@ -3,25 +3,22 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Clock3, FileWarning, RefreshCw } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-import { getExecutionEvents, getExecutionFilterOptions, getExecutionSummary } from "../api/execution";
+import { getExecutionFilterOptions, getExecutionSummary } from "../api/execution";
 import { getInterventionMix } from "../api/interventions";
 import { getWorkflowRequests, getWorkflowSummary } from "../api/workflow";
-import { ConfidenceBadge, SourceDerivationBadge, StatusBadge } from "../components/execution/ExecutionBadges";
+import { SourceDerivationBadge, StatusBadge } from "../components/execution/ExecutionBadges";
 import { InterventionMixChart, InterventionMixTable } from "../components/interventions/InterventionMixComponents";
 import { WorkflowGovernanceCards, WorkflowStatusTable } from "../components/workflow/WorkflowComponents";
-import { SidePanel } from "../components/common/SidePanel";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { LoadingState } from "../components/common/DataStateComponents";
 import { TableLoadingOverlay } from "../components/common/TableLoadingOverlay";
 import { WarningRegistration } from "../components/common/WarningCenter";
 import { nextSort, SortableHeader, type SortState } from "../components/common/SortableTable";
-import type { ExecutionEventRow, WorkflowRequestRow, WorkflowSummaryResponse } from "../types/api";
+import type { WorkflowRequestRow, WorkflowSummaryResponse } from "../types/api";
 
-const PAGE_SIZE = 25;
 const WORKFLOW_PAGE_SIZE = 8;
 
-type ExecutionSortKey = "eventName" | "sourceType" | "matchStatus" | "unmatchedReasonCode" | "plannedHcps" | "executionStatus" | "confidence";
-type WorkflowSortKey = "reqId" | "repName" | "interventionType" | "requestApprovalStatus" | "requestConfirmationStatus" | "postConfirmationStatus" | "expenseConfirmedDate" | "scopeStatus" | "currentOwnerStage";
+type WorkflowSortKey = "reqId" | "repName" | "interventionType" | "requestConfirmationStatus" | "postConfirmationStatus" | "expenseConfirmedDate" | "currentOwnerStage";
 
 type Filters = {
   country: string;
@@ -31,10 +28,7 @@ type Filters = {
 
 export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (context: { pageContext: string; filters: Record<string, unknown> }) => void }) {
   const [filters, setFilters] = useState<Filters>({ country: "", month: "", includeOutOfScope: false });
-  const [page, setPage] = useState(1);
-  const [selectedRow, setSelectedRow] = useState<ExecutionEventRow | null>(null);
   const [hasAppliedInitialScope, setHasAppliedInitialScope] = useState(false);
-  const [eventSort, setEventSort] = useState<SortState<ExecutionSortKey>>({ key: "eventName", direction: "asc" });
   const [workflowSort, setWorkflowSort] = useState<SortState<WorkflowSortKey>>({ key: "reqId", direction: "asc" });
   const activeFilters = useMemo(
     () => ({
@@ -60,11 +54,6 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
   const summary = useQuery({
     queryKey: ["execution-summary", activeFilters],
     queryFn: () => getExecutionSummary(activeFilters),
-  });
-  const events = useQuery({
-    queryKey: ["execution-events", activeFilters, page, eventSort],
-    queryFn: () => getExecutionEvents({ ...activeFilters, page, pageSize: PAGE_SIZE, sort: eventSort.key, sortDirection: eventSort.direction }),
-    placeholderData: (previousData) => previousData,
   });
   const workflow = useQuery({
     queryKey: ["workflow-summary", workflowFilters],
@@ -95,14 +84,12 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
   const isLoading =
     filterOptions.isLoading ||
     (summary.isLoading && !summary.data) ||
-    (events.isLoading && !events.data) ||
     (workflow.isLoading && !workflow.data) ||
     (workflowRequests.isLoading && !workflowRequests.data) ||
     (interventions.isLoading && !interventions.data);
   const isError =
     filterOptions.isError ||
     summary.isError ||
-    events.isError ||
     workflow.isError ||
     workflowRequests.isError ||
     interventions.isError;
@@ -116,12 +103,9 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
   }
 
   const summaryData = summary.data;
-  const eventRows = events.data?.rows ?? [];
   const workflowData = workflow.data;
   const workflowRows = workflowRequests.data?.rows ?? [];
   const interventionRows = interventions.data?.rows ?? [];
-  const totalEvents = events.data?.total ?? 0;
-  const pageCount = Math.max(Math.ceil(totalEvents / PAGE_SIZE), 1);
   const scopeLabel = [selectedLabel(filterOptions.data?.countries, filters.country), selectedLabel(filterOptions.data?.months, filters.month)]
     .filter(Boolean)
     .join(" | ") || "Nepal and Sri Lanka | Apr-May 2026";
@@ -151,18 +135,14 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
           onChange={(next) => {
             setHasAppliedInitialScope(true);
             setFilters((current) => ({ ...current, ...next }));
-            setPage(1);
           }}
           recommendedMonth={filterOptions.data?.recommendedMonth ?? null}
         />
-
-        <ScopeCoverageCards includeOutOfScope={filters.includeOutOfScope} scopeReasons={summaryData?.scopeReasons ?? []} />
 
         <QualityPanel
           flags={summaryData?.meta.dataQualityFlags ?? []}
           limitations={[
             ...(summaryData?.meta.limitations ?? []),
-            ...(events.data?.meta.limitations ?? []),
             ...(workflowData?.meta.limitations ?? []),
             ...(interventions.data?.meta.limitations ?? []),
           ]}
@@ -179,7 +159,7 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
           <KpiCard icon={<CheckCircle2 size={18} />} label="Event execution" value={formatPercent(summaryData?.eventExecutionRate ?? 0)} />
         </div>
 
-        <div className="mt-6 grid min-w-0 grid-cols-1 items-start gap-6 2xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <div className="mt-6">
           <PlannedVsEngagedChart
             planned={summaryData?.plannedHcps ?? 0}
             engaged={summaryData?.matchedEngagedHcps ?? summaryData?.engagedHcps ?? 0}
@@ -188,8 +168,9 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
             executedSnapshots={summaryData?.executedSnapshotCount ?? 0}
             actionDueSnapshots={summaryData?.actionDueSnapshotCount ?? 0}
           />
-          <WorkflowPanel workflowData={workflowData} />
         </div>
+
+        <WorkflowPanel workflowData={workflowData} />
 
         <div className="mt-6 grid min-w-0 grid-cols-1 items-start gap-6">
           <InterventionMixChart rows={interventionRows} />
@@ -204,21 +185,8 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
             isFetching={workflowRequests.isFetching}
             onSort={(column) => setWorkflowSort((current) => nextSort(current, column))}
           />
-          <EventMatrixTable
-            rows={eventRows}
-            page={page}
-            pageCount={pageCount}
-            total={totalEvents}
-            sort={eventSort}
-            isFetching={events.isFetching}
-            onPageChange={setPage}
-            onSelect={setSelectedRow}
-            onSort={(column) => { setEventSort((current) => nextSort(current, column)); setPage(1); }}
-          />
         </div>
       </section>
-
-      <EventDrawer row={selectedRow} onClose={() => setSelectedRow(null)} />
     </main>
   );
 }
@@ -265,7 +233,7 @@ function FilterPanel({
         <span>
           Include audit-only out-of-scope rows
           <span className="block text-xs text-muted">
-            Keeps Malaysia, Myanmar, Oman, UAE, historical consolidation, and future planner rows visible for audit without mixing them into default Phase 4 KPIs.
+            Default KPIs use Nepal/Sri Lanka Apr-May planner coverage; switch this on only to audit preserved rows from other markets or periods.
           </span>
         </span>
       </label>
@@ -274,26 +242,6 @@ function FilterPanel({
           The page opens on {recommendedMonth.label} because it is the latest month with planner, snapshot, and consolidation evidence.
         </p>
       ) : null}
-    </div>
-  );
-}
-
-function ScopeCoverageCards({ includeOutOfScope, scopeReasons }: { includeOutOfScope: boolean; scopeReasons: string[] }) {
-  return (
-    <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <KpiCard icon={<CheckCircle2 size={18} />} label="Planner coverage" value="Nepal, Sri Lanka" />
-      <KpiCard icon={<CheckCircle2 size={18} />} label="Snapshot coverage" value="Apr-May 2026" />
-      <KpiCard icon={<CheckCircle2 size={18} />} label="Consolidation coverage" value="Scoped by API" />
-      <div className="dashboard-card p-4">
-        <div className="flex items-center gap-2 text-muted">
-          <AlertTriangle size={18} />
-          <p className="text-sm">Out-of-scope policy</p>
-        </div>
-        <p className="mt-3 text-sm font-medium">
-          {includeOutOfScope ? "Audit rows visible" : "Excluded from KPI math"}
-        </p>
-        {scopeReasons.length > 0 ? <p className="mt-2 text-xs text-muted">{scopeReasons[0]}</p> : null}
-      </div>
     </div>
   );
 }
@@ -375,149 +323,49 @@ function PlannedVsEngagedChart({
 
 function WorkflowPanel({ workflowData }: { workflowData: WorkflowSummaryResponse | undefined }) {
   return (
-    <div className="space-y-4">
+    <section className="mt-6 space-y-4">
+      <div>
+        <h2 className="text-lg font-medium">Workflow governance</h2>
+        <p className="mt-1 text-sm text-muted">Request, report, expense, and blocker status for the selected execution scope.</p>
+      </div>
       <WorkflowGovernanceCards
         pendingRequests={workflowData?.pendingRequestCount ?? 0}
         pendingReports={workflowData?.pendingReportCount ?? 0}
         reportsApproved={workflowData?.reportsApproved ?? 0}
         reportsSentForCorrection={workflowData?.reportsSentForCorrection ?? 0}
       />
-      <div className="grid grid-cols-1 gap-4">
-       
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         <WorkflowStatusTable title="Request confirmation" counts={workflowData?.requestConfirmationCounts ?? {}} />
-        
         <WorkflowStatusTable title="Post confirmation" counts={workflowData?.postConfirmationCounts ?? {}} />
+        <ExpenseCoveragePanel
+          submitted={workflowData?.expenseSubmittedCoverage ?? 0}
+          confirmed={workflowData?.expenseConfirmedCoverage ?? 0}
+        />
+        <WorkflowStatusTable title="Current blocker / owner stage" counts={workflowData?.ownerStageCounts ?? {}} maxEntries={6} />
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <CoverageCard label="Expense submitted coverage" value={workflowData?.expenseSubmittedCoverage ?? 0} />
-        <CoverageCard label="Expense confirmed coverage" value={workflowData?.expenseConfirmedCoverage ?? 0} />
-      </div>
-      <WorkflowStatusTable title="Current blocker / owner stage" counts={workflowData?.ownerStageCounts ?? {}} />
-    </div>
+    </section>
   );
 }
 
-function CoverageCard({ label, value }: { label: string; value: number }) {
+function ExpenseCoveragePanel({ confirmed, submitted }: { confirmed: number; submitted: number }) {
   return (
     <div className="dashboard-card p-4">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-2 text-2xl font-semibold">{formatPercent(value)}</p>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-800">
-        <div className="h-full rounded-full bg-accent" style={{ width: `${Math.max(0, Math.min(value, 1)) * 100}%` }} />
-      </div>
+      <h3 className="font-medium">Expense coverage</h3>
+      <CoverageBar label="Submitted" value={submitted} />
+      <CoverageBar label="Confirmed" value={confirmed} />
     </div>
   );
 }
 
-function EventMatrixTable({
-  rows,
-  page,
-  pageCount,
-  total,
-  sort,
-  isFetching = false,
-  onPageChange,
-  onSelect,
-  onSort,
-}: {
-  rows: ExecutionEventRow[];
-  page: number;
-  pageCount: number;
-  total: number;
-  sort: SortState<ExecutionSortKey>;
-  isFetching?: boolean;
-  onPageChange: (page: number) => void;
-  onSelect: (row: ExecutionEventRow) => void;
-  onSort: (column: ExecutionSortKey) => void;
-}) {
+function CoverageBar({ label, value }: { label: string; value: number }) {
   return (
-    <div className="dashboard-card relative">
-      <TableLoadingOverlay isFetching={isFetching} label="Refreshing execution rows" />
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 p-4">
-        <div>
-          <h2 className="font-medium">Event execution matrix</h2>
-          <p className="text-sm text-muted">Reconciled planner, execution snapshot, and consolidation evidence with scoped unmatched reasons.</p>
-        </div>
-        <p className="text-sm text-muted">{formatCount(total)} rows</p>
+    <div className="mt-3">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="text-muted">{label}</span>
+        <span className="font-medium">{formatPercent(value)}</span>
       </div>
-      {rows.length === 0 ? (
-        <p className="p-4 text-sm text-muted">
-          No execution rows match the current filters. If you selected an out-of-scope market or month, enable audit-only rows to inspect preserved source data.
-        </p>
-      ) : (
-        <div className="table-scroll">
-          <table className="w-full min-w-[960px] text-left text-sm">
-            <thead className="table-head">
-              <tr>
-                <SortableHeader column="eventName" label="Event" sort={sort} onSort={onSort} />
-                <SortableHeader column="sourceType" label="Source" sort={sort} onSort={onSort} />
-                <SortableHeader column="matchStatus" label="Match" sort={sort} onSort={onSort} />
-                <SortableHeader column="unmatchedReasonCode" label="Reason / scope" sort={sort} onSort={onSort} />
-                <SortableHeader column="plannedHcps" label="HCPs" sort={sort} onSort={onSort} />
-                <SortableHeader column="executionStatus" label="Execution" sort={sort} onSort={onSort} />
-                <SortableHeader column="confidence" label="Confidence" sort={sort} onSort={onSort} />
-                <th className="px-4 py-3">Drilldown</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr key={`${row.sourceType}-${row.eventName}-${row.matchStatus}-${index}`} className="table-row">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{row.eventName ?? "Unnamed event"}</div>
-                    <div className="text-xs text-muted">
-                      {row.eventType ?? "No type"} | {row.country} | {row.month}
-                    </div>
-                    {row.sourceDerivationNote ? <div className="mt-1 text-xs text-amber-300">{row.sourceDerivationNote}</div> : null}
-                  </td>
-                  <td className="px-4 py-3">{row.sourceType.replaceAll("_", " ")}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge value={row.matchStatus} />
-                    {row.matchGrain ? <div className="mt-1 text-xs text-muted">{humanize(row.matchGrain)}</div> : null}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-zinc-300">
-                    <div>{reasonLabel(row)}</div>
-                    {reasonDetail(row) ? (
-                      <div className="mt-1 max-w-xs text-muted">{reasonDetail(row)}</div>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3">
-                    {valueOrDash(row.plannedHcps)} planned / {valueOrDash(row.engagedHcps)} engaged
-                  </td>
-                  <td className="px-4 py-3">{row.executionStatus ?? row.snapshotSource ?? "No snapshot"}</td>
-                  <td className="px-4 py-3">
-                    <ConfidenceBadge value={row.confidence} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <button className="text-sm font-medium text-accent hover:underline" type="button" onClick={() => onSelect(row)}>
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 p-4 text-sm">
-        <button
-          className="soft-button rounded-md border border-zinc-700 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-          type="button"
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
-        >
-          Previous
-        </button>
-        <span className="text-muted">
-          Page {page} of {pageCount}
-        </span>
-        <button
-          className="soft-button rounded-md border border-zinc-700 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-          type="button"
-          disabled={page >= pageCount}
-          onClick={() => onPageChange(page + 1)}
-        >
-          Next
-        </button>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800">
+        <div className="h-full rounded-full bg-accent" style={{ width: `${Math.max(0, Math.min(value, 1)) * 100}%` }} />
       </div>
     </div>
   );
@@ -542,7 +390,7 @@ function WorkflowRequestTable({
       <div className="flex items-center justify-between border-b border-zinc-800 p-4">
         <div>
           <h2 className="font-medium">Workflow request drilldown</h2>
-          <p className="text-sm text-muted">First {WORKFLOW_PAGE_SIZE} requests in the selected scope, including current blocker stage.</p>
+          <p className="text-sm text-muted">First {WORKFLOW_PAGE_SIZE} requests in the selected scope, focused on request/report state and blocker ownership.</p>
         </div>
         <p className="text-sm text-muted">{formatCount(total)} requests</p>
       </div>
@@ -550,17 +398,15 @@ function WorkflowRequestTable({
         <p className="p-4 text-sm text-muted">No workflow requests match the current filters.</p>
       ) : (
         <div className="table-scroll">
-          <table className="w-full min-w-[1120px] text-left text-sm">
+          <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="table-head">
               <tr>
                 <SortableHeader column="reqId" label="Request" sort={sort} onSort={onSort} />
                 <SortableHeader column="repName" label="Rep / market" sort={sort} onSort={onSort} />
                 <SortableHeader column="interventionType" label="Intervention" sort={sort} onSort={onSort} />
-                <SortableHeader column="requestApprovalStatus" label="Request status" sort={sort} onSort={onSort} />
                 <SortableHeader column="requestConfirmationStatus" label="Confirmation" sort={sort} onSort={onSort} />
                 <SortableHeader column="postConfirmationStatus" label="Report status" sort={sort} onSort={onSort} />
                 <SortableHeader column="expenseConfirmedDate" label="Evidence dates" sort={sort} onSort={onSort} />
-                <SortableHeader column="scopeStatus" label="Scope" sort={sort} onSort={onSort} />
                 <SortableHeader column="currentOwnerStage" label="Current blocker" sort={sort} onSort={onSort} />
               </tr>
             </thead>
@@ -576,21 +422,14 @@ function WorkflowRequestTable({
                   </td>
                   <td className="px-4 py-3">{row.interventionType ?? "Unknown type"}</td>
                   <td className="px-4 py-3">
-                    <StatusBadge value={row.requestApprovalStatus} />
-                  </td>
-                  <td className="px-4 py-3">
                     <StatusBadge value={row.requestConfirmationStatus} />
                   </td>
-                  <td className="space-y-1 px-4 py-3">
-                    <StatusBadge value={row.postApprovalStatus} />
+                  <td className="px-4 py-3">
                     <StatusBadge value={row.postConfirmationStatus} />
                   </td>
                   <td className="px-4 py-3 text-xs text-muted">
                     <div>Submitted: {row.expenseSubmittedDate ?? "-"}</div>
                     <div>Confirmed: {row.expenseConfirmedDate ?? "-"}</div>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted">
-                    {row.isPrimaryPhase4Scope ? "Primary Phase 4" : humanize(row.scopeStatus ?? "audit_only")}
                   </td>
                   <td className="px-4 py-3">{row.currentOwnerStage ?? "unknown"}</td>
                 </tr>
@@ -599,59 +438,6 @@ function WorkflowRequestTable({
           </table>
         </div>
       )}
-    </div>
-  );
-}
-
-function EventDrawer({ row: incomingRow, onClose }: { row: ExecutionEventRow | null; onClose: () => void }) {
-  const [displayRow, setDisplayRow] = useState<ExecutionEventRow | null>(incomingRow);
-
-  useEffect(() => {
-    if (incomingRow) setDisplayRow(incomingRow);
-  }, [incomingRow]);
-
-  const row = incomingRow ?? displayRow;
-  if (!row) {
-    return null;
-  }
-
-  return (
-    <SidePanel open={Boolean(incomingRow)} onClose={onClose}>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-muted">Execution drilldown</p>
-            <h2 className="mt-1 text-xl font-semibold">{row.eventName ?? "Unnamed event"}</h2>
-          </div>
-          <button className="soft-button rounded-md border border-zinc-700 px-3 py-2 text-sm" type="button" onClick={onClose}>
-            Close
-          </button>
-        </div>
-        <dl className="mt-6 grid gap-4 text-sm">
-          <Detail label="Country" value={row.country} />
-          <Detail label="Month" value={row.month} />
-          <Detail label="Source type" value={row.sourceType} />
-          <Detail label="Match status" value={row.matchStatus} />
-          <Detail label="Match grain" value={row.matchGrain ? humanize(row.matchGrain) : "Single or not applicable"} />
-          <Detail label="Unmatched reason" value={row.unmatchedReasonCode ? humanize(row.unmatchedReasonCode) : "Not unmatched"} />
-          <Detail label="Reason detail" value={row.unmatchedReasonDetail ?? row.scopeReason ?? "No additional detail"} />
-          <Detail label="Phase 4 scope" value={row.isPrimaryPhase4Scope ? "Primary Phase 4 scope" : humanize(row.scopeStatus ?? "out_of_scope")} />
-          <Detail label="Candidate match" value={row.candidateMatch ?? "None"} />
-          <Detail label="Execution status" value={row.executionStatus ?? "No snapshot"} />
-          <Detail label="HCPs" value={`${valueOrDash(row.plannedHcps)} planned / ${valueOrDash(row.engagedHcps)} engaged`} />
-        </dl>
-        <div className="mt-6 rounded-lg bg-zinc-950/70 p-4">
-          <h3 className="font-medium">Source references</h3>
-          <pre className="mt-3 whitespace-pre-wrap break-words text-xs text-zinc-300">{JSON.stringify(row.sourceReferences, null, 2)}</pre>
-        </div>
-    </SidePanel>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-muted">{label}</dt>
-      <dd className="mt-1 font-medium">{value}</dd>
     </div>
   );
 }
@@ -692,32 +478,4 @@ function formatCount(value: number) {
 
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
-}
-
-function valueOrDash(value: number | null | undefined) {
-  return value === null || value === undefined ? "-" : formatCount(value);
-}
-
-function reasonLabel(row: ExecutionEventRow) {
-  if (row.unmatchedReasonCode) {
-    return humanize(row.unmatchedReasonCode);
-  }
-  if (row.isPrimaryPhase4Scope) {
-    return row.matchStatus === "matched" ? "Matched evidence" : "In scoped evidence set";
-  }
-  return row.scopeStatus ? humanize(row.scopeStatus) : "Audit-only row";
-}
-
-function reasonDetail(row: ExecutionEventRow) {
-  if (row.unmatchedReasonDetail) {
-    return row.unmatchedReasonDetail;
-  }
-  if (!row.isPrimaryPhase4Scope) {
-    return row.scopeReason ?? null;
-  }
-  return null;
-}
-
-function humanize(value: string) {
-  return value.replaceAll("_", " ");
 }
