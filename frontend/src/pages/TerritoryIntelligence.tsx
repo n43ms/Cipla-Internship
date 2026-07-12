@@ -1,21 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { getFilters } from "../api/filters";
 import { getTerritoryDoctors, getTerritoryOpportunities } from "../api/territory";
+import { CHART_COLORS, CHART_TOOLTIP_PROPS, ChartLegendPills } from "../components/common/ChartTheme";
 import { DataFreshnessBanner, EmptyState, ErrorState, KpiCard, LoadingState } from "../components/common/DataStateComponents";
 import { SidePanel } from "../components/common/SidePanel";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { TableLoadingOverlay } from "../components/common/TableLoadingOverlay";
 import { WarningRegistration } from "../components/common/WarningCenter";
 import { nextSort, SortableHeader, type SortState } from "../components/common/SortableTable";
+import { formatTitleText } from "../utils/textFormat";
 import type { TerritoryOpportunityRow } from "../types/api";
 
 const LABEL_OPTIONS = [
   { value: "underserved", label: "Underserved" },
   { value: "overserved", label: "Overserved" },
   { value: "balanced", label: "Balanced" },
-  { value: "insufficient_data", label: "Insufficient data" },
+  { value: "insufficient_data", label: "Insufficient Data" },
 ];
 
 const SIGNAL_SORT_RANK: Record<string, number> = {
@@ -23,6 +26,13 @@ const SIGNAL_SORT_RANK: Record<string, number> = {
   overserved: 1,
   balanced: 2,
   insufficient_data: 3,
+};
+
+const SIGNAL_TONE: Record<string, { color: string; textClass: string }> = {
+  underserved: { color: CHART_COLORS.amber, textClass: "text-amber-100" },
+  overserved: { color: CHART_COLORS.rose, textClass: "text-rose-100" },
+  balanced: { color: CHART_COLORS.emerald, textClass: "text-emerald-100" },
+  insufficient_data: { color: CHART_COLORS.zinc, textClass: "text-zinc-300" },
 };
 
 type TerritorySortKey = "territoryName" | "opportunityLabel" | "doctorCount" | "totalPrescriptionQty";
@@ -78,10 +88,10 @@ export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange
     <main className="page-shell">
       <div className="mx-auto flex max-w-7xl flex-col gap-5">
         <header>
-          <p className="eyebrow">Territory Intelligence</p>
+          <p className="eyebrow">Territory intelligence</p>
           <h1 className="page-title">Territory opportunity signals</h1>
           <p className="page-copy">
-            Uses source-backed RCPA territory/patch and engagement HQ fields to flag underserved and overserved territory patterns.
+            Uses source-backed RCPA territory, patch, and engagement HQ fields to flag underserved, overserved, and balanced territory patterns.
           </p>
         </header>
         <DataFreshnessBanner meta={query.data.meta} />
@@ -100,7 +110,8 @@ export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange
             items: territoryWarningItems,
           }}
         />
-        <TerritoryCards rows={query.data.rows} labelCounts={query.data.labelCounts} />
+        <TerritoryCards total={query.data.total} labelCounts={query.data.labelCounts} />
+        <TerritorySignalPie labelCounts={query.data.labelCounts} />
         {query.data.rows.length ? (
           <section className="dashboard-card relative overflow-hidden p-0">
             <TableLoadingOverlay isFetching={query.isFetching} label="Refreshing territory rows" />
@@ -138,7 +149,7 @@ export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange
             </div>
           </section>
         ) : (
-          <EmptyState title="No source-backed territory rows" detail="Territory signals appear after RCPA Location/PATCHNAME or engagement FS HQ fields are loaded into Supabase." />
+          <EmptyState title="No source-backed territory rows" detail="Territory signals appear after RCPA Location/Patch Name or engagement FS HQ fields are loaded into Supabase." />
         )}
       </div>
       <SidePanel open={Boolean(selectedTerritory)} onClose={() => setSelectedTerritory(null)} widthClass="max-w-md">
@@ -155,13 +166,48 @@ export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange
   );
 }
 
-function TerritoryCards({ rows, labelCounts }: { rows: TerritoryOpportunityRow[]; labelCounts: Record<string, number> }) {
+function TerritoryCards({ total, labelCounts }: { total: number; labelCounts: Record<string, number> }) {
   return (
     <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <Metric tone="violet" title="Territories" value={String(rows.length)} detail="Current filtered rows" />
+      <Metric tone="violet" title="Territories" value={total.toLocaleString()} detail="Current filtered total" />
       <Metric tone="amber" title="Underserved" value={String(labelCounts.underserved ?? 0)} detail="High Rx with no engagement evidence" />
-      <Metric tone="red" title="Overserved" value={String(labelCounts.overserved ?? 0)} detail="Spend/engagement exceeds current Rx signal" />
+      <Metric tone="red" title="Overserved" value={String(labelCounts.overserved ?? 0)} detail="Spend or engagement exceeds current Rx signal" />
       <Metric tone="emerald" title="Balanced" value={String(labelCounts.balanced ?? 0)} detail="No exception signal from current evidence" />
+    </section>
+  );
+}
+
+function TerritorySignalPie({ labelCounts }: { labelCounts: Record<string, number> }) {
+  const rows = LABEL_OPTIONS
+    .map((option) => ({
+      key: option.value,
+      label: option.label,
+      value: labelCounts[option.value] ?? 0,
+      color: SIGNAL_TONE[option.value]?.color ?? CHART_COLORS.cyan,
+    }))
+    .filter((row) => row.value > 0);
+  if (!rows.length) return null;
+  return (
+    <section className="dashboard-card p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="font-semibold text-zinc-50">Territory signal mix</h2>
+          <p className="mt-1 text-sm text-zinc-500">Share of territory signals in the current filtered scope.</p>
+          <ChartLegendPills items={rows.map((row) => ({ label: row.label, color: row.color, detail: row.value.toLocaleString() }))} />
+        </div>
+        <div className="chart-frame h-fit min-w-0 -my-3">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150} debounce={100}>
+            <PieChart>
+              <Tooltip {...CHART_TOOLTIP_PROPS} formatter={(value) => Number(value).toLocaleString()} />
+              <Pie data={rows} dataKey="value" nameKey="label" innerRadius={45} outerRadius={70} paddingAngle={1} stroke="rgba(13,17,19,0.86)" strokeWidth={2}>
+                {rows.map((row) => (
+                  <Cell key={row.key} fill={row.color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </section>
   );
 }
@@ -174,7 +220,7 @@ function TerritoryRow({ row, onOpenDoctors }: { row: TerritoryOpportunityRow; on
         <p className="text-xs text-zinc-500">{row.countryName}</p>
       </td>
       <td className="px-4 py-3">
-        <span className="rounded-md border border-accent/20 bg-accent/[0.08] px-2 py-1 text-xs text-cyan-100">{formatSignalLabel(row.opportunityLabel)}</span>
+        <span className={`text-sm font-medium ${signalTextClass(row.opportunityLabel)}`}>{formatSignalLabel(row.opportunityLabel)}</span>
       </td>
       <td className="px-4 py-3 text-zinc-300">{row.doctorCount.toLocaleString()}</td>
       <td className="px-4 py-3 text-zinc-300">{row.totalPrescriptionQty.toLocaleString()}</td>
@@ -255,7 +301,7 @@ function buildTerritoryWarningItems(rows: TerritoryOpportunityRow[], limitations
     .join("; ");
   const caveatCounts = rows.reduce<Record<string, number>>((counts, row) => {
     row.sourceCaveats.forEach((caveat) => {
-      const normalized = caveat.replaceAll("_", " ");
+      const normalized = formatTitleText(caveat);
       counts[normalized] = (counts[normalized] ?? 0) + 1;
     });
     return counts;
@@ -286,13 +332,15 @@ function compareTerritoryValue(left: string | number, right: string | number) {
 }
 
 function formatConfidence(value: string) {
-  return value
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return formatTitleText(value);
 }
 
 function formatSignalLabel(value: string) {
   return LABEL_OPTIONS.find((option) => option.value === normalizeSignalKey(value))?.label ?? formatConfidence(value);
+}
+
+function signalTextClass(value: string) {
+  return SIGNAL_TONE[normalizeSignalKey(value)]?.textClass ?? "text-zinc-200";
 }
 
 function normalizeSignalKey(value: string) {

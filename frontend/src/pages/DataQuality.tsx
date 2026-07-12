@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { getDataQuality } from "../api/filters";
 import { DataFreshnessBanner, EmptyState, ErrorState, KpiCard, LoadingState } from "../components/common/DataStateComponents";
 import { SortableHeader, useSortableRows, type SortValue } from "../components/common/SortableTable";
+import { formatTitleText } from "../utils/textFormat";
 import type { DataQualityResponse } from "../types/api";
 
 export function DataQuality({ onAiContextChange }: { onAiContextChange?: (context: { pageContext: string; filters: Record<string, unknown> }) => void }) {
@@ -25,17 +26,17 @@ export function DataQuality({ onAiContextChange }: { onAiContextChange?: (contex
           <p className="eyebrow">Trust layer</p>
           <h1 className="page-title">Data quality</h1>
           <p className="page-copy">
-            Shows freshness, row counts, validation issues, match coverage, Pcode coverage, RCPA coverage, FX quality, workflow coverage, and unmatched records before anyone acts on KPIs.
+            Shows freshness, row counts, validation issues, match coverage, P-code coverage, RCPA coverage, FX quality, workflow coverage, and unmatched records before anyone acts on KPIs.
           </p>
         </header>
         <DataFreshnessBanner meta={data.meta} />
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard label="Loaded files" value={`${data.loadedFileCount}/${data.sourceFileCount}`} detail={data.latestIngestion.status} />
+          <KpiCard label="Loaded files" value={`${data.loadedFileCount}/${data.sourceFileCount}`} detail={formatTitleText(data.latestIngestion.status)} />
           <KpiCard label="Rows loaded" value={data.rowsLoaded.toLocaleString()} detail={`${data.rowsSkipped.toLocaleString()} skipped`} />
           <KpiCard label="Match coverage" value={`${Math.round(data.matchCoverage * 100)}%`} detail={`${data.unmatchedEventCount} unmatched records`} />
-          <KpiCard label="RCPA coverage" value={`${Math.round(data.rcpaCoverage * 100)}%`} detail={`${data.rcpaCoveredMonthStart ?? "unknown"} to ${data.rcpaCoveredMonthEnd ?? "unknown"}`} />
-          <KpiCard label="RCPA mapping" value={data.rcpaManualMappingCount} detail={`${data.rcpaSystemMappingCount + data.rcpaSourceMappingCount} system/source, ${data.rcpaUnknownMappingCount} unknown`} />
-          <KpiCard label="Pcode coverage" value={`${Math.round(data.pcodeCoverage * 100)}%`} />
+          <KpiCard label="RCPA coverage" value={`${Math.round(data.rcpaCoverage * 100)}%`} detail={`${data.rcpaCoveredMonthStart ?? "Unknown"} to ${data.rcpaCoveredMonthEnd ?? "Unknown"}`} />
+          <KpiCard label="RCPA mapping" value={data.rcpaManualMappingCount} detail={`${data.rcpaSystemMappingCount + data.rcpaSourceMappingCount} system/source mappings, ${data.rcpaUnknownMappingCount} unknown mappings`} />
+          <KpiCard label="P-code coverage" value={`${Math.round(data.pcodeCoverage * 100)}%`} />
           <KpiCard label="BTU/BTC issues" value={data.btuBtcReconciliationIssueCount} />
           <KpiCard label="Workflow coverage" value={`${Math.round(data.requestWorkflowCoverage * 100)}%`} detail={`Post ${Math.round(data.postWorkflowCoverage * 100)}%`} />
         </div>
@@ -46,8 +47,8 @@ export function DataQuality({ onAiContextChange }: { onAiContextChange?: (contex
             headers={["File", "Type", "Status", "Loaded", "Skipped"]}
             rows={data.sourceFiles.map((row) => [
               row.sourceFile ?? "-",
-              row.sourceType ?? "-",
-              row.status ?? "-",
+              formatTitleText(row.sourceType),
+              formatTitleText(row.status),
               row.rowsLoaded.toLocaleString(),
               row.rowsSkipped.toLocaleString(),
             ])}
@@ -58,7 +59,7 @@ export function DataQuality({ onAiContextChange }: { onAiContextChange?: (contex
             headers={["Currency", "Status", "Rate", "Date", "Rows"]}
             rows={data.fxQuality.map((row) => [
               row.currencyCode,
-              row.rateStatus,
+              formatTitleText(row.rateStatus),
               row.rateToUsd?.toString() ?? "-",
               row.rateDate ?? "-",
               row.rowCount.toLocaleString(),
@@ -68,18 +69,18 @@ export function DataQuality({ onAiContextChange }: { onAiContextChange?: (contex
             title="Unmatched by source"
             detail="Primary-scope reconciliation gaps grouped by source and reason."
             headers={["Source", "Reason", "Records"]}
-            rows={data.unmatchedBySource.map((row) => [row.sourceType, row.reasonCode.replaceAll("_", " "), row.recordCount.toLocaleString()])}
+            rows={data.unmatchedBySource.map((row) => [formatTitleText(row.sourceType), formatTitleText(row.reasonCode), row.recordCount.toLocaleString()])}
           />
           <SimpleTable
             title="Unmatched records"
             detail="Sample of records that need review before treating KPIs as final."
             headers={["Source", "Country", "Month", "Event", "Reason"]}
             rows={data.unmatchedRecords.map((row) => [
-              row.sourceType,
+              formatTitleText(row.sourceType),
               row.country,
               row.month,
               row.eventName ?? "-",
-              (row.reasonCode ?? "unknown").replaceAll("_", " "),
+              formatTitleText(row.reasonCode ?? "unknown"),
             ])}
           />
         </div>

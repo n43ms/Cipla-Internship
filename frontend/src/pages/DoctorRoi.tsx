@@ -66,7 +66,7 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
           <p className="eyebrow">Doctor ROI</p>
           <h1 className="page-title">Doctor opportunities and missed value</h1>
           <p className="page-copy">
-            Connects actual attended doctors to allocated spend and RCPA prescription behavior using country-scoped Pcodes.
+            Connects actual attended doctors to allocated spend and RCPA prescription behavior using country-scoped P-codes.
           </p>
         </header>
         <DataFreshnessBanner meta={roi.data.meta} />
@@ -83,7 +83,7 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
             <Select label="Start Month" value={monthStart} options={filters.data?.months ?? []} empty="Any Start" onChange={(value) => { setMonthStart(value); setPage(1); }} />
             <Select label="End Month" value={monthEnd} options={filters.data?.months ?? []} empty="Any End" onChange={(value) => { setMonthEnd(value); setPage(1); }} />
             <Select label="Brand Baseline" value={brand} options={filters.data?.brands ?? []} empty="All Brands" onChange={(value) => { setBrand(value); setPage(1); }} />
-            <Select label="Speciality" value={speciality} options={filters.data?.specialities ?? []} empty="All Specialities" onChange={(value) => { setSpeciality(value); setPage(1); }} />
+            <Select label="Specialty" value={speciality} options={filters.data?.specialities ?? []} empty="All specialties" onChange={(value) => { setSpeciality(value); setPage(1); }} />
             <Select label="Doctor Class" value={doctorClass} options={filters.data?.doctorClasses ?? []} empty="All Classes" onChange={(value) => { setDoctorClass(value); setPage(1); }} />
             <Select label="ROI Segment" value={roiSegment} options={formatRoiOptions(filters.data?.roiSegments ?? [])} empty="All Segments" onChange={(value) => { setRoiSegment(value); setPage(1); }} />
           </div>
@@ -126,7 +126,7 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
             </div>
           </div>
         ) : (
-          <EmptyState title="No doctor ROI rows" detail="Doctor ROI needs actual attendance Pcodes or RCPA summary rows." />
+          <EmptyState title="No doctor ROI rows" detail="Doctor ROI needs actual attendance P-codes or RCPA summary rows." />
         )}
       </div>
       <SidePanel open={Boolean(selected)} onClose={() => setSelected(null)} widthClass="sm:max-w-xl">
@@ -142,7 +142,7 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
             <p>
               Doctor master:{" "}
               <span className={selected.hasDoctorMaster ? "text-emerald-300" : "text-zinc-500"}>
-                {selected.hasDoctorMaster ? "MSL mapped" : "not available"}
+                {selected.hasDoctorMaster ? "MSL mapped" : "Not available"}
               </span>
             </p>
           </div>
@@ -231,7 +231,7 @@ function formatRoiOptions(options: Array<{ value: string; label: string }>) {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return "not available";
+  if (!value) return "Not available";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleDateString();

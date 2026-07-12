@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Clock3, FileWarning, RefreshCw } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { getExecutionFilterOptions, getExecutionSummary } from "../api/execution";
 import { getInterventionMix } from "../api/interventions";
@@ -9,12 +9,14 @@ import { getWorkflowRequests, getWorkflowSummary } from "../api/workflow";
 import { SourceDerivationBadge, StatusBadge } from "../components/execution/ExecutionBadges";
 import { InterventionMixChart, InterventionMixTable } from "../components/interventions/InterventionMixComponents";
 import { WorkflowGovernanceCards, WorkflowStatusTable } from "../components/workflow/WorkflowComponents";
+import { CHART_AXIS_TICK, CHART_COLORS, CHART_GRID_PROPS, CHART_TOOLTIP_CURSOR, CHART_TOOLTIP_PROPS, ChartLegendPills } from "../components/common/ChartTheme";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { SidePanel } from "../components/common/SidePanel";
 import { LoadingState } from "../components/common/DataStateComponents";
 import { TableLoadingOverlay } from "../components/common/TableLoadingOverlay";
 import { WarningRegistration } from "../components/common/WarningCenter";
 import { nextSort, SortableHeader, type SortState } from "../components/common/SortableTable";
+import { formatTitleText } from "../utils/textFormat";
 import type { WorkflowRequestRow, WorkflowSummaryResponse } from "../types/api";
 
 const WORKFLOW_PAGE_SIZE = 8;
@@ -105,7 +107,7 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
   }
 
   if (isError) {
-    return <PageState title="Execution governance unavailable" body="The backend could not return one or more Phase 4 APIs. Please ensure the backend is up and running." />;
+    return <PageState title="Execution governance unavailable" body="The backend could not return one or more execution APIs. Please ensure the backend is running." />;
   }
 
   const summaryData = summary.data;
@@ -319,18 +321,23 @@ function PlannedVsEngagedChart({
           <p className="mt-1 text-xs text-muted">
             Raw snapshot evidence: {formatCount(executedSnapshots)} executed snapshots, {formatCount(actionDueSnapshots)} action-due snapshots, {formatCount(rawEngaged)} total raw engaged HCPs.
           </p>
+          <ChartLegendPills
+            items={[
+              { label: "Planned", color: CHART_COLORS.sky },
+              { label: "Engaged", color: CHART_COLORS.emerald },
+            ]}
+          />
         </div>
       </div>
       <div className="chart-frame h-[20rem] sm:h-72">
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={100}>
-          <BarChart data={data} margin={{ left: 0, right: 12, top: 8, bottom: 28 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} width={48} />
-            <Tooltip cursor={{ fill: "rgba(97, 199, 187, 0.075)" }} formatter={(value) => formatCount(Number(value))} />
-            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-            <Bar dataKey="planned" fill="#61c7bb" radius={[4, 4, 0, 0]} animationDuration={800} />
-            <Bar dataKey="engaged" fill="#78c58a" radius={[4, 4, 0, 0]} animationDuration={800} />
+          <BarChart data={data} margin={{ left: 0, right: 16, top: 10, bottom: 14 }} barCategoryGap="32%">
+            <CartesianGrid {...CHART_GRID_PROPS} vertical={false} />
+            <XAxis dataKey="name" tick={CHART_AXIS_TICK} tickLine={false} axisLine={{ stroke: "rgba(161,161,170,0.18)" }} />
+            <YAxis allowDecimals={false} scale="sqrt" domain={[0, "dataMax"]} tick={CHART_AXIS_TICK} width={52} tickLine={false} axisLine={false} />
+            <Tooltip {...CHART_TOOLTIP_PROPS} cursor={CHART_TOOLTIP_CURSOR} formatter={(value) => formatCount(Number(value))} />
+            <Bar dataKey="planned" name="Planned" fill={CHART_COLORS.sky} radius={[7, 7, 0, 0]} maxBarSize={74} animationDuration={800} />
+            <Bar dataKey="engaged" name="Engaged" fill={CHART_COLORS.emerald} radius={[7, 7, 0, 0]} maxBarSize={74} animationDuration={800} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -470,7 +477,7 @@ function WorkflowRequestTable({
                       {row.country} | {row.month}
                     </div>
                   </td>
-                  <td className="px-4 py-3">{row.interventionType ?? "Unknown type"}</td>
+                  <td className="px-4 py-3">{formatTitleText(row.interventionType, "Unknown type")}</td>
                   <td className="px-4 py-3">
                     <StatusBadge value={row.requestConfirmationStatus} />
                   </td>
@@ -514,7 +521,7 @@ function WorkflowRequestDetail({ request }: { request: WorkflowRequestRow }) {
         <h3 className="font-semibold">Current blocker</h3>
         <div className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-3">
           <p className="text-xs text-muted">Owner stage</p>
-          <p className="mt-1 break-words font-semibold text-zinc-100">{request.currentOwnerStage ?? "Unknown"}</p>
+          <p className="mt-1 break-words font-semibold text-zinc-100">{formatTitleText(request.currentOwnerStage, "Unknown")}</p>
         </div>
       </section>
 
@@ -529,19 +536,19 @@ function WorkflowRequestDetail({ request }: { request: WorkflowRequestRow }) {
       <section>
         <h3 className="font-semibold">Workflow state</h3>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <DetailMetric label="Request approval" value={request.requestApprovalStatus} />
-          <DetailMetric label="Request confirmation" value={request.requestConfirmationStatus} />
-          <DetailMetric label="Post approval" value={request.postApprovalStatus} />
-          <DetailMetric label="Post confirmation" value={request.postConfirmationStatus} />
+          <DetailMetric label="Request approval" value={formatTitleText(request.requestApprovalStatus)} />
+          <DetailMetric label="Request confirmation" value={formatTitleText(request.requestConfirmationStatus)} />
+          <DetailMetric label="Post approval" value={formatTitleText(request.postApprovalStatus)} />
+          <DetailMetric label="Post confirmation" value={formatTitleText(request.postConfirmationStatus)} />
         </div>
       </section>
 
       <section>
         <h3 className="font-semibold">Intervention</h3>
         <div className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-3">
-          <p className="break-words font-semibold text-zinc-100">{request.interventionType ?? "Unknown type"}</p>
+          <p className="break-words font-semibold text-zinc-100">{formatTitleText(request.interventionType, "Unknown type")}</p>
           {request.scopeStatus || request.scopeReason ? (
-            <p className="mt-2 text-xs leading-5 text-muted">{request.scopeReason ?? request.scopeStatus}</p>
+            <p className="mt-2 text-xs leading-5 text-muted">{formatTitleText(request.scopeReason ?? request.scopeStatus)}</p>
           ) : null}
         </div>
       </section>

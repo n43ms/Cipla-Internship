@@ -1,10 +1,12 @@
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import type { BudgetSummaryResponse, LocalCurrencyTotal } from "../../types/api";
+import { CHART_AXIS_TICK, CHART_COLORS, CHART_GRID_PROPS, CHART_TOOLTIP_CURSOR, CHART_TOOLTIP_PROPS, ChartLegendPills, compactChartValue } from "../common/ChartTheme";
 import { KpiCard } from "../common/DataStateComponents";
 import { TableLoadingOverlay } from "../common/TableLoadingOverlay";
 import { SortableHeader, type SortState, useSortableRows } from "../common/SortableTable";
 import { WarningRegistration } from "../common/WarningCenter";
+import { formatTitleText } from "../../utils/textFormat";
 
 const LOCAL_CURRENCY_SORT_ACCESSORS = {
   currency: (row: LocalCurrencyTotal) => row.currencyCode,
@@ -47,22 +49,22 @@ function LocalCurrencyTable({ data }: { data: BudgetSummaryResponse }) {
           <thead className="table-head">
             <tr>
               <SortableHeader column="currency" label="Currency" sort={sorted.sort} onSort={sorted.onSort} />
-              <SortableHeader column="confirmed" label="Confirmed" sort={sorted.sort} onSort={sorted.onSort} className="text-sky-200/80" />
-              {showBtuColumn ? <SortableHeader column="btu" label="Direct spend" sort={sorted.sort} onSort={sorted.onSort} className="text-emerald-200/80" /> : null}
-              <SortableHeader column="btc" label="BTC" sort={sorted.sort} onSort={sorted.onSort} className="text-amber-200/80" />
-              <SortableHeader column="actual" label="Actual" sort={sorted.sort} onSort={sorted.onSort} className="text-cyan-200/80" />
-              <SortableHeader column="rows" label="Rows" sort={sorted.sort} onSort={sorted.onSort} className="text-violet-200/80" />
+              <SortableHeader column="confirmed" label="Confirmed" sort={sorted.sort} onSort={sorted.onSort} />
+              {showBtuColumn ? <SortableHeader column="btu" label="Direct spend" sort={sorted.sort} onSort={sorted.onSort} /> : null}
+              <SortableHeader column="btc" label="BTC" sort={sorted.sort} onSort={sorted.onSort} />
+              <SortableHeader column="actual" label="Actual" sort={sorted.sort} onSort={sorted.onSort} />
+              <SortableHeader column="rows" label="Rows" sort={sorted.sort} onSort={sorted.onSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {sorted.rows.map((row) => (
               <tr key={row.currencyCode} className="transition-colors duration-150 hover:bg-zinc-800/45">
                 <td className="px-4 py-3 font-medium">{row.currencyCode}</td>
-                <td className="bg-sky-300/[0.035] px-4 py-3 text-sky-50">{money(row.confirmedContractedAmountLocal, row.currencyCode)}</td>
-                {showBtuColumn ? <td className="bg-emerald-300/[0.035] px-4 py-3 text-emerald-50">{localBtuCell(row)}</td> : null}
-                <td className="bg-amber-300/[0.035] px-4 py-3 text-amber-50">{money(row.overheadBtcSpendLocal, row.currencyCode)}</td>
-                <td className="bg-cyan-300/[0.035] px-4 py-3 text-cyan-50">{money(row.actualTotalSpendLocal, row.currencyCode)}</td>
-                <td className="bg-violet-300/[0.035] px-4 py-3 text-violet-50">{row.rowCount}</td>
+                <td className="px-4 py-3">{money(row.confirmedContractedAmountLocal, row.currencyCode)}</td>
+                {showBtuColumn ? <td className="px-4 py-3">{localBtuCell(row)}</td> : null}
+                <td className="px-4 py-3">{money(row.overheadBtcSpendLocal, row.currencyCode)}</td>
+                <td className="px-4 py-3">{money(row.actualTotalSpendLocal, row.currencyCode)}</td>
+                <td className="px-4 py-3">{row.rowCount}</td>
               </tr>
             ))}
           </tbody>
@@ -74,26 +76,30 @@ function LocalCurrencyTable({ data }: { data: BudgetSummaryResponse }) {
 
 export function BudgetSpendChart({ data }: { data: BudgetSummaryResponse }) {
   const rows = [
-    { label: "Planned", amount: data.plannedBudgetUsd },
-    { label: "Confirmed", amount: data.confirmedContractedAmountUsd },
-    { label: "Actual", amount: data.actualTotalSpendUsd },
-    { label: "BTC", amount: data.overheadBtcSpendUsd },
+    { label: "Planned", amount: data.plannedBudgetUsd, fill: CHART_COLORS.sky },
+    { label: "Confirmed", amount: data.confirmedContractedAmountUsd, fill: CHART_COLORS.cyan },
+    { label: "Actual", amount: data.actualTotalSpendUsd, fill: CHART_COLORS.emerald },
+    { label: "BTC", amount: data.overheadBtcSpendUsd, fill: CHART_COLORS.amber },
   ];
   if (hasMeaningfulBtuSplit(data)) {
-    rows.splice(3, 0, { label: "Direct", amount: data.directHcpBtuSpendUsd });
+    rows.splice(3, 0, { label: "Direct", amount: data.directHcpBtuSpendUsd, fill: CHART_COLORS.green });
   }
   return (
     <div className="dashboard-card p-4">
       <h2 className="font-semibold text-zinc-50">Spend split</h2>
+      <ChartLegendPills items={rows.map((row) => ({ label: row.label, color: row.fill }))} />
       <div className="chart-frame mt-3 h-80">
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={100}>
-          <BarChart data={rows} margin={{ top: 12, right: 20, left: 8, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" />
-            <YAxis width={70} tickFormatter={(value) => compact(value as number)} />
-            <Tooltip cursor={{ fill: "rgba(97, 199, 187, 0.075)" }} formatter={(value) => money(Number(value), "USD")} />
-            <Legend />
-            <Bar dataKey="amount" name="USD amount" fill="#64c8bc" radius={[4, 4, 0, 0]} animationDuration={800} />
+          <BarChart data={rows} margin={{ top: 14, right: 18, left: 2, bottom: 8 }} barCategoryGap="24%">
+            <CartesianGrid {...CHART_GRID_PROPS} vertical={false} />
+            <XAxis dataKey="label" tick={CHART_AXIS_TICK} tickLine={false} axisLine={{ stroke: "rgba(161,161,170,0.18)" }} />
+            <YAxis width={66} scale="sqrt" domain={[0, "dataMax"]} tickFormatter={(value) => compactChartValue(value as number)} tick={CHART_AXIS_TICK} tickLine={false} axisLine={false} />
+            <Tooltip {...CHART_TOOLTIP_PROPS} cursor={CHART_TOOLTIP_CURSOR} formatter={(value) => money(Number(value), "USD")} />
+            <Bar dataKey="amount" name="USD amount" radius={[7, 7, 0, 0]} maxBarSize={58} animationDuration={800}>
+              {rows.map((row) => (
+                <Cell key={row.label} fill={row.fill} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -145,7 +151,7 @@ export function BudgetGapTable({
                 <td className="px-4 py-3">
                   <div className="inline-flex items-center gap-2">
                     <ExpenseSplitDot status={row.btuBtcReconciliationStatus} />
-                    <span>{row.matchStatus.replaceAll("_", " ")}</span>
+                    <span>{formatTitleText(row.matchStatus)}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3">{money(row.plannedBudgetUsd, "USD")}</td>
@@ -189,10 +195,6 @@ export function BudgetQualityNotice({ data }: { data: BudgetSummaryResponse }) {
 export function money(value: number | null | undefined, currency = "") {
   if (value === null || value === undefined) return "-";
   return `${currency ? `${currency} ` : ""}${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
-
-function compact(value: number) {
-  return Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
 
 function hasMeaningfulBtuSplit(data: BudgetSummaryResponse) {
@@ -274,7 +276,7 @@ function expenseSplitIndicator(status: string) {
   }
   return {
     label: "Review",
-    detail: status.replaceAll("_", " "),
+    detail: formatTitleText(status),
     dotClass: "bg-amber-300",
   };
 }

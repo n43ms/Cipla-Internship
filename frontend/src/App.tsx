@@ -29,6 +29,8 @@ const OPERATIONS_PAGES: NavPage[] = [
   { key: "quality", label: "Data Quality", icon: DatabaseZap, iconClass: "text-cyan-300", activeClass: "border-cyan-300/25 bg-cyan-300/[0.08] text-cyan-50 shadow-[inset_3px_0_0_rgba(103,232,249,0.52)]" },
 ];
 
+const HEADER_SUBTITLE = "Doctor ROI, execution follow-up, budget governance, territory coverage, and ExecAI-grounded decisions";
+
 export default function App() {
   const [page, setPage] = useState<PageKey>("doctors");
   const [entered, setEntered] = useState(false);
@@ -57,21 +59,20 @@ export default function App() {
     <WarningCenterProvider>
       <div className="min-h-screen animate-page-enter bg-surface text-ink">
         <nav className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#07090a]/88 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
-          <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
             <button
               onClick={returnToEntry}
-              className="group -ml-2 flex min-w-0 items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-all duration-500 ease-out"
+              className="group -ml-2 flex min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-left transition-all duration-500 ease-out lg:min-h-[9.1rem] lg:self-stretch"
               aria-label="Return to loading screen"
               title="Return to loading screen"
             >
               <CiplaLogoPlaceholder size="sm" />
-              <div className="min-w-0 ml-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-2xl font-semibold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent transition-all duration-500 ">Cipla Execution Intelligence</p>
+              <div className="ml-6 flex min-w-0 flex-1 flex-col justify-center gap-2.5 lg:max-w-[28rem] lg:py-2">
+                <div className="min-w-0">
+                  <p className="text-2xl font-semibold leading-tight tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent transition-all duration-500">Cipla Execution Intelligence</p>
                 </div>
-                <p className="text-sm bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Planner, consolidation, RCPA, workflow, budget, ROI, and data-quality governance</p>
-                <p className="mt-1 text-xs font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Engineered by Aditya Nema</p>
-                
+                <p className="max-w-md text-sm leading-5 bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent">{HEADER_SUBTITLE}</p>
+                <p className="text-xs font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent">Engineered by Aditya Nema</p>
               </div>
             </button>
             <div className="-mx-1 flex max-w-full items-stretch gap-3 overflow-visible px-3 p-1 lg:mx-0 lg:shrink-0">
@@ -130,7 +131,7 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
           
           <p className="mt-7 text-sm font-semibold uppercase tracking-[0.24em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Emerging Markets and Europe Patient Benefits Program</p>
           <h1 className="mt-4 pb-[6px] max-w-4xl text-4xl font-semibold bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">
-            Doctor ROI & Execution Intelligence 
+            Doctor ROI & Execution Intelligence
           </h1>
           <p className="electric-copy mt-4 max-w-3xl text-base leading-7 bg-clip-text text-transparent">
             A decision dashboard for doctor investment, execution follow-up, budget control, territory coverage, data confidence, and ExecAI-powered business questions.
@@ -197,7 +198,7 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
             <div className="mt-4 rounded-lg border border-white/[0.08] bg-black/20 p-4">
               <p className="text-xs uppercase tracking-wide text-zinc-500">Built for</p>
               <p className="mt-2 text-lg font-semibold text-zinc-50">Cipla Emerging Markets and Europe Patient Benefits Program (EMEU/PBP)</p>
-              <p className="mt-1 text-sm text-zinc-400">One decision surface for ROI, execution, budget, territory, and data-quality governance.</p>
+              <p className="mt-1 text-sm text-zinc-400">One decision surface for ROI, execution, budget, territory, and data quality governance.</p>
             </div>
           </div>
         </aside>
@@ -298,7 +299,7 @@ function AboutSoftware() {
           <AboutMetric label="Source coverage" value="7 source families" detail="Planner, execution snapshots, consolidated smart-contract reports, workflow statuses, RCPA prescriptions, MSL doctor master, and sponsorship/doctor engagement files." />
           <AboutMetric label="Decision modules" value="5 views + ExecAI" detail="Doctor ROI, Execution, Territory, Budget, Data Quality, business-user upload, warning center, and embedded natural-language analysis." />
           <AboutMetric label="Architecture" value="React + FastAPI" detail="TypeScript dashboard, Python/FastAPI service layer, Supabase PostgreSQL canonical tables, materialized KPI views, and local ingestion tooling." />
-          <AboutMetric label="Data integrity" value="Auditable joins" detail="Country-scoped Pcodes, source lineage, duplicate detection, schema profiling, validation issues, match confidence, row counts, and materialized-view refreshes." />
+          <AboutMetric label="Data integrity" value="Auditable joins" detail="Country-scoped P-codes, source lineage, duplicate detection, schema profiling, validation issues, match confidence, row counts, and materialized-view refreshes." />
           <AboutMetric label="Reliability" value="100+ tests" detail="Coverage across ingestion edge cases, financial mappings, event reconciliation, doctor ROI, API contracts, frontend states, and AI grounding behavior." />
         </section>
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)]">
@@ -308,7 +309,7 @@ function AboutSoftware() {
               <h2 className="font-semibold text-zinc-50">Engineering overview</h2>
             </div>
             <p className="mt-3 text-sm leading-5 text-zinc-300">
-              The software combines a React and TypeScript executive dashboard, Python/FastAPI backend services, Supabase PostgreSQL KPI views, and a reusable Excel ingestion pipeline for messy planner, consolidation, workflow, RCPA, and doctor-master workbooks.
+              The software combines a React and TypeScript executive dashboard, Python/FastAPI backend services, Supabase PostgreSQL KPI views, and a reusable Excel ingestion pipeline for messy planner, consolidation, workflow, RCPA, and doctor master workbooks.
             </p>
             <p className="mt-2 text-sm leading-5 text-zinc-400">
               ExecAI adds a structured RAG assistant with query planning, PostgreSQL-grounded context, redaction, evidence validation, and deterministic fallback behavior for decision support without replacing the underlying formulas and views.

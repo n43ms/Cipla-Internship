@@ -3,20 +3,21 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import type { DoctorDetailResponse, DoctorRoiResponse, DoctorRoiRow } from "../../types/api";
 import { KpiCard } from "../common/DataStateComponents";
 import { money } from "../budget/BudgetComponents";
+import { CHART_AXIS_TICK, CHART_GRID_PROPS, CHART_TOOLTIP_CURSOR, CHART_TOOLTIP_PROPS, ChartLegendPills, compactChartValue } from "../common/ChartTheme";
 import { TableLoadingOverlay } from "../common/TableLoadingOverlay";
 import { SortableHeader, type SortState } from "../common/SortableTable";
 import { WarningRegistration } from "../common/WarningCenter";
+import { formatTitleText } from "../../utils/textFormat";
 
 export type DoctorRoiSortKey = "doctorName" | "roiSegment" | "quadrantLabel" | "engagementCount" | "rcpaLastMonth" | "totalRoiSpendUsd" | "ciplaPrescriptionQty";
 
 export function DoctorRoiCards({ data }: { data: DoctorRoiResponse }) {
-  const darkHorse = data.rows.filter((row) => row.darkHorseFlag).length;
   const showNoRcpa = data.noRcpaCount > 0;
   return (
     <div className={`grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 ${showNoRcpa ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>
-      <KpiCard label="Doctor ROI Rows" value={data.total} detail="Country-scoped Pcode universe" />
-      <KpiCard label="Dark Horse Rows" value={darkHorse} detail="Unengaged Low Effort / High Reward" />
-      {showNoRcpa ? <KpiCard label="No RCPA Rows" value={data.noRcpaCount} detail="Engagement exists without prescription coverage" /> : null}
+      <KpiCard label="Doctor ROI rows" value={data.total} detail="Country-scoped P-code universe" />
+      <KpiCard label="Dark-horse rows" value={data.darkHorseCount} detail="Unengaged Low Effort / High Reward" />
+      {showNoRcpa ? <KpiCard label="No RCPA rows" value={data.noRcpaCount} detail="Engagement exists without prescription coverage" /> : null}
       <KpiCard label="Segments" value={Object.keys(data.segmentCounts).length} detail="Deterministic ROI buckets" />
     </div>
   );
@@ -28,28 +29,28 @@ const QUADRANT_TONE: Record<string, { card: string; label: string; value: string
     label: "text-emerald-200",
     value: "text-emerald-50",
     dot: "bg-emerald-300",
-    point: "#5eead4",
+    point: "#6ee7b7",
   },
   "high effort / high reward": {
     card: "border-white/[0.08] bg-sky-300/[0.045]",
     label: "text-sky-200",
     value: "text-sky-50",
     dot: "bg-sky-300",
-    point: "#7dd3fc",
+    point: "#67e8f9",
   },
   "low effort / low reward": {
     card: "border-white/[0.08] bg-white/[0.025]",
     label: "text-zinc-300",
     value: "text-zinc-50",
     dot: "bg-zinc-400",
-    point: "#a1a1aa",
+    point: "#94a3b8",
   },
   "high effort / low reward": {
     card: "border-white/[0.08] bg-amber-300/[0.035]",
     label: "text-amber-200",
     value: "text-amber-50",
     dot: "bg-amber-300",
-    point: "#fbbf24",
+    point: "#fcd34d",
   },
 };
 
@@ -72,27 +73,40 @@ export function DoctorOpportunityChart({ rows }: { rows: DoctorRoiRow[] }) {
   return (
     <div className="dashboard-card flex h-full min-h-[31rem] flex-col p-4">
       <div>
-        <h2 className="font-semibold text-zinc-50">Top 50 Doctor Opportunity Distribution</h2>
+        <h2 className="font-semibold text-zinc-50">Top 50 doctor opportunity distribution</h2>
         <p className="mt-1 text-xs text-zinc-500">Bars rank doctors by Cipla Rx; color follows ROI quadrant.</p>
+        <ChartLegendPills
+          items={QUADRANT_ORDER.map((label) => ({
+            label: formatQuadrantLabel(label),
+            color: QUADRANT_TONE[label].point,
+          }))}
+        />
       </div>
       <div className="chart-frame mt-3 min-h-0 flex-1">
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280} debounce={100}>
-          <BarChart data={chartRows} margin={{ top: 12, right: 20, bottom: 22, left: 10 }} barCategoryGap="8%">
-            <CartesianGrid strokeDasharray="3 3" />
+          <BarChart data={chartRows} margin={{ top: 12, right: 20, bottom: 18, left: 4 }} barCategoryGap="10%">
+            <CartesianGrid {...CHART_GRID_PROPS} vertical={false} />
             <XAxis
               dataKey="rank"
               tickFormatter={(value) => (Number(value) % 10 === 0 || Number(value) === 1 ? String(value) : "")}
               interval={0}
+              tick={CHART_AXIS_TICK}
+              axisLine={{ stroke: "rgba(161,161,170,0.18)" }}
+              tickLine={false}
             />
             <YAxis
               type="number"
               dataKey="ciplaPrescriptionQty"
               name="Cipla Rx"
-              tickFormatter={(value) => compact(value as number)}
+              tickFormatter={(value) => compactChartValue(value as number)}
               width={68}
+              tick={CHART_AXIS_TICK}
+              axisLine={false}
+              tickLine={false}
             />
             <Tooltip
-              cursor={{ stroke: "#61c7bb", strokeOpacity: 0.24, strokeDasharray: "3 3" }}
+              {...CHART_TOOLTIP_PROPS}
+              cursor={CHART_TOOLTIP_CURSOR}
               formatter={(value) => {
                 return [Number(value).toLocaleString(), "Cipla Rx"];
               }}
@@ -101,8 +115,8 @@ export function DoctorOpportunityChart({ rows }: { rows: DoctorRoiRow[] }) {
                 return row ? `#${row.rank} ${row.doctorName ?? row.pcodeNormalized} | ${money(row.totalRoiSpendUsd, "USD")} spend` : "Doctor";
               }}
             />
-            <Bar name="Doctors" dataKey="ciplaPrescriptionQty" radius={[4, 4, 0, 0]} maxBarSize={9} isAnimationActive={false}>
-              {chartRows.map((row) => <Cell key={`${row.countryCode}-${row.pcodeNormalized}`} fill={row.tone?.point ?? "#67e8f9"} opacity={0.82} />)}
+            <Bar name="Doctors" dataKey="ciplaPrescriptionQty" radius={[5, 5, 0, 0]} maxBarSize={10} isAnimationActive={false}>
+              {chartRows.map((row) => <Cell key={`${row.countryCode}-${row.pcodeNormalized}`} fill={row.tone?.point ?? "#67e8f9"} opacity={0.92} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -115,7 +129,7 @@ export function QuadrantMatrix({ counts }: { counts: Record<string, number> }) {
   const insufficientDataCount = counts["insufficient data"] ?? 0;
   return (
     <div className="dashboard-card flex h-full min-h-[31rem] flex-col p-4">
-      <h2 className="font-semibold text-zinc-50">ROI Quadrant Matrix</h2>
+      <h2 className="font-semibold text-zinc-50">ROI quadrant matrix</h2>
       <p className="mt-1 text-xs leading-5 text-zinc-500">
         Quadrants rank doctors by effort and reward. Effort is driven by investment and engagement intensity, while reward is driven by Cipla prescription opportunity. Low Effort / High Reward is the priority opportunity bucket.
       </p>
@@ -218,11 +232,11 @@ export function DoctorRoiTable({
                 <td className="px-4 py-3">
                   {formatRoiSegment(row.roiSegment)}
                   {row.sponsorshipCount > 0 ? <span className="ml-2 rounded-full bg-sky-400/10 px-2 py-1 text-xs text-sky-300">Sponsored</span> : null}
-                  {row.paidEngagementCount > 0 ? <span className="ml-2 rounded-full bg-violet-400/10 px-2 py-1 text-xs text-violet-300">Paid Engagement</span> : null}
-                  {row.noFeeEngagementCount > 0 ? <span className="ml-2 rounded-full bg-zinc-500/10 px-2 py-1 text-xs text-zinc-300">No-Fee</span> : null}
-                  {row.sponsorshipEngagementAmountMissingCount > 0 ? <span className="ml-2 rounded-full bg-amber-400/10 px-2 py-1 text-xs text-amber-300">Amount Unavailable</span> : null}
-                  {row.darkHorseUnengagedFlag ? <span className="ml-2 rounded-full bg-emerald-400/10 px-2 py-1 text-xs text-emerald-300">Unengaged Opportunity</span> : null}
-                  {row.highValueEngagedFlag ? <span className="ml-2 rounded-full bg-cyan-400/10 px-2 py-1 text-xs text-cyan-300">Engaged Value</span> : null}
+                  {row.paidEngagementCount > 0 ? <span className="ml-2 rounded-full bg-violet-400/10 px-2 py-1 text-xs text-violet-300">Paid engagement</span> : null}
+                  {row.noFeeEngagementCount > 0 ? <span className="ml-2 rounded-full bg-zinc-500/10 px-2 py-1 text-xs text-zinc-300">No-fee</span> : null}
+                  {row.sponsorshipEngagementAmountMissingCount > 0 ? <span className="ml-2 rounded-full bg-amber-400/10 px-2 py-1 text-xs text-amber-300">Amount unavailable</span> : null}
+                  {row.darkHorseUnengagedFlag ? <span className="ml-2 rounded-full bg-emerald-400/10 px-2 py-1 text-xs text-emerald-300">Unengaged opportunity</span> : null}
+                  {row.highValueEngagedFlag ? <span className="ml-2 rounded-full bg-cyan-400/10 px-2 py-1 text-xs text-cyan-300">Engaged value</span> : null}
                   {!row.hasRcpa ? <span className="ml-2 rounded-full bg-amber-400/10 px-2 py-1 text-xs text-amber-300">No RCPA</span> : null}
                 </td>
                 <td className="px-4 py-3">{formatQuadrantLabel(row.quadrantLabel)}</td>
@@ -276,7 +290,7 @@ export function DoctorOutcomeEvidence({ detail }: { detail: DoctorDetailResponse
             id: `doctor-outcome-${detail.profile.countryCode}-${detail.profile.pcodeNormalized}`,
             title: "Doctor drilldown evidence notes",
             tone: "warning",
-            items: outcome.evidenceCaveats.map((caveat) => caveat.replaceAll("_", " ")),
+            items: outcome.evidenceCaveats.map((caveat) => formatTitleText(caveat)),
           }}
         />
       ) : null}
@@ -308,10 +322,6 @@ function EvidenceMetric({ label, value, detail }: { label: string; value: string
   );
 }
 
-function compact(value: number) {
-  return Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(value);
-}
-
 function rcpaPeriod(row: DoctorRoiRow) {
   if (!row.hasRcpa) return "No RCPA baseline";
   if (!row.rcpaFirstMonth || !row.rcpaLastMonth) return "Baseline period unknown";
@@ -333,7 +343,7 @@ export function formatRoiSegment(value: string | null | undefined) {
     no_rcpa: "No RCPA",
     insufficient_data: "Insufficient Data",
   };
-  return known[value] ?? toTitleCase(value.replaceAll("_", " "));
+  return known[value] ?? formatTitleText(value);
 }
 
 export function formatQuadrantLabel(value: string | null | undefined) {
@@ -345,13 +355,5 @@ export function formatQuadrantLabel(value: string | null | undefined) {
     "high effort / low reward": "High Effort / Low Reward",
     "insufficient data": "Insufficient Data",
   };
-  return known[value] ?? toTitleCase(value.replaceAll("_", " "));
-}
-
-function toTitleCase(value: string) {
-  return value
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => (word.toUpperCase() === "RCPA" || word.toUpperCase() === "ROI" ? word.toUpperCase() : `${word[0]?.toUpperCase() ?? ""}${word.slice(1).toLowerCase()}`))
-    .join(" ");
+  return known[value] ?? formatTitleText(value);
 }

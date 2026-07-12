@@ -1,7 +1,9 @@
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import type { InterventionMixRow } from "../../types/api";
+import { CHART_AXIS_TICK, CHART_COLORS, CHART_GRID_PROPS, CHART_TOOLTIP_CURSOR, CHART_TOOLTIP_PROPS, ChartLegendPills } from "../common/ChartTheme";
 import { SortableHeader, useSortableRows } from "../common/SortableTable";
+import { formatTitleText } from "../../utils/textFormat";
 
 const INTERVENTION_SORT_ACCESSORS = {
   type: (row: InterventionMixRow) => `${row.interventionType} ${row.interventionSubType ?? ""}`,
@@ -17,10 +19,19 @@ const INTERVENTION_SORT_ACCESSORS = {
   actualSpend: (row: InterventionMixRow) => row.totalActualSpend,
 };
 
+const INTERVENTION_SERIES = [
+  { key: "requests", label: "Requests", color: CHART_COLORS.sky },
+  { key: "matched", label: "Matched evidence", color: CHART_COLORS.violet },
+  { key: "executedRequests", label: "Executed links", color: CHART_COLORS.cyan },
+  { key: "executedSnapshots", label: "Executed snapshots", color: CHART_COLORS.emerald },
+  { key: "actionDueSnapshots", label: "Action due", color: CHART_COLORS.amber },
+  { key: "pending", label: "Pending report", color: CHART_COLORS.rose },
+];
+
 export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
   const data = rows.slice(0, 8).map((row) => ({
-    name: truncate(row.interventionType, 28),
-    fullName: row.interventionType,
+    name: truncate(formatTitleText(row.interventionType), 28),
+    fullName: formatTitleText(row.interventionType),
     requests: row.requestCount,
     matched: row.matchedRequestCount,
     executedRequests: row.executedRequestCount,
@@ -30,28 +41,37 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
   }));
 
   return (
-    <div className="dashboard-card p-4">
-      <div className="mb-4">
-        <h3 className="font-medium">Intervention type mix</h3>
-        <p className="text-sm text-muted">Category totals separate requests, matched evidence, true executed snapshots, action-due snapshots, and pending reports.</p>
-      </div>
+      <div className="dashboard-card p-4">
+        <div className="mb-4">
+          <h3 className="font-medium">Intervention type mix</h3>
+          <p className="text-sm text-muted">Category totals separate requests, matched evidence, true executed snapshots, action-due snapshots, and pending reports.</p>
+          <ChartLegendPills items={INTERVENTION_SERIES.map((series) => ({ label: series.label, color: series.color }))} />
+        </div>
       {data.length === 0 ? (
         <p className="text-sm text-muted">No intervention rows match the current filters.</p>
       ) : (
-        <div className="chart-frame h-[34rem] sm:h-[30rem]">
+        <div className="chart-frame h-[32rem] sm:h-[28rem]">
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={100}>
-            <BarChart data={data} layout="vertical" margin={{ left: 0, right: 16, top: 8, bottom: 84 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-              <YAxis type="category" dataKey="name" width={106} tick={{ fontSize: 11 }} />
-              <Tooltip cursor={{ fill: "rgba(97, 199, 187, 0.075)" }} labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullName ?? _label} />
-              <Legend wrapperStyle={{ bottom: 0, fontSize: 11, lineHeight: "18px" }} />
-              <Bar dataKey="requests" fill="#68add4" radius={[0, 4, 4, 0]} animationDuration={800} />
-              <Bar dataKey="matched" name="matched evidence" fill="#9b8ac7" radius={[0, 4, 4, 0]} animationDuration={800} />
-              <Bar dataKey="executedRequests" name="executed request links" fill="#58baad" radius={[0, 4, 4, 0]} animationDuration={800} />
-              <Bar dataKey="executedSnapshots" name="executed snapshots" fill="#75bd83" radius={[0, 4, 4, 0]} animationDuration={800} />
-              <Bar dataKey="actionDueSnapshots" name="action-due snapshots" fill="#d0a85d" radius={[0, 4, 4, 0]} animationDuration={800} />
-              <Bar dataKey="pending" name="pending report" fill="#c77984" radius={[0, 4, 4, 0]} animationDuration={800} />
+            <BarChart data={data} layout="vertical" margin={{ left: 2, right: 18, top: 8, bottom: 18 }} barCategoryGap="18%">
+              <CartesianGrid {...CHART_GRID_PROPS} horizontal={false} />
+              <XAxis type="number" allowDecimals={false} tick={CHART_AXIS_TICK} tickLine={false} axisLine={false} />
+              <YAxis type="category" dataKey="name" width={112} tick={CHART_AXIS_TICK} tickLine={false} axisLine={{ stroke: "rgba(161,161,170,0.18)" }} />
+              <Tooltip
+                {...CHART_TOOLTIP_PROPS}
+                cursor={CHART_TOOLTIP_CURSOR}
+                labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullName ?? _label}
+              />
+              {INTERVENTION_SERIES.map((series) => (
+                <Bar
+                  key={series.key}
+                  dataKey={series.key}
+                  name={series.label}
+                  fill={series.color}
+                  radius={[0, 5, 5, 0]}
+                  maxBarSize={12}
+                  animationDuration={800}
+                />
+              ))}
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -89,8 +109,8 @@ export function InterventionMixTable({ rows }: { rows: InterventionMixRow[] }) {
               {sorted.rows.map((row) => (
                 <tr key={`${row.interventionType}-${row.interventionSubType ?? "all"}`} className="table-row">
                   <td className="px-3 py-3 align-top">
-                    <div className="truncate font-medium" title={row.interventionType}>{row.interventionType}</div>
-                    <div className="truncate text-xs text-muted" title={row.interventionSubType ?? "All subtypes"}>{row.interventionSubType ?? "All subtypes"}</div>
+                    <div className="truncate font-medium" title={formatTitleText(row.interventionType)}>{formatTitleText(row.interventionType)}</div>
+                    <div className="truncate text-xs text-muted" title={formatTitleText(row.interventionSubType, "All subtypes")}>{formatTitleText(row.interventionSubType, "All subtypes")}</div>
                   </td>
                   <td className="px-3 py-3 align-top">{formatCount(row.requestCount)}</td>
                   <td className="px-3 py-3 align-top">{formatCount(row.matchedRequestCount)}</td>

@@ -16,7 +16,7 @@ export function WorkflowGovernanceCards({
       <WorkflowCard label="Pending requests" value={pendingRequests} />
       <WorkflowCard label="Pending reports" value={pendingReports} />
       <WorkflowCard label="Reports approved" value={reportsApproved} />
-      <WorkflowCard label="Reports correction" value={reportsSentForCorrection} />
+      <WorkflowCard label="Reports sent for correction" value={reportsSentForCorrection} />
     </div>
   );
 }

@@ -102,6 +102,7 @@ data quality page-
 remove missing fx, lkr fx seed, missing actual pcode kpis. remove the note below fx quality tablre "LKR must use the company rate. Missing-FX currencies stay local-only" replace with note stating official is company fx better grammar. delete validation drilldown table. for all the tables, make the data fir without horizontal scrollbars but keep the good, compact layout
 
 common-
-- fix the capitalizations and formal formatting without diluting any important technicalities across the whole app - like capitalization and spelling, and abbreviations.
-- gotta test execai
-- make all the charts look better, more fancy, color coded, easier to understand - same look as the doctor roi table
+- fix the capitalizations and formal formatting without diluting any important technicalities and technical terms across the whole app - like capitalization and spelling, and abbreviations.
+- gotta test execai and make it look better - with diff loading states like pondering this that and claude like interface. make execai bubble more prominent by animating
+- make all the charts look better, more fancy, color coded, easier to understand - same look as the doctor roi table-
+

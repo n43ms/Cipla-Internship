@@ -1,6 +1,7 @@
 import type { ResponseMeta } from "../../types/api";
 import { LoaderCircle } from "lucide-react";
 import { WarningRegistration } from "./WarningCenter";
+import { formatSentenceText, formatTitleText } from "../../utils/textFormat";
 
 export function DataFreshnessBanner({ meta }: { meta?: ResponseMeta }) {
   if (!meta) return null;
@@ -11,7 +12,7 @@ export function DataFreshnessBanner({ meta }: { meta?: ResponseMeta }) {
         id: "data-freshness",
         title: "Data freshness",
         tone: hasWarnings ? "warning" : "success",
-        detail: `Latest ingestion: ${meta.latestIngestionStatus}. Generated ${new Date(meta.generatedAt).toLocaleString()}`,
+        detail: `Latest ingestion: ${formatTitleText(meta.latestIngestionStatus)}. Generated ${new Date(meta.generatedAt).toLocaleString()}`,
         items: hasWarnings ? [...meta.dataQualityFlags, ...meta.limitations] : [],
       }}
     />
@@ -120,5 +121,5 @@ function inferKpiTone(label: string): KpiTone {
 }
 
 function humanize(value: string) {
-  return value.replaceAll("_", " ");
+  return formatSentenceText(value);
 }

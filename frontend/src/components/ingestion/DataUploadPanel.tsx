@@ -15,6 +15,7 @@ import type {
   UploadBatchResponse,
   UploadFileResult,
 } from "../../types/api";
+import { formatSentenceText, formatTitleText } from "../../utils/textFormat";
 
 type DataUploadPanelProps = {
   onClose: () => void;
@@ -134,7 +135,7 @@ export function DataUploadPanel({ onClose }: DataUploadPanelProps) {
         <section className="rounded-lg border border-white/[0.08] bg-black/20">
           <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3">
             <div>
-              <p className="text-sm font-semibold text-zinc-100">{files.length} file(s) selected</p>
+              <p className="text-sm font-semibold text-zinc-100">{files.length} {files.length === 1 ? "file" : "files"} selected</p>
               <p className="text-xs text-zinc-500">{formatBytes(totalSize)} total</p>
             </div>
             <button
@@ -306,7 +307,7 @@ function FileResultRow({ file }: { file: UploadFileResult }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-zinc-100">{file.originalFilename}</p>
           <p className="mt-1 text-xs text-zinc-500">
-            {SOURCE_LABELS[file.sourceType] ?? file.sourceType} - {file.fileFormat}
+            {SOURCE_LABELS[file.sourceType] ?? formatTitleText(file.sourceType)} - {file.fileFormat.toUpperCase()}
             {accepted ? ` - ${file.rowsSeen.toLocaleString()} rows seen` : ""}
           </p>
           {file.reasons.length ? (
@@ -314,7 +315,7 @@ function FileResultRow({ file }: { file: UploadFileResult }) {
               {file.reasons.map((reason) => (
                 <p key={reason} className="flex gap-2 text-xs leading-5 text-amber-100/85">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  {reason}
+                  {formatSentenceText(reason)}
                 </p>
               ))}
             </div>
@@ -335,7 +336,7 @@ function MiniMetric({ label, value }: { label: string; value: number }) {
 }
 
 function formatState(value: string) {
-  return value.replaceAll("_", " ");
+  return formatTitleText(value);
 }
 
 function formatBytes(value: number) {

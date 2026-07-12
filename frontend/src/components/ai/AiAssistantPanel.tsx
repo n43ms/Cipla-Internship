@@ -17,6 +17,7 @@ import remarkGfm from "remark-gfm";
 
 import { queryAi } from "../../api/ai";
 import type { AiQueryResponse } from "../../types/api";
+import { formatTitleText } from "../../utils/textFormat";
 
 type AiContext = {
   pageContext: string;
@@ -28,7 +29,7 @@ const PROMPTS = [
   "Explain this doctor's sponsorship, FMV, and RCPA evidence.",
   "Which territory signals are underserved or overserved?",
   "Where do no-fee or paid engagements affect Doctor ROI?",
-  "What data-quality limitations should I mention?",
+  "What data quality limitations should I mention?",
 ];
 
 export function AiAssistantPanel({ context }: { context: AiContext }) {
@@ -86,12 +87,12 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
                   <p className="text-xs font-semibold uppercase tracking-[0.2em]">ExecAI</p>
                 </div>
                 <h2 className="mt-2 text-lg font-semibold text-zinc-100">Ask the dashboard</h2>
-                <p className="mt-1 text-xs leading-5 text-zinc-500">
-                  Structured RAG assistant: plans the question, retrieves FastAPI/PostgreSQL evidence, asks Gemini to synthesize it, then validates the answer against available data.
+                <p className="mt-1 text-xs leading-5 text-cyan-300/80">
+                  Structured RAG assistant for grounded ROI, execution, budget, territory, and data quality questions.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-cyan-300/80" />
+                <ShieldCheck className="h-5 w-5 text-cyan-200/90" />
                 <button
                   type="button"
                   className="soft-button rounded-md p-2"
@@ -130,7 +131,7 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
                 placeholder="Ask about execution risk, workflow bottlenecks, budget gaps, doctor ROI, or data quality..."
               />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-zinc-500">Context: {context.pageContext.replaceAll("_", " ")}</p>
+                <p className="text-xs text-zinc-500">Context: {formatTitleText(context.pageContext)}</p>
                 <button
                   type="button"
                   className="soft-button inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
