@@ -40,7 +40,7 @@ export function BudgetUtilization({ onAiContextChange }: { onAiContextChange?: (
           </p>
         </header>
         <DataFreshnessBanner meta={budget.data.meta} />
-        <section className="dashboard-card overflow-visible p-4">
+        <section className="dashboard-card relative z-40 overflow-visible p-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
             <div className="grid gap-1 text-sm">
               <span className="font-medium text-zinc-300">Country</span>

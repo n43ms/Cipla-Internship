@@ -1,4 +1,3 @@
-import { AlertTriangle } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import type { BudgetSummaryResponse, LocalCurrencyTotal } from "../../types/api";
@@ -48,22 +47,22 @@ function LocalCurrencyTable({ data }: { data: BudgetSummaryResponse }) {
           <thead className="table-head">
             <tr>
               <SortableHeader column="currency" label="Currency" sort={sorted.sort} onSort={sorted.onSort} />
-              <SortableHeader column="confirmed" label="Confirmed" sort={sorted.sort} onSort={sorted.onSort} />
-              {showBtuColumn ? <SortableHeader column="btu" label="Direct spend" sort={sorted.sort} onSort={sorted.onSort} /> : null}
-              <SortableHeader column="btc" label="BTC" sort={sorted.sort} onSort={sorted.onSort} />
-              <SortableHeader column="actual" label="Actual" sort={sorted.sort} onSort={sorted.onSort} />
-              <SortableHeader column="rows" label="Rows" sort={sorted.sort} onSort={sorted.onSort} />
+              <SortableHeader column="confirmed" label="Confirmed" sort={sorted.sort} onSort={sorted.onSort} className="text-sky-200/80" />
+              {showBtuColumn ? <SortableHeader column="btu" label="Direct spend" sort={sorted.sort} onSort={sorted.onSort} className="text-emerald-200/80" /> : null}
+              <SortableHeader column="btc" label="BTC" sort={sorted.sort} onSort={sorted.onSort} className="text-amber-200/80" />
+              <SortableHeader column="actual" label="Actual" sort={sorted.sort} onSort={sorted.onSort} className="text-cyan-200/80" />
+              <SortableHeader column="rows" label="Rows" sort={sorted.sort} onSort={sorted.onSort} className="text-violet-200/80" />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {sorted.rows.map((row) => (
               <tr key={row.currencyCode} className="transition-colors duration-150 hover:bg-zinc-800/45">
                 <td className="px-4 py-3 font-medium">{row.currencyCode}</td>
-                <td className="px-4 py-3">{money(row.confirmedContractedAmountLocal, row.currencyCode)}</td>
-                {showBtuColumn ? <td className="px-4 py-3">{localBtuCell(row)}</td> : null}
-                <td className="px-4 py-3">{money(row.overheadBtcSpendLocal, row.currencyCode)}</td>
-                <td className="px-4 py-3">{money(row.actualTotalSpendLocal, row.currencyCode)}</td>
-                <td className="px-4 py-3">{row.rowCount}</td>
+                <td className="bg-sky-300/[0.035] px-4 py-3 text-sky-50">{money(row.confirmedContractedAmountLocal, row.currencyCode)}</td>
+                {showBtuColumn ? <td className="bg-emerald-300/[0.035] px-4 py-3 text-emerald-50">{localBtuCell(row)}</td> : null}
+                <td className="bg-amber-300/[0.035] px-4 py-3 text-amber-50">{money(row.overheadBtcSpendLocal, row.currencyCode)}</td>
+                <td className="bg-cyan-300/[0.035] px-4 py-3 text-cyan-50">{money(row.actualTotalSpendLocal, row.currencyCode)}</td>
+                <td className="bg-violet-300/[0.035] px-4 py-3 text-violet-50">{row.rowCount}</td>
               </tr>
             ))}
           </tbody>
@@ -144,9 +143,9 @@ export function BudgetGapTable({
                   <p className="text-xs text-zinc-500">{row.country} - {row.month}</p>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex flex-wrap items-start gap-2">
+                  <div className="inline-flex items-center gap-2">
+                    <ExpenseSplitDot status={row.btuBtcReconciliationStatus} />
                     <span>{row.matchStatus.replaceAll("_", " ")}</span>
-                    <ExpenseSplitFlag status={row.btuBtcReconciliationStatus} />
                   </div>
                 </td>
                 <td className="px-4 py-3">{money(row.plannedBudgetUsd, "USD")}</td>
@@ -157,6 +156,7 @@ export function BudgetGapTable({
           </tbody>
         </table>
       </div>
+      <ExpenseSplitLegend />
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 p-4 text-sm">
         <span className="text-zinc-500">Page {page} of {totalPages}</span>
         <div className="flex gap-2">
@@ -210,51 +210,71 @@ function localBtuCell(row: LocalCurrencyTotal) {
   return money(row.directHcpBtuSpendLocal, row.currencyCode);
 }
 
-function ExpenseSplitFlag({ status }: { status: string }) {
-  const issue = expenseSplitIssue(status);
-  if (!issue) return null;
+function ExpenseSplitDot({ status }: { status: string }) {
+  const indicator = expenseSplitIndicator(status);
   return (
-    <details className="group max-w-[15rem]">
-      <summary
-        className={`inline-flex cursor-pointer list-none items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors duration-150 marker:hidden ${issue.badgeClass}`}
-        aria-label={`Show expense split note: ${issue.label}`}
-      >
-        <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-        <span>{issue.label}</span>
-      </summary>
-      <div className="mt-2 rounded-md border border-zinc-800 bg-zinc-950 p-2 text-xs leading-5 text-zinc-300 shadow-xl">
-        {issue.detail}
-      </div>
-    </details>
+    <span
+      aria-label={`Expense split status: ${indicator.label}`}
+      className={`h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_0_3px_rgba(255,255,255,0.035)] ${indicator.dotClass}`}
+      title={indicator.detail}
+    />
   );
 }
 
-function expenseSplitIssue(status: string) {
-  if (status === "reconciled") return null;
+function ExpenseSplitLegend() {
+  const items = [
+    expenseSplitIndicator("reconciled"),
+    expenseSplitIndicator("missing_total_actual"),
+    expenseSplitIndicator("missing_btu_btc_split"),
+    expenseSplitIndicator("mismatch"),
+  ];
+  return (
+    <div className="border-t border-zinc-800 px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Expense split legend</p>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-400">
+        {items.map((item) => (
+          <span key={item.label} className="inline-flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full ${item.dotClass}`} aria-hidden="true" />
+            <span>{item.label}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function expenseSplitIndicator(status: string) {
+  if (status === "reconciled") {
+    return {
+      label: "Reconciled",
+      detail: "Total actual spend matches the available source split.",
+      dotClass: "bg-emerald-300",
+    };
+  }
   if (status === "missing_total_actual") {
     return {
-      label: "Missing total",
+      label: "Missing total actual",
       detail: "Total actual spend is missing, so the row cannot be reconciled against the direct and overhead split.",
-      badgeClass: "border-zinc-700 bg-zinc-800/55 text-zinc-300 hover:bg-zinc-800",
+      dotClass: "bg-zinc-500",
     };
   }
   if (status === "missing_btu_btc_split") {
     return {
-      label: "Split missing",
+      label: "Split not provided",
       detail: "The source did not provide direct and overhead spend split fields for this row.",
-      badgeClass: "border-zinc-700 bg-zinc-800/55 text-zinc-300 hover:bg-zinc-800",
+      dotClass: "bg-sky-300",
     };
   }
   if (status === "mismatch") {
     return {
       label: "Review split",
       detail: "Direct spend plus overhead does not match total actual spend in the source row.",
-      badgeClass: "border-amber-300/25 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15",
+      dotClass: "bg-amber-300",
     };
   }
   return {
     label: "Review",
     detail: status.replaceAll("_", " "),
-    badgeClass: "border-amber-300/25 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15",
+    dotClass: "bg-amber-300",
   };
 }

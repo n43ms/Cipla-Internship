@@ -117,13 +117,13 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
     .join(" | ") || "Nepal and Sri Lanka | Apr-May 2026";
 
   return (
-    <main className="min-h-screen animate-page-enter bg-surface text-ink">
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+    <main className="page-shell">
+      <section className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-accent">Execution governance</p>
-            <h1 className="mt-2 text-3xl font-semibold">Planned vs actual execution</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+            <p className="eyebrow">Execution governance</p>
+            <h1 className="page-title">Planned vs actual execution</h1>
+            <p className="page-copy">
               Reconciles yearly planner events, monthly execution snapshots, consolidation requests, lifecycle status, and intervention mix.
             </p>
             <p className="mt-3 text-sm font-medium text-zinc-300">
@@ -157,7 +157,7 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
           weakOrUnmatched={summaryData?.weakOrUnmatchedEvents ?? 0}
         />
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
           <KpiCard tone="sky" icon={<FileWarning size={18} />} label="Planned events" value={formatCount(summaryData?.plannedEvents ?? 0)} />
           <KpiCard tone="cyan" icon={<CheckCircle2 size={18} />} label="Matched plan/request evidence" value={formatCount(summaryData?.matchedEvents ?? 0)} />
           <KpiCard tone="emerald" icon={<RefreshCw size={18} />} label="Executed planned events" value={formatCount(summaryData?.plannedEventsWithExecutedEvidence ?? summaryData?.executedEvents ?? 0)} />
@@ -166,7 +166,7 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
           <KpiCard tone="emerald" icon={<CheckCircle2 size={18} />} label="Event execution" value={formatPercent(summaryData?.eventExecutionRate ?? 0)} />
         </div>
 
-        <div className="mt-6">
+        <div className="mt-5">
           <PlannedVsEngagedChart
             planned={summaryData?.plannedHcps ?? 0}
             engaged={summaryData?.matchedEngagedHcps ?? summaryData?.engagedHcps ?? 0}
@@ -179,12 +179,12 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
 
         <WorkflowPanel workflowData={workflowData} />
 
-        <div className="mt-6 grid min-w-0 grid-cols-1 items-start gap-6">
+        <div className="mt-5 grid min-w-0 grid-cols-1 items-start gap-5">
           <InterventionMixChart rows={interventionRows} />
           <InterventionMixTable rows={interventionRows} />
         </div>
 
-        <div className="mt-6 grid min-w-0 grid-cols-1 items-start gap-6">
+        <div className="mt-5 grid min-w-0 grid-cols-1 items-start gap-5">
           <WorkflowRequestTable
             rows={workflowRows}
             page={workflowRequests.data?.page ?? workflowPage}
@@ -222,7 +222,7 @@ function FilterPanel({
   recommendedMonth: { value: string; label: string } | null;
 }) {
   return (
-    <div className="dashboard-card mt-6 overflow-visible p-4">
+    <div className="dashboard-card relative z-40 mt-5 overflow-visible p-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
         <div className="text-sm font-medium text-zinc-300">
           Country
@@ -340,9 +340,9 @@ function PlannedVsEngagedChart({
 
 function WorkflowPanel({ workflowData }: { workflowData: WorkflowSummaryResponse | undefined }) {
   return (
-    <section className="mt-6 space-y-4">
+    <section className="mt-5 space-y-3">
       <div>
-        <h2 className="text-lg font-medium">Workflow governance</h2>
+        <h2 className="font-medium">Workflow governance</h2>
         <p className="mt-1 text-sm text-muted">Request, report, expense, and blocker status for the selected execution scope.</p>
       </div>
       <WorkflowGovernanceCards
@@ -592,11 +592,11 @@ function KpiCard({ icon, label, value, tone }: { icon: ReactNode; label: string;
   const toneClasses = EXECUTION_KPI_TONE_CLASSES[tone];
   return (
     <div className={`dashboard-card relative p-4 ${toneClasses.card}`}>
-      <div className={`flex items-center gap-2 ${toneClasses.label}`}>
+      <div className={`flex items-center gap-2 text-xs uppercase tracking-wide [&>svg]:h-4 [&>svg]:w-4 ${toneClasses.label}`}>
         {icon}
-        <p className="text-sm">{label}</p>
+        <p>{label}</p>
       </div>
-      <p className={`mt-3 text-2xl font-semibold ${toneClasses.value}`}>{value}</p>
+      <p className={`mt-2 text-2xl font-semibold ${toneClasses.value}`}>{value}</p>
     </div>
   );
 }

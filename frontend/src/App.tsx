@@ -282,80 +282,58 @@ function UtilityMenu({ onAbout, onExit }: { onAbout: () => void; onExit: () => v
 
 function AboutSoftware() {
   return (
-    <main className="page-shell">
-      <div className="mx-auto flex max-w-7xl flex-col gap-5">
+    <main className="px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3">
         <header>
           <p className="eyebrow">About</p>
-          <h1 className="page-title">About this software</h1>
-          <p className="page-copy">
+          <h1 className="text-2xl font-semibold mt-1 -ml-[0.5px] tracking-tight text-ink">About this software</h1>
+          <p className="mt-2 max-w-5xl text-sm leading-6 text-muted">
             Cipla Execution Intelligence was engineered by Aditya Nema for Cipla's Emerging Markets and Europe Patient Benefits Program, turning fragmented field workbooks into an auditable regional doctor investment governance platform.
           </p>
         </header>
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard
-            label="Business program"
-            value="6 markets"
-            detail="Decision layer for the Emerging Markets and Europe Patient Benefits Program across doctor ROI, execution, territory, budget, and quality review."
-          />
-          <KpiCard
-            label="Decision throughput"
-            value="50+/month"
-            detail="Built to support recurring regional investment decisions across sponsorships, conferences, paid/no-fee engagement, workflow follow-up, and execution evidence."
-          />
-          <KpiCard
-            label="Data foundation"
-            value="1.17M rows seen"
-            detail="Documented real-file dry run profiled 8 workbooks and loaded 423,693 compact online records from raw Excel/XLSB sources."
-          />
-          <KpiCard
-            label="Source coverage"
-            value="7 source families"
-            detail="Planner, execution snapshots, consolidated smart-contract reports, workflow statuses, RCPA prescriptions, MSL doctor master, and sponsorship/doctor engagement files."
-          />
-          <KpiCard
-            label="Decision modules"
-            value="5 views + ExecAI"
-            detail="Doctor ROI, Execution, Territory, Budget, Data Quality, business-user upload, warning center, and embedded natural-language analysis."
-          />
-          <KpiCard
-            label="Architecture"
-            value="React + FastAPI"
-            detail="TypeScript dashboard, Python/FastAPI service layer, Supabase PostgreSQL canonical tables, materialized KPI views, and local ingestion tooling."
-          />
-          <KpiCard
-            label="Data integrity"
-            value="Auditable joins"
-            detail="Country-scoped Pcodes, source lineage, duplicate detection, schema profiling, validation issues, match confidence, row counts, and materialized-view refreshes."
-          />
-          <KpiCard
-            label="Reliability"
-            value="100+ tests"
-            detail="Coverage across ingestion edge cases, financial mappings, event reconciliation, doctor ROI, API contracts, frontend states, and AI grounding behavior."
-          />
+        <section className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+          <AboutMetric label="Business program" value="6 markets" detail="Decision layer for the Emerging Markets and Europe Patient Benefits Program across doctor ROI, execution, territory, budget, and quality review." />
+          <AboutMetric label="Decision throughput" value="50+/month" detail="Built to support recurring regional investment decisions across sponsorships, conferences, paid/no-fee engagement, workflow follow-up, and execution evidence." />
+          <AboutMetric label="Data foundation" value="1.17M rows seen" detail="Documented real-file dry run profiled 8 workbooks and loaded 423,693 compact online records from raw Excel/XLSB sources." />
+          <AboutMetric label="Source coverage" value="7 source families" detail="Planner, execution snapshots, consolidated smart-contract reports, workflow statuses, RCPA prescriptions, MSL doctor master, and sponsorship/doctor engagement files." />
+          <AboutMetric label="Decision modules" value="5 views + ExecAI" detail="Doctor ROI, Execution, Territory, Budget, Data Quality, business-user upload, warning center, and embedded natural-language analysis." />
+          <AboutMetric label="Architecture" value="React + FastAPI" detail="TypeScript dashboard, Python/FastAPI service layer, Supabase PostgreSQL canonical tables, materialized KPI views, and local ingestion tooling." />
+          <AboutMetric label="Data integrity" value="Auditable joins" detail="Country-scoped Pcodes, source lineage, duplicate detection, schema profiling, validation issues, match confidence, row counts, and materialized-view refreshes." />
+          <AboutMetric label="Reliability" value="100+ tests" detail="Coverage across ingestion edge cases, financial mappings, event reconciliation, doctor ROI, API contracts, frontend states, and AI grounding behavior." />
         </section>
-        <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)]">
-          <div className="dashboard-card p-5">
+        <section className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)]">
+          <div className="dashboard-card p-4">
             <div className="flex items-center gap-2 text-cyan-200">
               <Code2 className="h-4 w-4" aria-hidden="true" />
               <h2 className="font-semibold text-zinc-50">Engineering overview</h2>
             </div>
-            <p className="mt-4 text-sm leading-6 text-zinc-300">
+            <p className="mt-3 text-sm leading-5 text-zinc-300">
               The software combines a React and TypeScript executive dashboard, Python/FastAPI backend services, Supabase PostgreSQL KPI views, and a reusable Excel ingestion pipeline for messy planner, consolidation, workflow, RCPA, and doctor-master workbooks.
             </p>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">
+            <p className="mt-2 text-sm leading-5 text-zinc-400">
               ExecAI adds a structured RAG assistant with query planning, PostgreSQL-grounded context, redaction, evidence validation, and deterministic fallback behavior for decision support without replacing the underlying formulas and views.
             </p>
           </div>
-          <div className="dashboard-card p-5">
+          <div className="dashboard-card p-4">
             <h2 className="font-semibold text-zinc-50">Built by</h2>
-            <p className="mt-4 text-2xl font-semibold text-cyan-100">Aditya Nema</p>
-            <p className="mt-2 text-sm leading-6 text-zinc-400">
+            <p className="mt-3 text-xl font-semibold text-cyan-100">Aditya Nema</p>
+            <p className="mt-2 text-sm leading-5 text-zinc-400">
               Designed and implemented for Cipla EMEU/PBP as a production-grade analytics workflow: typed API contracts, source-backed audit trails, deterministic cleaning, modular frontend components, and validation coverage for data and AI behavior.
             </p>
           </div>
         </section>
       </div>
     </main>
+  );
+}
+
+function AboutMetric({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="dashboard-card bg-[linear-gradient(135deg,rgba(103,232,249,0.055),rgba(21,23,25,0.96)_42%)] p-3">
+      <p className="text-[0.66rem] uppercase tracking-wide text-cyan-200/75">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-cyan-50">{value}</p>
+      <p className="mt-1 text-[0.72rem] leading-4 text-zinc-500">{detail}</p>
+    </div>
   );
 }
 
