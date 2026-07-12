@@ -109,7 +109,7 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
     monkeypatch.setattr(
         WorkflowService,
         "requests",
-        lambda self, country, month, intervention_type, workflow_status, page, page_size, include_out_of_scope=False, sort="reqId", sort_direction="asc": {
+        lambda self, country, month, intervention_type, workflow_status, workflow_search, page, page_size, include_out_of_scope=False, sort="reqId", sort_direction="asc": {
             "meta": _meta(),
             "page": page,
             "pageSize": page_size,
@@ -159,7 +159,7 @@ def test_execution_workflow_and_intervention_contracts(monkeypatch) -> None:
         assert event_response.json()["rows"][0]["matchStatus"] == "weak_match"
         assert client.get("/api/workflow/summary").json()["pendingReportCount"] == 1
         workflow_response = client.get(
-            "/api/workflow/requests?interventionType=CME&workflowStatus=approved&pageSize=5"
+            "/api/workflow/requests?interventionType=CME&workflowStatus=approved&workflowSearch=Anil&pageSize=5"
         )
         assert workflow_response.json()["pageSize"] == 5
         assert workflow_response.json()["rows"] == []
@@ -188,7 +188,7 @@ def test_phase4_openapi_uses_camel_case_query_contract() -> None:
         for parameter in schema["paths"]["/api/interventions/mix"]["get"]["parameters"]
     }
     assert "includeOutOfScope" in intervention_params
-    assert {"interventionType", "workflowStatus", "pageSize"}.issubset(workflow_params)
+    assert {"interventionType", "workflowStatus", "workflowSearch", "pageSize"}.issubset(workflow_params)
     assert "includeOutOfScope" in workflow_params
     assert "workflow_status" not in workflow_params
 

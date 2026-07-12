@@ -63,7 +63,7 @@ export function InterventionMixChart({ rows }: { rows: InterventionMixRow[] }) {
 export function InterventionMixTable({ rows }: { rows: InterventionMixRow[] }) {
   const sorted = useSortableRows(rows, INTERVENTION_SORT_ACCESSORS);
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card overflow-hidden">
       <div className="border-b border-zinc-800 p-4">
         <h3 className="font-medium">Intervention mix</h3>
         <p className="mt-1 text-sm text-muted">Aggregated by intervention type/subtype for the selected scope.</p>
@@ -71,46 +71,57 @@ export function InterventionMixTable({ rows }: { rows: InterventionMixRow[] }) {
       {rows.length === 0 ? (
         <p className="p-4 text-sm text-muted">No intervention rows match the current data.</p>
       ) : (
-        <div className="table-scroll">
-          <table className="w-full min-w-[1040px] text-left text-sm">
+        <div className="overflow-hidden">
+          <table className="w-full table-fixed text-left text-xs lg:text-sm">
             <thead className="table-head">
               <tr>
                 <SortableHeader column="type" label="Type" sort={sorted.sort} onSort={sorted.onSort} />
                 <SortableHeader column="requests" label="Requests" sort={sorted.sort} onSort={sorted.onSort} />
                 <SortableHeader column="matched" label="Matched" sort={sorted.sort} onSort={sorted.onSort} />
                 <SortableHeader column="approved" label="Approved" sort={sorted.sort} onSort={sorted.onSort} />
-                <SortableHeader column="executedRequests" label="Executed request links" sort={sorted.sort} onSort={sorted.onSort} />
-                <SortableHeader column="executedSnapshots" label="Executed snapshots" sort={sorted.sort} onSort={sorted.onSort} />
-                <SortableHeader column="actionDueRequests" label="Action-due request links" sort={sorted.sort} onSort={sorted.onSort} />
-                <SortableHeader column="actionDueSnapshots" label="Action-due snapshots" sort={sorted.sort} onSort={sorted.onSort} />
-                <SortableHeader column="matchedWithoutExecution" label="Matched without execution" sort={sorted.sort} onSort={sorted.onSort} />
-                <SortableHeader column="pendingReport" label="Pending report" sort={sorted.sort} onSort={sorted.onSort} />
-                <SortableHeader column="actualSpend" label="Actual spend" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="executedRequests" label="Executed" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="actionDueRequests" label="Action due" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="pendingReport" label="Pending" sort={sorted.sort} onSort={sorted.onSort} />
+                <SortableHeader column="actualSpend" label="Spend" sort={sorted.sort} onSort={sorted.onSort} />
               </tr>
             </thead>
             <tbody>
               {sorted.rows.map((row) => (
                 <tr key={`${row.interventionType}-${row.interventionSubType ?? "all"}`} className="table-row">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{row.interventionType}</div>
-                    <div className="text-xs text-muted">{row.interventionSubType ?? "All subtypes"}</div>
+                  <td className="px-3 py-3 align-top">
+                    <div className="truncate font-medium" title={row.interventionType}>{row.interventionType}</div>
+                    <div className="truncate text-xs text-muted" title={row.interventionSubType ?? "All subtypes"}>{row.interventionSubType ?? "All subtypes"}</div>
                   </td>
-                  <td className="px-4 py-3">{formatCount(row.requestCount)}</td>
-                  <td className="px-4 py-3">{formatCount(row.matchedRequestCount)}</td>
-                  <td className="px-4 py-3">{formatCount(row.approvedCount)}</td>
-                  <td className="px-4 py-3">{formatCount(row.executedRequestCount)}</td>
-                  <td className="px-4 py-3">{formatCount(row.executedSnapshotCount)}</td>
-                  <td className="px-4 py-3">{formatCount(row.actionDueRequestCount)}</td>
-                  <td className="px-4 py-3">{formatCount(row.actionDueSnapshotCount)}</td>
-                  <td className="px-4 py-3">{formatCount(row.matchedWithoutExecutionCount)}</td>
-                  <td className="px-4 py-3">{formatCount(row.reportPendingCount)}</td>
-                  <td className="px-4 py-3">{formatAmount(row.totalActualSpend)}</td>
+                  <td className="px-3 py-3 align-top">{formatCount(row.requestCount)}</td>
+                  <td className="px-3 py-3 align-top">{formatCount(row.matchedRequestCount)}</td>
+                  <td className="px-3 py-3 align-top">{formatCount(row.approvedCount)}</td>
+                  <td className="px-3 py-3 align-top">
+                    <StackedCount primary={row.executedRequestCount} secondary={row.executedSnapshotCount} secondaryLabel="snap" />
+                  </td>
+                  <td className="px-3 py-3 align-top">
+                    <StackedCount primary={row.actionDueRequestCount} secondary={row.actionDueSnapshotCount} secondaryLabel="snap" />
+                  </td>
+                  <td className="px-3 py-3 align-top">
+                    {formatCount(row.reportPendingCount)}
+                  </td>
+                  <td className="px-3 py-3 align-top">{formatAmount(row.totalActualSpend)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function StackedCount({ primary, secondary, secondaryLabel }: { primary: number; secondary: number; secondaryLabel: string }) {
+  return (
+    <div>
+      <div>{formatCount(primary)}</div>
+      <div className="truncate text-[0.68rem] text-muted" title={`${formatCount(secondary)} ${secondaryLabel}`}>
+        {formatCount(secondary)} {secondaryLabel}
+      </div>
     </div>
   );
 }

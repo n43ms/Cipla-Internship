@@ -45,6 +45,7 @@ class WorkflowRepository:
         month: str | None,
         intervention_type: str | None,
         workflow_status: str | None,
+        workflow_search: str | None,
         page: int,
         page_size: int,
         include_out_of_scope: bool = False,
@@ -58,6 +59,7 @@ class WorkflowRepository:
             "month": month,
             "intervention_type": intervention_type,
             "workflow_status": workflow_status,
+            "workflow_search": f"%{workflow_search.strip()}%" if workflow_search and workflow_search.strip() else None,
             "limit": limit,
             "offset": offset,
             "include_out_of_scope": include_out_of_scope,
@@ -73,6 +75,16 @@ class WorkflowRepository:
                 or request_confirmation_status = cast(:workflow_status as text)
                 or post_approval_status = cast(:workflow_status as text)
                 or post_confirmation_status = cast(:workflow_status as text)
+            )
+            and (
+                cast(:workflow_search as text) is null
+                or req_id ilike cast(:workflow_search as text)
+                or request_uid ilike cast(:workflow_search as text)
+                or rep_name ilike cast(:workflow_search as text)
+                or intervention_type ilike cast(:workflow_search as text)
+                or intervention_sub_type ilike cast(:workflow_search as text)
+                or country_name ilike cast(:workflow_search as text)
+                or current_owner_stage ilike cast(:workflow_search as text)
             )
         """
         total = self.session.execute(text(f"select count(*) from mv_workflow_governance where {where}"), params).scalar_one()

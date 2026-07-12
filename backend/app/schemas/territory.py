@@ -45,3 +45,17 @@ class TerritoryOpportunityResponse(ApiModel):
     total: int
     rows: list[TerritoryOpportunityRow] = Field(default_factory=list)
     label_counts: dict[str, int] = Field(default_factory=dict)
+
+
+class TerritoryDoctorRow(ApiModel):
+    doctor_name: str
+    pcode_normalized: str
+
+
+class TerritoryDoctorsResponse(ApiModel):
+    meta: ResponseMeta
+    country: str
+    territory_name: str
+    patch_name: str | None = None
+    total: int
+    rows: list[TerritoryDoctorRow] = Field(default_factory=list)

@@ -58,7 +58,7 @@ export function SmoothSelect({ ariaLabel, value, options, placeholder, onChange,
   }
 
   return (
-    <div ref={rootRef} className={`relative ${className}`}>
+    <div ref={rootRef} className={`relative ${open ? "z-[10000]" : "z-0"} ${className}`}>
       <select className="sr-only" aria-label={ariaLabel} value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">{placeholder}</option>
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}

@@ -85,6 +85,7 @@ def build_compact_context(
                 month=month,
                 intervention_type=None,
                 workflow_status=None,
+                workflow_search=None,
                 page=1,
                 page_size=detail_row_limit,
                 include_out_of_scope=include_out_of_scope,
@@ -136,6 +137,8 @@ def build_compact_context(
                 opportunity_label=_string_or_none(safe_filters.get("opportunityLabel")),
                 page=1,
                 page_size=detail_row_limit,
+                sort_by="totalPrescriptionQty",
+                sort_dir="desc",
             )
         )
 

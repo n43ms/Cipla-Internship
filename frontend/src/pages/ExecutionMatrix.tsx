@@ -10,6 +10,7 @@ import { SourceDerivationBadge, StatusBadge } from "../components/execution/Exec
 import { InterventionMixChart, InterventionMixTable } from "../components/interventions/InterventionMixComponents";
 import { WorkflowGovernanceCards, WorkflowStatusTable } from "../components/workflow/WorkflowComponents";
 import { SmoothSelect } from "../components/common/SmoothSelect";
+import { SidePanel } from "../components/common/SidePanel";
 import { LoadingState } from "../components/common/DataStateComponents";
 import { TableLoadingOverlay } from "../components/common/TableLoadingOverlay";
 import { WarningRegistration } from "../components/common/WarningCenter";
@@ -30,6 +31,10 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
   const [filters, setFilters] = useState<Filters>({ country: "", month: "", includeOutOfScope: false });
   const [hasAppliedInitialScope, setHasAppliedInitialScope] = useState(false);
   const [workflowSort, setWorkflowSort] = useState<SortState<WorkflowSortKey>>({ key: "reqId", direction: "asc" });
+  const [workflowPage, setWorkflowPage] = useState(1);
+  const [workflowSearchInput, setWorkflowSearchInput] = useState("");
+  const [workflowSearch, setWorkflowSearch] = useState("");
+  const [selectedWorkflowRequest, setSelectedWorkflowRequest] = useState<WorkflowRequestRow | null>(null);
   const activeFilters = useMemo(
     () => ({
       country: filters.country || undefined,
@@ -43,8 +48,9 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
       country: filters.country || undefined,
       month: filters.month || undefined,
       includeOutOfScope: filters.includeOutOfScope || undefined,
+      workflowSearch: workflowSearch || undefined,
     }),
-    [filters.country, filters.month, filters.includeOutOfScope],
+    [filters.country, filters.month, filters.includeOutOfScope, workflowSearch],
   );
 
   const filterOptions = useQuery({
@@ -60,8 +66,8 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
     queryFn: () => getWorkflowSummary(workflowFilters),
   });
   const workflowRequests = useQuery({
-    queryKey: ["workflow-requests", workflowFilters, workflowSort],
-    queryFn: () => getWorkflowRequests({ ...workflowFilters, page: 1, pageSize: WORKFLOW_PAGE_SIZE, sort: workflowSort.key, sortDirection: workflowSort.direction }),
+    queryKey: ["workflow-requests", workflowFilters, workflowPage, workflowSort],
+    queryFn: () => getWorkflowRequests({ ...workflowFilters, page: workflowPage, pageSize: WORKFLOW_PAGE_SIZE, sort: workflowSort.key, sortDirection: workflowSort.direction }),
     placeholderData: (previousData) => previousData,
   });
   const interventions = useQuery({
@@ -135,6 +141,7 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
           onChange={(next) => {
             setHasAppliedInitialScope(true);
             setFilters((current) => ({ ...current, ...next }));
+            setWorkflowPage(1);
           }}
           recommendedMonth={filterOptions.data?.recommendedMonth ?? null}
         />
@@ -180,13 +187,23 @@ export function ExecutionMatrix({ onAiContextChange }: { onAiContextChange?: (co
         <div className="mt-6 grid min-w-0 grid-cols-1 items-start gap-6">
           <WorkflowRequestTable
             rows={workflowRows}
+            page={workflowRequests.data?.page ?? workflowPage}
+            pageSize={workflowRequests.data?.pageSize ?? WORKFLOW_PAGE_SIZE}
             total={workflowRequests.data?.total ?? 0}
             sort={workflowSort}
             isFetching={workflowRequests.isFetching}
-            onSort={(column) => setWorkflowSort((current) => nextSort(current, column))}
+            workflowSearch={workflowSearchInput}
+            onPageChange={setWorkflowPage}
+            onSelect={setSelectedWorkflowRequest}
+            onSort={(column) => { setWorkflowSort((current) => nextSort(current, column)); setWorkflowPage(1); }}
+            onWorkflowSearchChange={setWorkflowSearchInput}
+            onWorkflowSearchSubmit={() => { setWorkflowSearch(workflowSearchInput.trim()); setWorkflowPage(1); }}
           />
         </div>
       </section>
+      <SidePanel open={Boolean(selectedWorkflowRequest)} onClose={() => setSelectedWorkflowRequest(null)} widthClass="max-w-lg">
+        {selectedWorkflowRequest ? <WorkflowRequestDetail request={selectedWorkflowRequest} /> : null}
+      </SidePanel>
     </main>
   );
 }
@@ -349,17 +366,19 @@ function WorkflowPanel({ workflowData }: { workflowData: WorkflowSummaryResponse
 
 function ExpenseCoveragePanel({ confirmed, submitted }: { confirmed: number; submitted: number }) {
   return (
-    <div className="dashboard-card p-4">
+    <div className="dashboard-card flex h-full flex-col p-4">
       <h3 className="font-medium">Expense coverage</h3>
-      <CoverageBar label="Submitted" value={submitted} />
-      <CoverageBar label="Confirmed" value={confirmed} />
+      <div className="mt-14 grid gap-4">
+        <CoverageBar label="Submitted" value={submitted} />
+        <CoverageBar label="Confirmed" value={confirmed} />
+      </div>
     </div>
   );
 }
 
 function CoverageBar({ label, value }: { label: string; value: number }) {
   return (
-    <div className="mt-3">
+    <div>
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="text-muted">{label}</span>
         <span className="font-medium">{formatPercent(value)}</span>
@@ -373,32 +392,64 @@ function CoverageBar({ label, value }: { label: string; value: number }) {
 
 function WorkflowRequestTable({
   rows,
+  page,
+  pageSize,
   total,
   sort,
   isFetching = false,
+  workflowSearch,
+  onPageChange,
+  onSelect,
   onSort,
+  onWorkflowSearchChange,
+  onWorkflowSearchSubmit,
 }: {
   rows: WorkflowRequestRow[];
+  page: number;
+  pageSize: number;
   total: number;
   sort: SortState<WorkflowSortKey>;
   isFetching?: boolean;
+  workflowSearch: string;
+  onPageChange: (page: number) => void;
+  onSelect: (row: WorkflowRequestRow) => void;
   onSort: (column: WorkflowSortKey) => void;
+  onWorkflowSearchChange: (value: string) => void;
+  onWorkflowSearchSubmit: () => void;
 }) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   return (
-    <div className="dashboard-card relative">
+    <div className="dashboard-card relative overflow-hidden">
       <TableLoadingOverlay isFetching={isFetching} label="Refreshing workflow rows" />
-      <div className="flex items-center justify-between border-b border-zinc-800 p-4">
+      <div className="flex flex-col gap-3 border-b border-zinc-800 p-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="font-medium">Workflow request drilldown</h2>
-          <p className="text-sm text-muted">First {WORKFLOW_PAGE_SIZE} requests in the selected scope, focused on request/report state and blocker ownership.</p>
+          <p className="text-sm text-muted">Paged requests in the selected scope. Open a row for blocker owner and evidence dates.</p>
         </div>
-        <p className="text-sm text-muted">{formatCount(total)} requests</p>
+        <form
+          className="grid gap-1 text-sm lg:w-96"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onWorkflowSearchSubmit();
+          }}
+        >
+          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Search request</span>
+          <div className="flex gap-2">
+            <input
+              className="form-control min-w-0 flex-1"
+              value={workflowSearch}
+              placeholder="Request, rep, market, intervention, or blocker"
+              onChange={(event) => onWorkflowSearchChange(event.target.value)}
+            />
+            <button type="submit" className="soft-button rounded-md border border-zinc-800 px-3 py-2 text-sm font-semibold text-zinc-200">Search</button>
+          </div>
+        </form>
       </div>
       {rows.length === 0 ? (
         <p className="p-4 text-sm text-muted">No workflow requests match the current filters.</p>
       ) : (
         <div className="table-scroll">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="table-head">
               <tr>
                 <SortableHeader column="reqId" label="Request" sort={sort} onSort={onSort} />
@@ -406,8 +457,7 @@ function WorkflowRequestTable({
                 <SortableHeader column="interventionType" label="Intervention" sort={sort} onSort={onSort} />
                 <SortableHeader column="requestConfirmationStatus" label="Confirmation" sort={sort} onSort={onSort} />
                 <SortableHeader column="postConfirmationStatus" label="Report status" sort={sort} onSort={onSort} />
-                <SortableHeader column="expenseConfirmedDate" label="Evidence dates" sort={sort} onSort={onSort} />
-                <SortableHeader column="currentOwnerStage" label="Current blocker" sort={sort} onSort={onSort} />
+                <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -427,17 +477,83 @@ function WorkflowRequestTable({
                   <td className="px-4 py-3">
                     <StatusBadge value={row.postConfirmationStatus} />
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted">
-                    <div>Submitted: {row.expenseSubmittedDate ?? "-"}</div>
-                    <div>Confirmed: {row.expenseConfirmedDate ?? "-"}</div>
+                  <td className="px-4 py-3">
+                    <button className="soft-button rounded-md border border-zinc-800 px-3 py-1 text-xs" onClick={() => onSelect(row)}>Open</button>
                   </td>
-                  <td className="px-4 py-3">{row.currentOwnerStage ?? "unknown"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 p-4 text-sm">
+        <span className="text-muted">
+          {formatCount(total)} requests | Page {page} of {totalPages}
+        </span>
+        <div className="flex gap-2">
+          <button className="soft-button rounded-md border border-zinc-800 px-3 py-1 disabled:opacity-50" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Previous</button>
+          <button className="soft-button rounded-md border border-zinc-800 px-3 py-1 disabled:opacity-50" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Next</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorkflowRequestDetail({ request }: { request: WorkflowRequestRow }) {
+  return (
+    <div className="space-y-5">
+      <header className="border-b border-zinc-800 pb-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-accent">Workflow request</p>
+        <h2 className="mt-2 break-words text-2xl font-semibold">{request.reqId ?? "No request ID"}</h2>
+        <p className="mt-1 text-sm text-muted">
+          {request.repName ?? "Unknown rep"} | {request.country} | {request.month}
+        </p>
+      </header>
+
+      <section>
+        <h3 className="font-semibold">Current blocker</h3>
+        <div className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-3">
+          <p className="text-xs text-muted">Owner stage</p>
+          <p className="mt-1 break-words font-semibold text-zinc-100">{request.currentOwnerStage ?? "Unknown"}</p>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="font-semibold">Evidence dates</h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <DetailMetric label="Expense submitted" value={request.expenseSubmittedDate ?? "Not available"} />
+          <DetailMetric label="Expense confirmed" value={request.expenseConfirmedDate ?? "Not available"} />
+        </div>
+      </section>
+
+      <section>
+        <h3 className="font-semibold">Workflow state</h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <DetailMetric label="Request approval" value={request.requestApprovalStatus} />
+          <DetailMetric label="Request confirmation" value={request.requestConfirmationStatus} />
+          <DetailMetric label="Post approval" value={request.postApprovalStatus} />
+          <DetailMetric label="Post confirmation" value={request.postConfirmationStatus} />
+        </div>
+      </section>
+
+      <section>
+        <h3 className="font-semibold">Intervention</h3>
+        <div className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 p-3">
+          <p className="break-words font-semibold text-zinc-100">{request.interventionType ?? "Unknown type"}</p>
+          {request.scopeStatus || request.scopeReason ? (
+            <p className="mt-2 text-xs leading-5 text-muted">{request.scopeReason ?? request.scopeStatus}</p>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DetailMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-zinc-800 bg-zinc-900 p-3">
+      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-1 break-words font-semibold text-zinc-100">{value}</p>
     </div>
   );
 }

@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { getFilters } from "../api/filters";
-import { getTerritoryOpportunities } from "../api/territory";
+import { getTerritoryDoctors, getTerritoryOpportunities } from "../api/territory";
 import { DataFreshnessBanner, EmptyState, ErrorState, KpiCard, LoadingState } from "../components/common/DataStateComponents";
+import { SidePanel } from "../components/common/SidePanel";
 import { SmoothSelect } from "../components/common/SmoothSelect";
 import { TableLoadingOverlay } from "../components/common/TableLoadingOverlay";
 import { WarningRegistration } from "../components/common/WarningCenter";
+import { nextSort, SortableHeader, type SortState } from "../components/common/SortableTable";
 import type { TerritoryOpportunityRow } from "../types/api";
 
 const LABEL_OPTIONS = [
@@ -16,24 +18,57 @@ const LABEL_OPTIONS = [
   { value: "insufficient_data", label: "Insufficient data" },
 ];
 
+const SIGNAL_SORT_RANK: Record<string, number> = {
+  underserved: 0,
+  overserved: 1,
+  balanced: 2,
+  insufficient_data: 3,
+};
+
+type TerritorySortKey = "territoryName" | "opportunityLabel" | "doctorCount" | "totalPrescriptionQty";
+
 export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange?: (context: { pageContext: string; filters: Record<string, unknown> }) => void }) {
   const [country, setCountry] = useState("");
   const [opportunityLabel, setOpportunityLabel] = useState("");
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<SortState<TerritorySortKey>>({ key: "totalPrescriptionQty", direction: "desc" });
+  const [selectedTerritory, setSelectedTerritory] = useState<TerritoryOpportunityRow | null>(null);
   const filters = useQuery({ queryKey: ["filters"], queryFn: getFilters });
   const query = useQuery({
-    queryKey: ["territory-opportunities", country, opportunityLabel, page],
-    queryFn: () => getTerritoryOpportunities({ country, opportunityLabel, page, pageSize: 25 }),
+    queryKey: ["territory-opportunities", country, opportunityLabel, page, sort.key, sort.direction],
+    queryFn: () => getTerritoryOpportunities({ country, opportunityLabel, page, pageSize: 25, sortBy: sort.key, sortDir: sort.direction }),
     placeholderData: (previousData) => previousData,
+  });
+  const territoryDoctors = useQuery({
+    queryKey: ["territory-doctors", selectedTerritory?.countryCode, selectedTerritory?.territoryName, selectedTerritory?.patchName],
+    queryFn: () => getTerritoryDoctors({
+      country: selectedTerritory!.countryCode,
+      territoryName: selectedTerritory!.territoryName,
+      patchName: selectedTerritory!.patchName,
+    }),
+    enabled: Boolean(selectedTerritory),
   });
   const aiFilters = useMemo(
     () => ({ country: country || undefined, opportunityLabel: opportunityLabel || undefined }),
     [country, opportunityLabel],
   );
+  const territoryWarningItems = useMemo(
+    () => buildTerritoryWarningItems(query.data?.rows ?? [], query.data?.meta.limitations ?? []),
+    [query.data?.rows, query.data?.meta.limitations],
+  );
+  const sortedRows = useMemo(
+    () => sortTerritoryRows(query.data?.rows ?? [], sort),
+    [query.data?.rows, sort],
+  );
 
   useEffect(() => {
     onAiContextChange?.({ pageContext: "territory", filters: aiFilters });
   }, [aiFilters, onAiContextChange]);
+
+  function handleSort(column: TerritorySortKey) {
+    setSort((current) => nextSort(current, column));
+    setPage(1);
+  }
 
   if (query.isLoading && !query.data) return <main><LoadingState label="Loading territory intelligence" /></main>;
   if (query.isError) return <main className="p-6"><ErrorState title="Territory intelligence unavailable" /></main>;
@@ -50,7 +85,7 @@ export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange
           </p>
         </header>
         <DataFreshnessBanner meta={query.data.meta} />
-        <section className="dashboard-card overflow-visible p-4">
+        <section className="dashboard-card relative z-40 overflow-visible p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Select label="Country" value={country} options={filters.data?.countries ?? []} empty="All countries" onChange={(value) => { setCountry(value); setPage(1); }} />
             <Select label="Signal" value={opportunityLabel} options={LABEL_OPTIONS} empty="All signals" onChange={(value) => { setOpportunityLabel(value); setPage(1); }} />
@@ -62,7 +97,7 @@ export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange
             id: "territory-intelligence-notes",
             title: "Territory intelligence notes",
             tone: "info",
-            items: query.data.meta.limitations,
+            items: territoryWarningItems,
           }}
         />
         <TerritoryCards rows={query.data.rows} labelCounts={query.data.labelCounts} />
@@ -70,21 +105,26 @@ export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange
           <section className="dashboard-card relative overflow-hidden p-0">
             <TableLoadingOverlay isFetching={query.isFetching} label="Refreshing territory rows" />
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
+              <table className="min-w-full table-fixed text-left text-sm">
+                <colgroup>
+                  <col className="w-[36%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-40" />
+                </colgroup>
                 <thead className="border-b border-zinc-800 text-xs uppercase tracking-wide text-zinc-500">
                   <tr>
-                    <th className="px-4 py-3">Territory</th>
-                    <th className="px-4 py-3">Signal</th>
-                    <th className="px-4 py-3">Doctors</th>
-                    <th className="px-4 py-3">Rx</th>
-                    <th className="px-4 py-3">Engagements</th>
-                    <th className="px-4 py-3">Known investment</th>
-                    <th className="px-4 py-3">Confidence</th>
+                    <SortableHeader column="territoryName" label="Territory" sort={sort} onSort={handleSort} />
+                    <SortableHeader column="opportunityLabel" label="Signal" sort={sort} onSort={handleSort} />
+                    <SortableHeader column="doctorCount" label="Doctors" sort={sort} onSort={handleSort} />
+                    <SortableHeader column="totalPrescriptionQty" label="Rx" sort={sort} onSort={handleSort} />
+                    <th className="px-4 py-3 text-center">Doctor drilldown</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {query.data.rows.map((row) => (
-                    <TerritoryRow key={`${row.countryCode}-${row.territoryName}-${row.patchName ?? ""}`} row={row} />
+                  {sortedRows.map((row) => (
+                    <TerritoryRow key={`${row.countryCode}-${row.territoryName}-${row.patchName ?? ""}`} row={row} onOpenDoctors={setSelectedTerritory} />
                   ))}
                 </tbody>
               </table>
@@ -101,41 +141,80 @@ export function TerritoryIntelligence({ onAiContextChange }: { onAiContextChange
           <EmptyState title="No source-backed territory rows" detail="Territory signals appear after RCPA Location/PATCHNAME or engagement FS HQ fields are loaded into Supabase." />
         )}
       </div>
+      <SidePanel open={Boolean(selectedTerritory)} onClose={() => setSelectedTerritory(null)} widthClass="max-w-md">
+        {selectedTerritory ? (
+          <TerritoryDoctorsPanel
+            isError={territoryDoctors.isError}
+            isLoading={territoryDoctors.isLoading}
+            rows={territoryDoctors.data?.rows ?? []}
+            territory={selectedTerritory}
+          />
+        ) : null}
+      </SidePanel>
     </main>
   );
 }
 
 function TerritoryCards({ rows, labelCounts }: { rows: TerritoryOpportunityRow[]; labelCounts: Record<string, number> }) {
-  const knownInvestment = rows.reduce((sum, row) => sum + row.knownInvestmentUsd, 0);
-  const totalRx = rows.reduce((sum, row) => sum + row.totalPrescriptionQty, 0);
   return (
-    <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Metric tone="violet" title="Territories" value={String(rows.length)} detail="Current filtered rows" />
       <Metric tone="amber" title="Underserved" value={String(labelCounts.underserved ?? 0)} detail="High Rx with no engagement evidence" />
       <Metric tone="red" title="Overserved" value={String(labelCounts.overserved ?? 0)} detail="Spend/engagement exceeds current Rx signal" />
       <Metric tone="emerald" title="Balanced" value={String(labelCounts.balanced ?? 0)} detail="No exception signal from current evidence" />
-      <Metric tone="sky" title="Known investment" value={`$${knownInvestment.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} detail={`${totalRx.toLocaleString()} total Rx in view`} />
     </section>
   );
 }
 
-function TerritoryRow({ row }: { row: TerritoryOpportunityRow }) {
+function TerritoryRow({ row, onOpenDoctors }: { row: TerritoryOpportunityRow; onOpenDoctors: (row: TerritoryOpportunityRow) => void }) {
   return (
     <tr className="border-b border-zinc-900/80 align-top">
       <td className="px-4 py-3">
         <p className="font-medium text-zinc-100">{row.territoryName}</p>
-        <p className="text-xs text-zinc-500">{row.countryName}{row.patchName ? ` - ${row.patchName}` : ""}</p>
+        <p className="text-xs text-zinc-500">{row.countryName}</p>
       </td>
       <td className="px-4 py-3">
-        <span className="rounded-md border border-accent/20 bg-accent/[0.08] px-2 py-1 text-xs text-cyan-100">{row.opportunityLabel.replaceAll("_", " ")}</span>
-        {row.sourceCaveats.length ? <p className="mt-2 text-xs text-amber-100/70">{row.sourceCaveats.join(", ")}</p> : null}
+        <span className="rounded-md border border-accent/20 bg-accent/[0.08] px-2 py-1 text-xs text-cyan-100">{formatSignalLabel(row.opportunityLabel)}</span>
       </td>
-      <td className="px-4 py-3 text-zinc-300">{row.doctorCount.toLocaleString()} total<br /><span className="text-xs text-zinc-500">{row.engagedDoctorCount.toLocaleString()} engaged</span></td>
-      <td className="px-4 py-3 text-zinc-300">{row.totalPrescriptionQty.toLocaleString()}<br /><span className="text-xs text-zinc-500">{formatPercent(row.ciplaShareQty)} Cipla share</span></td>
-      <td className="px-4 py-3 text-zinc-300">{row.engagementCount.toLocaleString()}<br /><span className="text-xs text-zinc-500">{row.sponsorshipCount} sponsored, {row.paidEngagementCount} paid</span></td>
-      <td className="px-4 py-3 text-zinc-300">${row.knownInvestmentUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}<br /><span className="text-xs text-zinc-500">saving ${row.contractSavingUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></td>
-      <td className="px-4 py-3 text-zinc-300">{row.evidenceConfidence}</td>
+      <td className="px-4 py-3 text-zinc-300">{row.doctorCount.toLocaleString()}</td>
+      <td className="px-4 py-3 text-zinc-300">{row.totalPrescriptionQty.toLocaleString()}</td>
+      <td className="px-4 py-3 text-center">
+        <button className="soft-button rounded-md border border-zinc-800 px-3 py-1 text-xs" onClick={() => onOpenDoctors(row)}>Open</button>
+      </td>
     </tr>
+  );
+}
+
+function TerritoryDoctorsPanel({
+  isError,
+  isLoading,
+  rows,
+  territory,
+}: {
+  isError: boolean;
+  isLoading: boolean;
+  rows: Array<{ doctorName: string; pcodeNormalized: string }>;
+  territory: TerritoryOpportunityRow;
+}) {
+  return (
+    <div className="space-y-4">
+      <header className="border-b border-zinc-800 pb-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-accent">Territory doctors</p>
+        <h2 className="mt-2 break-words text-2xl font-semibold">{territory.territoryName}</h2>
+      </header>
+      {isLoading ? <LoadingState label="Loading territory doctors" compact /> : null}
+      {isError ? <p className="text-sm text-amber-100/85">Doctor list unavailable.</p> : null}
+      {!isLoading && !isError && rows.length === 0 ? <p className="text-sm text-muted">No doctors found for this territory.</p> : null}
+      {!isLoading && !isError && rows.length ? (
+        <div className="grid gap-2">
+          {rows.map((doctor) => (
+            <p key={doctor.pcodeNormalized} className="rounded-md border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-100">
+              {doctor.doctorName} ({doctor.pcodeNormalized})
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -164,7 +243,58 @@ function Select({
   );
 }
 
-function formatPercent(value: number | null) {
-  if (value == null) return "n/a";
-  return `${Math.round(value * 100)}%`;
+function buildTerritoryWarningItems(rows: TerritoryOpportunityRow[], limitations: string[]) {
+  const confidenceCounts = rows.reduce<Record<string, number>>((counts, row) => {
+    const key = row.evidenceConfidence || "unknown";
+    counts[key] = (counts[key] ?? 0) + 1;
+    return counts;
+  }, {});
+  const confidenceSummary = Object.entries(confidenceCounts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([confidence, count]) => `${formatConfidence(confidence)} confidence: ${count.toLocaleString()} territories`)
+    .join("; ");
+  const caveatCounts = rows.reduce<Record<string, number>>((counts, row) => {
+    row.sourceCaveats.forEach((caveat) => {
+      const normalized = caveat.replaceAll("_", " ");
+      counts[normalized] = (counts[normalized] ?? 0) + 1;
+    });
+    return counts;
+  }, {});
+  const caveatSummaries = Object.entries(caveatCounts)
+    .sort(([, a], [, b]) => b - a)
+    .map(([caveat, count]) => `${caveat}: ${count.toLocaleString()} territories`);
+  return [
+    ...limitations,
+    confidenceSummary ? `Evidence confidence distribution in current view: ${confidenceSummary}.` : "",
+    ...caveatSummaries,
+  ];
+}
+
+function sortTerritoryRows(rows: TerritoryOpportunityRow[], sort: SortState<TerritorySortKey>) {
+  const multiplier = sort.direction === "asc" ? 1 : -1;
+  return [...rows].sort((left, right) => multiplier * compareTerritoryValue(territorySortValue(left, sort.key), territorySortValue(right, sort.key)));
+}
+
+function territorySortValue(row: TerritoryOpportunityRow, key: TerritorySortKey) {
+  if (key === "opportunityLabel") return SIGNAL_SORT_RANK[normalizeSignalKey(row.opportunityLabel)] ?? 99;
+  return row[key];
+}
+
+function compareTerritoryValue(left: string | number, right: string | number) {
+  if (typeof left === "number" && typeof right === "number") return left - right;
+  return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: "base" });
+}
+
+function formatConfidence(value: string) {
+  return value
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatSignalLabel(value: string) {
+  return LABEL_OPTIONS.find((option) => option.value === normalizeSignalKey(value))?.label ?? formatConfidence(value);
+}
+
+function normalizeSignalKey(value: string) {
+  return value.trim().toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
 }

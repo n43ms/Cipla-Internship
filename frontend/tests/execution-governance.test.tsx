@@ -14,6 +14,8 @@ describe("Execution governance page", () => {
   it("renders execution, derived-source, workflow pending, and intervention states", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(input);
+      if (url.includes("/api/filters")) return ok(minimalFilters());
+      if (url.includes("/api/doctors/roi")) return ok(minimalDoctorRoi());
       if (url.includes("/api/execution/filter-options")) {
         return ok({
           countries: [{ value: "LK", label: "Sri Lanka" }],
@@ -118,6 +120,8 @@ describe("Execution governance page", () => {
     renderWithProviders(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Execution" })).toBeInTheDocument(), { timeout: 10000 });
+    fireEvent.click(screen.getByRole("button", { name: "Execution" }));
     await waitFor(
       () => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument(),
       { timeout: 10000 },
@@ -143,14 +147,20 @@ describe("Execution governance page", () => {
     expect(screen.getByText("Post confirmation")).toBeInTheDocument();
     expect(screen.getByText("Intervention mix")).toBeInTheDocument();
     expect(screen.getByText("Intervention type mix")).toBeInTheDocument();
-    expect(screen.getAllByText("Executed snapshots").length).toBeGreaterThan(0);
-    expect(screen.getByText("Executed request links")).toBeInTheDocument();
+    expect(screen.getAllByText("Executed").length).toBeGreaterThan(0);
+    expect(screen.getByText("Action due")).toBeInTheDocument();
     expect(screen.getByText("Workflow request drilldown")).toBeInTheDocument();
     expect(screen.getByText("Anil Arial")).toBeInTheDocument();
-    expect(screen.getByText("Submitted: 2026-05-20")).toBeInTheDocument();
-    expect(screen.getByText("Confirmed: -")).toBeInTheDocument();
+    expect(screen.getByText("Search request")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/Page 1 of 1/)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(screen.getByText("Expense submitted")).toBeInTheDocument();
+    expect(screen.getByText("2026-05-20")).toBeInTheDocument();
+    expect(screen.getByText("Expense confirmed")).toBeInTheDocument();
+    expect(screen.getByText("Not available")).toBeInTheDocument();
+    expect(screen.getByText("Current blocker")).toBeInTheDocument();
     expect(screen.queryByText("Primary Phase 4")).not.toBeInTheDocument();
-  });
+  }, 10000);
 
   it("renders an API error state", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("fail", { status: 500 }));
@@ -158,12 +168,16 @@ describe("Execution governance page", () => {
     renderWithProviders(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Execution" })).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: "Execution" }));
     await waitFor(() => expect(screen.getByText("Execution governance unavailable")).toBeInTheDocument(), { timeout: 5000 });
   });
 
   it("renders empty matrix and sends selected filters", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(input);
+      if (url.includes("/api/filters")) return ok(minimalFilters());
+      if (url.includes("/api/doctors/roi")) return ok(minimalDoctorRoi());
       if (url.includes("/api/execution/filter-options")) {
         return ok({
           countries: [{ value: "LK", label: "Sri Lanka" }],
@@ -229,6 +243,8 @@ describe("Execution governance page", () => {
     renderWithProviders(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Execution" })).toBeInTheDocument(), { timeout: 10000 });
+    fireEvent.click(screen.getByRole("button", { name: "Execution" }));
     await waitFor(() => expect(screen.getByText("Workflow request drilldown")).toBeInTheDocument());
     const countryInput = screen.getByLabelText("Country");
     fireEvent.change(countryInput, { target: { value: "LK" } });
@@ -243,3 +259,36 @@ describe("Execution governance page", () => {
     });
   });
 });
+
+function minimalFilters() {
+  return {
+    countries: [],
+    months: [],
+    interventionTypes: [],
+    brands: [],
+    specialities: [],
+    doctorClasses: [],
+    roiSegments: [],
+    latestIngestionStatus: "completed",
+  };
+}
+
+function minimalDoctorRoi() {
+  return {
+    meta: { generatedAt: "now", latestIngestionStatus: "completed", filtersApplied: {}, dataQualityFlags: [], limitations: [], sourceDerivationNotes: [] },
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    sort: "ciplaPrescriptionQty",
+    sortDirection: "desc",
+    darkHorseCount: 0,
+    noRcpaCount: 0,
+    missingFxCount: 0,
+    provisionalFxCount: 0,
+    brandFilterMode: null,
+    periodFilterMode: "all",
+    rows: [],
+    quadrantCounts: {},
+    segmentCounts: {},
+  };
+}
