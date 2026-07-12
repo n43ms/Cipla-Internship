@@ -1,5 +1,5 @@
-import { lazy, Suspense, useState, type ReactNode } from "react";
-import { Activity, ArrowRight, ChevronDown, Code2, DatabaseZap, Info, LogOut, MapPinned, Sparkles, Stethoscope, UploadCloud, WalletCards, type LucideIcon } from "lucide-react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { Activity, ArrowRight, ChevronDown, Code2, DatabaseZap, Info, LogOut, MapPinned, Sparkles, Stethoscope, UploadCloud, WalletCards, X, type LucideIcon } from "lucide-react";
 
 import { AiAssistantPanel } from "./components/ai/AiAssistantPanel";
 import { DataFreshnessBanner, KpiCard, LoadingState } from "./components/common/DataStateComponents";
@@ -29,15 +29,33 @@ const OPERATIONS_PAGES: NavPage[] = [
   { key: "quality", label: "Data Quality", icon: DatabaseZap, iconClass: "text-cyan-300", activeClass: "border-cyan-300/25 bg-cyan-300/[0.08] text-cyan-50 shadow-[inset_3px_0_0_rgba(103,232,249,0.52)]" },
 ];
 
-const HEADER_SUBTITLE = "Doctor ROI, execution follow-up, budget governance, territory coverage, and ExecAI-grounded decisions";
+const HEADER_SUBTITLE = "Doctor ROI, execution follow-up, budget governance, territory coverage, and your personal Decision Intelligence Copilot - ExecAI";
 
 export default function App() {
   const [page, setPage] = useState<PageKey>("doctors");
   const [entered, setEntered] = useState(false);
   const [entryExiting, setEntryExiting] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [showAiNotice, setShowAiNotice] = useState(true);
+  const [aiOpenSignal, setAiOpenSignal] = useState(0);
   const [aiContext, setAiContext] = useState<AiContext>({ pageContext: "doctor_roi", filters: {} });
+  const [headerCompact, setHeaderCompact] = useState(false);
   const meta = useDashboardMeta();
+
+  useEffect(() => {
+    if (!entered) {
+      setHeaderCompact(false);
+      return undefined;
+    }
+
+    function updateHeaderState() {
+      setHeaderCompact(window.scrollY > 6);
+    }
+
+    updateHeaderState();
+    window.addEventListener("scroll", updateHeaderState, { passive: true });
+    return () => window.removeEventListener("scroll", updateHeaderState);
+  }, [entered]);
 
   function enterApp() {
     if (entryExiting) return;
@@ -49,6 +67,12 @@ export default function App() {
     setPage("doctors");
     setEntryExiting(false);
     setEntered(false);
+    setShowAiNotice(true);
+  }
+
+  function openExecAiFromNotice() {
+    setShowAiNotice(false);
+    setAiOpenSignal((value) => value + 1);
   }
 
   if (!entered) {
@@ -58,27 +82,36 @@ export default function App() {
   return (
     <WarningCenterProvider>
       <div className="min-h-screen animate-page-enter bg-surface text-ink">
-        <nav className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#07090a]/88 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
-          <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+        <nav className={`sticky top-0 z-40 border-b border-white/[0.08] bg-[#07090a]/88 px-4 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-2xl transition-all duration-300 ease-out ${headerCompact ? "py-2" : "py-3"}`}>
+          <div className={`mx-auto flex max-w-7xl min-w-0 flex-col gap-3 transition-all duration-300 ease-out lg:flex-row lg:items-stretch lg:justify-between ${headerCompact ? "lg:items-center" : ""}`}>
             <button
               onClick={returnToEntry}
-              className="group -ml-2 flex min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-left transition-all duration-500 ease-out lg:min-h-[9.1rem] lg:self-stretch"
+              className={`group -ml-2 flex min-w-0 items-center gap-3 rounded-lg px-2 text-left transition-all duration-300 ease-out ${headerCompact ? "py-1 lg:min-h-[4.4rem]" : "py-2 lg:min-h-[10.2rem] lg:self-stretch"}`}
               aria-label="Return to loading screen"
               title="Return to loading screen"
             >
               <CiplaLogoPlaceholder size="sm" />
-              <div className="ml-6 flex min-w-0 flex-1 flex-col justify-center gap-2.5 lg:max-w-[28rem] lg:py-2">
+              <div className={`ml-6 flex min-w-0 flex-1 flex-col justify-center transition-all duration-300 ease-out lg:max-w-[32rem] ${headerCompact ? "gap-0 lg:py-0" : "gap-2 lg:py-2"}`}>
                 <div className="min-w-0">
-                  <p className="text-2xl font-semibold leading-tight tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent transition-all duration-500">Cipla Execution Intelligence</p>
+                  <p className={`font-semibold leading-tight tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent transition-all duration-300 ${headerCompact ? "text-xl" : "text-2xl"}`}>Cipla Execution Intelligence</p>
                 </div>
-                <p className="max-w-md text-sm leading-5 bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent">{HEADER_SUBTITLE}</p>
-                <p className="text-xs font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent">Engineered by Aditya Nema</p>
+                <p className={`max-w-lg text-sm leading-6 bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent transition-all duration-300 ${headerCompact ? "pointer-events-none max-h-0 opacity-0" : "max-h-24 opacity-100"}`}>{HEADER_SUBTITLE}</p>
+                <p className={`text-xs font-medium uppercase tracking-[0.22em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent transition-all duration-300 ${headerCompact ? "pointer-events-none max-h-0 opacity-0" : "max-h-6 opacity-100"}`}>Engineered by Aditya Nema</p>
               </div>
             </button>
-            <div className="-mx-1 flex max-w-full items-stretch gap-3 overflow-visible px-3 p-1 lg:mx-0 lg:shrink-0">
-              <div className="flex max-w-full shrink min-w-0 items-stretch gap-3 overflow-x-auto overflow-y-visible pr-1">
-                <NavGroup title="Decision Intelligence" pages={PRIMARY_PAGES} current={page} onSelect={setPage} />
-                <NavGroup title="Governance" pages={OPERATIONS_PAGES} current={page} onSelect={setPage} centered />
+            <div className={`-mx-1 flex max-w-full items-stretch gap-3 overflow-visible px-3 p-1 transition-all duration-300 ease-out lg:mx-0 lg:shrink-0 ${headerCompact ? "lg:items-center" : ""}`}>
+              <div className={`flex max-w-full shrink min-w-0 gap-3 overflow-visible pr-1 transition-all duration-300 ease-out ${headerCompact ? "items-center" : "items-stretch overflow-x-auto"}`}>
+                {headerCompact ? (
+                  <>
+                    <CompactNavDropdown title="Decision Intelligence" pages={PRIMARY_PAGES} current={page} onSelect={setPage} />
+                    <CompactNavDropdown title="Governance" pages={OPERATIONS_PAGES} current={page} onSelect={setPage} />
+                  </>
+                ) : (
+                  <>
+                    <NavGroup title="Decision Intelligence" pages={PRIMARY_PAGES} current={page} onSelect={setPage} />
+                    <NavGroup title="Governance" pages={OPERATIONS_PAGES} current={page} onSelect={setPage} centered />
+                  </>
+                )}
               </div>
               <div className="w-px shrink-0 bg-white/[0.08]" aria-hidden="true" />
               <div className="flex shrink-0 items-center gap-2">
@@ -112,11 +145,36 @@ export default function App() {
         </Suspense>
       </div>
       <WarningCenterDock />
-      <AiAssistantPanel context={aiContext} />
+      {showAiNotice ? <ExecAiEntryNotice onClose={() => setShowAiNotice(false)} onTry={openExecAiFromNotice} /> : null}
+      <AiAssistantPanel context={aiContext} openSignal={aiOpenSignal} compactHeader={headerCompact} />
       <SidePanel open={uploadOpen} onClose={() => setUploadOpen(false)} widthClass="sm:max-w-2xl">
         <DataUploadPanel onClose={() => setUploadOpen(false)} />
       </SidePanel>
     </WarningCenterProvider>
+  );
+}
+
+function ExecAiEntryNotice({ onClose, onTry }: { onClose: () => void; onTry: () => void }) {
+  return (
+    <aside className="execai-entry-notice" role="status" aria-live="polite">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="execai-notice-icon" aria-hidden="true">
+          <Sparkles className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-cyan-50">ExecAI is available</p>
+          <p className="mt-1 text-xs leading-5 text-zinc-300">
+            Ask grounded questions about Doctor ROI, execution risk, budgets, territories, and data quality.
+          </p>
+          <button type="button" className="mt-3 text-xs font-semibold text-cyan-200 transition hover:text-cyan-50" onClick={onTry}>
+            Try ExecAI
+          </button>
+        </div>
+      </div>
+      <button type="button" className="execai-notice-close" onClick={onClose} aria-label="Dismiss ExecAI notice">
+        <X className="h-4 w-4" />
+      </button>
+    </aside>
   );
 }
 
@@ -129,11 +187,11 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
         <div className="max-w-4xl animate-page-enter">
           <div className="transition-all duration-700 hover:scale-y-[1.05] hover:opacity-90"><CiplaLogoPlaceholder size="lg"/></div>
           
-          <p className="mt-7 text-sm font-semibold uppercase tracking-[0.24em] bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">Emerging Markets and Europe Patient Benefits Program</p>
-          <h1 className="mt-4 pb-[6px] max-w-4xl text-4xl font-semibold bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent ">
+          <p className="mt-7 text-sm font-semibold uppercase tracking-[0.24em] text-cyan-200/85">Emerging Markets and Europe Patient Benefits Program</p>
+          <h1 className="landing-intelligence-text mt-4 pb-[6px] max-w-4xl text-4xl font-semibold">
             Doctor ROI & Execution Intelligence
           </h1>
-          <p className="electric-copy mt-4 max-w-3xl text-base leading-7 bg-clip-text text-transparent">
+          <p className="landing-intelligence-copy mt-4 max-w-3xl text-base leading-7">
             A decision dashboard for doctor investment, execution follow-up, budget control, territory coverage, data confidence, and ExecAI-powered business questions.
           </p>
           <div className="mt-5 grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2">
@@ -252,6 +310,46 @@ function NavColumn({ pages, current, centered, onSelect }: { pages: NavPage[]; c
   );
 }
 
+function CompactNavDropdown({ title, pages, current, onSelect }: { title: string; pages: NavPage[]; current: PageKey; onSelect: (page: PageKey) => void }) {
+  const activePage = pages.find((item) => item.key === current);
+  const ActiveIcon = activePage?.icon ?? pages[0]?.icon;
+
+  return (
+    <details className="group relative z-[90] shrink-0">
+      <summary className="soft-button flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border-cyan-200/[0.11] bg-[#111719] px-3.5 py-2.5 text-sm font-semibold text-cyan-50 shadow-[0_12px_34px_rgba(0,0,0,0.28)] marker:hidden hover:border-cyan-200/22 hover:bg-[#131d21]">
+        {ActiveIcon ? <ActiveIcon className={`h-4 w-4 ${activePage?.iconClass ?? "text-cyan-300"}`} aria-hidden="true" /> : null}
+        <span className="hidden max-w-[10rem] truncate xl:inline">{title}</span>
+        <span className="max-w-[8rem] truncate xl:hidden">{activePage?.label ?? title}</span>
+        <ChevronDown className="h-4 w-4 text-cyan-100/70 transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
+      </summary>
+      <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[120] grid min-w-64 gap-1 rounded-xl border border-cyan-200/[0.12] bg-[#111315] p-2 shadow-[0_24px_70px_rgba(0,0,0,0.58),0_0_24px_rgba(103,232,249,0.06)] backdrop-blur-2xl">
+        <p className="px-2 pb-1 pt-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-cyan-200/70">{title}</p>
+        {pages.map((item) => {
+          const Icon = item.icon;
+          const isActive = current === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200 hover:bg-white/[0.055] ${
+                isActive ? item.activeClass : "text-zinc-300"
+              }`}
+              onClick={(event) => {
+                onSelect(item.key);
+                event.currentTarget.closest("details")?.removeAttribute("open");
+              }}
+              aria-current={isActive ? "page" : undefined}
+            >
+              <Icon className={`h-4 w-4 shrink-0 ${item.iconClass}`} aria-hidden="true" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </details>
+  );
+}
+
 function UtilityMenu({ onAbout, onExit }: { onAbout: () => void; onExit: () => void }) {
   return (
     <details className="group relative z-[80] shrink-0">
@@ -315,10 +413,13 @@ function AboutSoftware() {
               ExecAI adds a structured RAG assistant with query planning, PostgreSQL-grounded context, redaction, evidence validation, and deterministic fallback behavior for decision support without replacing the underlying formulas and views.
             </p>
           </div>
-          <div className="dashboard-card p-4">
-            <h2 className="font-semibold text-zinc-50">Built by</h2>
-            <p className="mt-3 text-xl font-semibold text-cyan-100">Aditya Nema</p>
-            <p className="mt-2 text-sm leading-5 text-zinc-400">
+          <div className="execai-built-card dashboard-card border-cyan-200/[0.075] bg-[linear-gradient(145deg,rgba(8,13,18,0.97),rgba(13,22,31,0.97)_48%,rgba(10,24,29,0.97))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.24),0_0_24px_rgba(103,232,249,0.045)]">
+            <div className="flex items-center gap-2 text-cyan-200">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Built by</h2>
+            </div>
+            <p className="mt-3 text-2xl font-semibold text-cyan-50">Aditya Nema</p>
+            <p className="mt-2 text-sm leading-5 text-cyan-100/72">
               Designed and implemented for Cipla EMEU/PBP as a production-grade analytics workflow: typed API contracts, source-backed audit trails, deterministic cleaning, modular frontend components, and validation coverage for data and AI behavior.
             </p>
           </div>
@@ -357,12 +458,12 @@ function CiplaLogoPlaceholder({ size }: { size: "sm" | "lg" }) {
 
 function EntryFeature({ icon, title, detail }: { icon: ReactNode; title: string; detail: string }) {
   return (
-    <div className="rounded-lg border border-white/[0.08] bg-white/[0.035] p-3.5 transition-all duration-500 ease-out hover:-translate-y-0.5 hover:border-accent/20 hover:bg-white/[0.055]">
-      <div className="flex items-center gap-2 text-accent">
+    <div className="landing-intelligence-card rounded-lg border border-cyan-200/[0.075] p-3.5 transition-all duration-500 ease-out hover:-translate-y-0.5">
+      <div className="flex items-center gap-2 text-cyan-200">
         {icon}
-        <p className="text-sm font-semibold text-zinc-100">{title}</p>
+        <p className="text-sm font-semibold text-cyan-50">{title}</p>
       </div>
-      <p className="mt-1.5 text-xs leading-[1.35rem] text-zinc-500">{detail}</p>
+      <p className="mt-1.5 text-xs leading-[1.35rem] text-cyan-100/58">{detail}</p>
     </div>
   );
 }

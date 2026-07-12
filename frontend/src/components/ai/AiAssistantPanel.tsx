@@ -2,16 +2,16 @@ import { useMutation } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Bot,
+  BrainCircuit,
   CheckCircle2,
   ChevronRight,
   Loader2,
-  MessageCircle,
   Send,
   ShieldCheck,
   Sparkles,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -25,21 +25,50 @@ type AiContext = {
 };
 
 const PROMPTS = [
-  "Where is execution risk highest?",
-  "Explain this doctor's sponsorship, FMV, and RCPA evidence.",
-  "Which territory signals are underserved or overserved?",
-  "Where do no-fee or paid engagements affect Doctor ROI?",
-  "What data quality limitations should I mention?",
+  "Identify the main execution bottlenecks and where to review them.",
+  "Which doctors show the strongest ROI signal, and how should I drill into the interpretation?",
+  "Which territories are overserved or underserved, and where can I verify the signals?",
+  "Explain the current spend split and where to investigate the drivers.",
+  "What are the current data quality limitations?",
 ];
 
-export function AiAssistantPanel({ context }: { context: AiContext }) {
+const LOADING_ACTIONS = [
+  "planning the evidence path",
+  "retrieving dashboard context",
+  "checking source-backed signals",
+  "validating query scope",
+  "assembling the interpretation",
+  "mapping results to dashboard sections",
+  "grounding the answer",
+];
+
+export function AiAssistantPanel({ compactHeader = false, context, openSignal = 0 }: { compactHeader?: boolean; context: AiContext; openSignal?: number }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AiQueryResponse | null>(null);
+  const [loadingAction, setLoadingAction] = useState(LOADING_ACTIONS[0]);
   const mutation = useMutation({
     mutationFn: queryAi,
     onSuccess: (data) => setAnswer(data),
   });
+
+  useEffect(() => {
+    if (openSignal > 0) setOpen(true);
+  }, [openSignal]);
+
+  useEffect(() => {
+    if (!mutation.isPending) {
+      setLoadingAction(LOADING_ACTIONS[0]);
+      return undefined;
+    }
+    const interval = window.setInterval(() => {
+      setLoadingAction((current) => {
+        const nextOptions = LOADING_ACTIONS.filter((action) => action !== current);
+        return nextOptions[Math.floor(Math.random() * nextOptions.length)] ?? LOADING_ACTIONS[0];
+      });
+    }, 950);
+    return () => window.clearInterval(interval);
+  }, [mutation.isPending]);
 
   function submit(nextQuestion = question) {
     const trimmed = nextQuestion.trim();
@@ -63,32 +92,32 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
         aria-controls="exec-ai-drawer"
         aria-label={open ? "Close ExecAI" : "Open ExecAI"}
       >
-        {open ? <ChevronRight className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+        {open ? <ChevronRight className="h-[1.35rem] w-[1.35rem]" /> : <BrainCircuit className="h-[1.35rem] w-[1.35rem]" />}
         <span className="hidden sm:inline">ExecAI</span>
       </button>
 
       <div
-        className={`ai-drawer-backdrop ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`ai-drawer-backdrop ${compactHeader ? "ai-drawer-backdrop-compact-header" : ""} ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={() => setOpen(false)}
         aria-hidden="true"
       />
 
       <aside
         id="exec-ai-drawer"
-        className={`ai-drawer ${open ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(100%+1.5rem)] opacity-0"}`}
+        className={`ai-drawer ${compactHeader ? "ai-drawer-compact-header" : ""} ${open ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(100%+1.5rem)] opacity-0"}`}
         aria-hidden={!open}
       >
-        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-l-2xl border border-white/[0.1] bg-[#0b0e10]/95 shadow-[0_28px_90px_rgba(0,0,0,0.52)] backdrop-blur-2xl">
-          <div className="border-b border-white/[0.08] bg-white/[0.035] p-4">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-l-2xl border border-cyan-200/[0.075] bg-[linear-gradient(145deg,rgba(8,13,18,0.97),rgba(13,22,31,0.97)_48%,rgba(10,24,29,0.97))] shadow-[0_28px_90px_rgba(0,0,0,0.52),0_0_24px_rgba(103,232,249,0.045)] backdrop-blur-2xl">
+          <div className="border-b border-cyan-200/[0.055] bg-[linear-gradient(135deg,rgba(14,165,233,0.075),rgba(99,102,241,0.045),rgba(45,212,191,0.055))] p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2 text-accent">
+                <div className="flex items-center gap-2 text-cyan-200">
                   <Sparkles className="h-4 w-4" />
                   <p className="text-xs font-semibold uppercase tracking-[0.2em]">ExecAI</p>
                 </div>
-                <h2 className="mt-2 text-lg font-semibold text-zinc-100">Ask the dashboard</h2>
+                <h2 className="mt-2 text-lg font-semibold text-cyan-50">Decision Intelligence Copilot</h2>
                 <p className="mt-1 text-xs leading-5 text-cyan-300/80">
-                  Structured RAG assistant for grounded ROI, execution, budget, territory, and data quality questions.
+                  Plans queries, grounds answers in dashboard evidence, and points to verification paths.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -111,7 +140,7 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
                 <button
                   key={prompt}
                   type="button"
-                  className="soft-button rounded-full px-3 py-1.5 text-xs"
+                  className="rounded-full border border-cyan-200/[0.065] bg-cyan-300/[0.038] px-3 py-1.5 text-left text-xs font-medium text-cyan-100/86 shadow-[0_0_0_1px_rgba(255,255,255,0.012)_inset] transition duration-200 hover:border-cyan-200/[0.13] hover:bg-cyan-300/[0.065] hover:text-cyan-50"
                   onClick={() => submit(prompt)}
                 >
                   {prompt}
@@ -119,22 +148,22 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
               ))}
             </div>
 
-            <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3">
-              <label className="text-xs font-medium uppercase tracking-wide text-zinc-500" htmlFor="ai-question">
-                Business question
+            <div className="rounded-xl border border-cyan-200/[0.065] bg-[linear-gradient(135deg,rgba(14,165,233,0.038),rgba(255,255,255,0.012))] p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.01)_inset]">
+              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/75" htmlFor="ai-question">
+                Ask anything
               </label>
               <textarea
                 id="ai-question"
-                className="mt-2 min-h-28 w-full resize-y rounded-lg border border-[#303437] bg-[#0f1113] p-3 text-sm text-zinc-100 outline-none transition duration-300 placeholder:text-zinc-600 focus:border-accent/60 focus:ring-2 focus:ring-accent/10"
+                className="mt-2 min-h-28 w-full resize-y rounded-lg border border-cyan-200/[0.075] bg-[linear-gradient(135deg,rgba(14,165,233,0.06),rgba(99,102,241,0.035),rgba(45,212,191,0.04))] p-3 text-sm text-cyan-50 outline-none transition duration-300 placeholder:text-cyan-100/32 focus:border-cyan-200/30 focus:ring-2 focus:ring-cyan-300/[0.075]"
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
                 placeholder="Ask about execution risk, workflow bottlenecks, budget gaps, doctor ROI, or data quality..."
               />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-zinc-500">Context: {formatTitleText(context.pageContext)}</p>
+                <p className="text-xs text-cyan-100/45">Context: {formatTitleText(context.pageContext)}</p>
                 <button
                   type="button"
-                  className="soft-button inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-md border border-cyan-200/[0.085] bg-cyan-300/[0.058] px-4 py-2 text-sm font-semibold text-cyan-50 transition duration-200 hover:border-cyan-200/18 hover:bg-cyan-300/[0.09] disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={mutation.isPending || question.trim().length < 3}
                   onClick={() => submit()}
                 >
@@ -145,8 +174,16 @@ export function AiAssistantPanel({ context }: { context: AiContext }) {
             </div>
 
             {mutation.isPending ? (
-              <div className="grid min-h-40 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.025]">
-                <Loader2 className="h-8 w-8 animate-spin text-accent" aria-label="Loading AI answer" />
+              <div className="grid min-h-40 place-items-center rounded-xl border border-cyan-200/[0.065] bg-[linear-gradient(135deg,rgba(14,165,233,0.045),rgba(99,102,241,0.028),rgba(45,212,191,0.035))]">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-cyan-200" aria-label="Loading AI answer" />
+                  <p className="text-sm font-semibold text-cyan-50">
+                    ExecAI is{" "}
+                    <span key={loadingAction} className="execai-thinking-action text-cyan-200">
+                      {loadingAction}
+                    </span>
+                  </p>
+                </div>
               </div>
             ) : null}
 
@@ -172,10 +209,10 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
   const answerMarkdown = answer.answerMarkdown ?? answer.answer;
   const hasUsableAnswer = typeof answerMarkdown === "string" && answerMarkdown.trim().length > 0;
   return (
-    <div className="space-y-4 rounded-xl border border-white/[0.08] bg-[#101315] p-4">
+    <div className="space-y-4 rounded-xl border border-cyan-200/[0.065] bg-[linear-gradient(145deg,rgba(8,15,20,0.92),rgba(12,22,30,0.92))] p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.01)_inset]">
       <div className="flex flex-wrap items-center gap-2">
         <StatusPill answer={answer} />
-        <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 text-xs text-zinc-400">
+        <span className="rounded-full border border-cyan-200/[0.06] bg-cyan-300/[0.035] px-2.5 py-1 text-xs text-cyan-100/70">
           Confidence: {answer.confidence}
         </span>
         {answer.redactionApplied ? (
@@ -194,13 +231,12 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
         </div>
       )}
       {evidenceRefs.length ? (
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Evidence used</h3>
-          <div className="mt-2 grid grid-cols-1 gap-2">
+        <InsightDropdown title="Evidence used" count={evidenceRefs.length}>
+          <div className="grid grid-cols-1 gap-2">
             {evidenceRefs.slice(0, 8).map((ref, index) => (
-              <div key={`${ref.section}-${ref.label}-${index}`} className="rounded-lg border border-emerald-300/10 bg-emerald-300/[0.045] p-3">
+              <div key={`${ref.section}-${ref.label}-${index}`} className="rounded-lg border border-cyan-300/[0.06] bg-cyan-300/[0.03] p-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.07] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-emerald-200">
+                  <span className="rounded-full border border-cyan-300/[0.08] bg-cyan-300/[0.045] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-cyan-200">
                     {ref.section}
                   </span>
                   <p className="text-xs font-semibold text-zinc-100">{ref.label}</p>
@@ -211,10 +247,33 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
               </div>
             ))}
           </div>
+        </InsightDropdown>
+      ) : null}
+      {dashboardPointers.length ? (
+        <InsightDropdown title="Where to verify this" count={dashboardPointers.length}>
+          <div className="grid grid-cols-1 gap-2">
+            {dashboardPointers.slice(0, 10).map((pointer) => (
+              <div key={`${pointer.page}-${pointer.section}-${pointer.detail}`} className="rounded-lg border border-cyan-200/[0.055] bg-black/20 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-cyan-300/[0.08] bg-cyan-300/[0.045] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-cyan-200">
+                    {pointer.page}
+                  </span>
+                  <p className="text-xs font-semibold text-zinc-200">{pointer.section}</p>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-zinc-400">{pointer.detail}</p>
+                <p className="mt-2 text-[0.68rem] leading-5 text-zinc-600">{pointer.reason}</p>
+              </div>
+            ))}
+          </div>
+        </InsightDropdown>
+      ) : null}
+      {!dashboardPointers.length && hasUsableAnswer ? (
+        <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.06] p-3 text-xs leading-5 text-cyan-100/80">
+          Restart backend if dashboard pointers are missing repeatedly.
         </div>
       ) : null}
       {agentSteps.length ? (
-        <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.055] p-3">
+        <div className="rounded-lg border border-cyan-300/[0.08] bg-cyan-300/[0.04] p-3">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-cyan-100">
             <ShieldCheck className="h-4 w-4" />
             ExecAI evidence workflow
@@ -231,30 +290,6 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
           </ol>
         </div>
       ) : null}
-      {dashboardPointers.length ? (
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Where to verify this</h3>
-          <div className="mt-2 grid grid-cols-1 gap-2">
-            {dashboardPointers.slice(0, 10).map((pointer) => (
-              <div key={`${pointer.page}-${pointer.section}-${pointer.detail}`} className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-accent/20 bg-accent/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-accent">
-                    {pointer.page}
-                  </span>
-                  <p className="text-xs font-semibold text-zinc-200">{pointer.section}</p>
-                </div>
-                <p className="mt-2 text-xs leading-5 text-zinc-400">{pointer.detail}</p>
-                <p className="mt-2 text-[0.68rem] leading-5 text-zinc-600">{pointer.reason}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      {!dashboardPointers.length && hasUsableAnswer ? (
-        <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.06] p-3 text-xs leading-5 text-cyan-100/80">
-          Restart backend if dashboard pointers are missing repeatedly.
-        </div>
-      ) : null}
       {limitations.length ? (
         <div className="rounded-lg border border-amber-300/20 bg-amber-300/[0.07] p-3 text-xs text-amber-100/80">
           <div className="flex items-center gap-2 font-semibold">
@@ -269,6 +304,24 @@ function AiAnswerCard({ answer }: { answer: AiQueryResponse }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function InsightDropdown({ children, count, title }: { children: ReactNode; count: number; title: string }) {
+  return (
+    <details className="group rounded-lg border border-cyan-200/[0.105] bg-[linear-gradient(135deg,rgba(14,165,233,0.07),rgba(99,102,241,0.038),rgba(45,212,191,0.048))] shadow-[0_0_18px_rgba(103,232,249,0.04)]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-3 marker:hidden">
+        <div className="flex min-w-0 items-center gap-2">
+          <Sparkles className="h-4 w-4 shrink-0 text-cyan-200" />
+          <span className="truncate text-xs font-semibold uppercase tracking-wide text-cyan-50">{title}</span>
+          <span className="rounded-full border border-cyan-200/12 bg-cyan-300/[0.07] px-2 py-0.5 text-[0.65rem] text-cyan-100/80">{count}</span>
+        </div>
+        <ChevronRight className="execai-dropdown-icon h-4 w-4 shrink-0 text-cyan-200/85 transition-transform duration-200" />
+      </summary>
+      <div className="border-t border-cyan-200/[0.06] px-3 pb-3 pt-2">
+        {children}
+      </div>
+    </details>
   );
 }
 

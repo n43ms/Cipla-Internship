@@ -195,7 +195,7 @@ function TerritorySignalPie({ labelCounts }: { labelCounts: Record<string, numbe
           <p className="mt-1 text-sm text-zinc-500">Share of territory signals in the current filtered scope.</p>
           <ChartLegendPills items={rows.map((row) => ({ label: row.label, color: row.color, detail: row.value.toLocaleString() }))} />
         </div>
-        <div className="chart-frame h-fit min-w-0 -my-3">
+        <div className="chart-frame h-45 w-full min-w-0 lg:w-56 lg:shrink-0">
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150} debounce={100}>
             <PieChart>
               <Tooltip {...CHART_TOOLTIP_PROPS} formatter={(value) => Number(value).toLocaleString()} />

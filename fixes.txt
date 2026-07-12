@@ -106,3 +106,14 @@ common-
 - gotta test execai and make it look better - with diff loading states like pondering this that and claude like interface. make execai bubble more prominent by animating
 - make all the charts look better, more fancy, color coded, easier to understand - same look as the doctor roi table-
 
+execai - 
+
+remove the pre-determined questions and replace them with -
+"what are the main execution bottlenecks and where to find them"
+"who are the best doctors in terms of ROI and how to dive deeper into this interpretation (better phrasing)"
+"which are overserved and underserved terrtories n how to find"
+"explain the current spend split and how do i dive deeper"
+"what are the current data quality limitations"
+
+phrase all of these better , and replace "business question" on the top of the box to "ask anything" or something more enhanced annd better UI. also, change "Ask the dashboard" to something more insightful and advanced, this too - "Structured RAG assistant for grounded ROI, execution, budget, territory, and data quality questions." to reflect the capablities of execai more accurately but in the same maount of words, dont make it too lengthy. also, use a more modern color theme like the execai bubble but wihtout the animations for the whole of execai
+make the evidence used panel a dropdown, it is good. place the where to verify this above the execai evidence worfflow, and make that a dropdown too. highlight both the dropdowns with a brighter color that matches the theme and animate the dropdown icon to give the user a subtle nudge to use the dropdown. limitations should still be last. while the results are loading, instead of just "loading" state make it like "execai is pondering" "execai is thinking" "execai is retrieving information" "execai is putting the results together" in better english and mroe technical jargon similar to what is seen in claude, chatgpt while thinking mode is turned on and a query results in long load time. keep "execai is" static and the action verbs dynamic and fast transitions (600-700ms) to other words while loading randomly
