@@ -146,7 +146,7 @@ export default function App() {
       </div>
       <WarningCenterDock />
       {showAiNotice ? <ExecAiEntryNotice onClose={() => setShowAiNotice(false)} onTry={openExecAiFromNotice} /> : null}
-      <AiAssistantPanel context={aiContext} openSignal={aiOpenSignal} compactHeader={headerCompact} />
+      <AiAssistantPanel context={aiContext} openSignal={aiOpenSignal} compactHeader={headerCompact} onOpen={() => setShowAiNotice(false)} />
       <SidePanel open={uploadOpen} onClose={() => setUploadOpen(false)} widthClass="sm:max-w-2xl">
         <DataUploadPanel onClose={() => setUploadOpen(false)} />
       </SidePanel>

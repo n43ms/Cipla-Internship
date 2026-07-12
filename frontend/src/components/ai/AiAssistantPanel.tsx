@@ -42,7 +42,17 @@ const LOADING_ACTIONS = [
   "grounding the answer",
 ];
 
-export function AiAssistantPanel({ compactHeader = false, context, openSignal = 0 }: { compactHeader?: boolean; context: AiContext; openSignal?: number }) {
+export function AiAssistantPanel({
+  compactHeader = false,
+  context,
+  onOpen,
+  openSignal = 0,
+}: {
+  compactHeader?: boolean;
+  context: AiContext;
+  onOpen?: () => void;
+  openSignal?: number;
+}) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AiQueryResponse | null>(null);
@@ -55,6 +65,10 @@ export function AiAssistantPanel({ compactHeader = false, context, openSignal = 
   useEffect(() => {
     if (openSignal > 0) setOpen(true);
   }, [openSignal]);
+
+  useEffect(() => {
+    if (open) onOpen?.();
+  }, [onOpen, open]);
 
   useEffect(() => {
     if (!mutation.isPending) {
