@@ -6,6 +6,7 @@ export type WorkflowFilters = {
   month?: string;
   interventionType?: string;
   workflowStatus?: string;
+  workflowSearch?: string;
   page?: number;
   pageSize?: number;
   includeOutOfScope?: boolean;

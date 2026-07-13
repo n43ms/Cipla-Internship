@@ -1,0 +1,121 @@
+- now that all the data is ingested - for the execution - choose what is the best default behaviour as to include audit only out of score or keep everything- also check the planner coverage is it just sri lanka or everything
+- clutter
+ - execution page has unnecessary clutters detracting attention from the kpis 
+remove - planner coverage, snapshorot coverage, consolidation coverage and out of scope policy.
+ - layout of the execution page is messed up (all this - [Pending requests
+
+0
+
+Pending reports
+
+65
+
+Reports approved
+
+67
+
+Reports correction
+
+17
+
+Request confirmation
+approved
+300
+sent for correction
+33
+deleted
+58
+draft
+14
+rejected
+38
+Post confirmation
+draft
+38
+not created
+309
+sent for correction
+17
+approved
+67
+pending owner
+10
+rejected
+2
+Expense submitted coverage
+
+22%
+
+Expense confirmed coverage
+
+15%
+
+Current blocker / owner stage
+post report not submitted
+38
+unknown
+47
+request approved; report pending
+168
+post report approval pending
+17
+request deleted
+58
+post report approved
+67
+post report approval pending with Tanmayee Sardesai
+1
+request rejected
+38
+post report approval pending with Chathuranga Dissanayake
+3
+post report approval pending with Central Marketing
+3
+post report approval pending with Sajita Joshi Piya PM] is not centered and is in none big column to the right)
+
+ - workflow request drilldown table is messi and cluttered (out of scope shown often, report status duplicated)
+ - remove the last table - event execution matrix.
+-remove fx quality and mentions of fx across columnseverywhere except data quality - it is implicit the fx is company fx now that we have all the values
+pages in the order doctor roi, then execution then territory then budget then data quality
+- add an about this software section crediting Aditya nema and giving some details about the coding, language used etc
+- the doctor roi and execution should be one belowthe other, the rest 3 should also be one below the other. color the md icons and make the menu a bit large
+
+to clean up-
+doctor roi, territory, budget, data quality
+
+doctor roi changes - 
+
+filter bar too big - make it in one line - occupies tooo much psace. check if all loaded markets should be loaded by defaultw with the option to toggle it off grahph and roi quadrant matrix are not aligned. color code the roi quadrant matrix appropriately. the graph does not present it well use some other graph because of the non sequential x-axis values. remove the "insufficient data" from the roi matrix and pu tit as a data warning or something at the bottom of tehe matreix. add a search bar for doctor in doctor opportunities table. also make the algorithm explicit  near the quadrant matrix as to how theyre sorted based on roi
+dorwpdowns of the filer bar arent working, put "all loaded markets" option abover the bar - the bondaries are too highligher for the dropdown boxes, use some other chart that can fit more data like 30-40 datapoints without it being too cluttered, remove no rcpa rows, the boundary for high effort low reward is also overhighlighteddorwpdowns of the filer bar arent working, put "all loaded markets" option abover the bar - the bondaries are too highligher for the dropdown boxes, use some other chart that can fit more data like 30-40 datapoints without it being too cluttered, remove no rcpa rows kpi on the top since there are 0, the boundary for high effort low reward is also overhighlighted. the search doctor option loads every time you type something in it only when a new button "search" is clicked or enter key is pressed it should seach
+
+execution page-
+fo rthe worklflow request drilldown let the user scroll through pages and the search option be there similar to the doctor drilldown. put the current blocker and evidence dates in drillown side panel view similar to the doctor roi. also let the intervention mix table fit in the given viewport, dont make it scrollable. expense coverage box is not spaced out properly align it with the other boxes
+
+territory page-  
+removenotes under signal like manual_rcpa mapping period, in fact remove the subnotes for all the columns in teerritories, they are irrelevant. remove the confidence column all together, putthing the confidence stats in the dat awarning notes for this page.
+
+for the budget page - instead of showing the full status issue in the status column next to the status, use color coding and put a color circle next to the status and below the table explain the colors
+
+
+data quality page-
+
+remove missing fx, lkr fx seed, missing actual pcode kpis. remove the note below fx quality tablre "LKR must use the company rate. Missing-FX currencies stay local-only" replace with note stating official is company fx better grammar. delete validation drilldown table. for all the tables, make the data fir without horizontal scrollbars but keep the good, compact layout
+
+common-
+- fix the capitalizations and formal formatting without diluting any important technicalities and technical terms across the whole app - like capitalization and spelling, and abbreviations.
+- gotta test execai and make it look better - with diff loading states like pondering this that and claude like interface. make execai bubble more prominent by animating
+- make all the charts look better, more fancy, color coded, easier to understand - same look as the doctor roi table-
+
+execai - 
+
+remove the pre-determined questions and replace them with -
+"what are the main execution bottlenecks and where to find them"
+"who are the best doctors in terms of ROI and how to dive deeper into this interpretation (better phrasing)"
+"which are overserved and underserved terrtories n how to find"
+"explain the current spend split and how do i dive deeper"
+"what are the current data quality limitations"
+
+phrase all of these better , and replace "business question" on the top of the box to "ask anything" or something more enhanced annd better UI. also, change "Ask the dashboard" to something more insightful and advanced, this too - "Structured RAG assistant for grounded ROI, execution, budget, territory, and data quality questions." to reflect the capablities of execai more accurately but in the same maount of words, dont make it too lengthy. also, use a more modern color theme like the execai bubble but wihtout the animations for the whole of execai
+make the evidence used panel a dropdown, it is good. place the where to verify this above the execai evidence worfflow, and make that a dropdown too. highlight both the dropdowns with a brighter color that matches the theme and animate the dropdown icon to give the user a subtle nudge to use the dropdown. limitations should still be last. while the results are loading, instead of just "loading" state make it like "execai is pondering" "execai is thinking" "execai is retrieving information" "execai is putting the results together" in better english and mroe technical jargon similar to what is seen in claude, chatgpt while thinking mode is turned on and a query results in long load time. keep "execai is" static and the action verbs dynamic and fast transitions (600-700ms) to other words while loading randomly
+
+try execai doesnt clsoe when the user opens execai normally ewihtout pressing try it

@@ -412,6 +412,20 @@ export type TerritoryOpportunityResponse = {
   labelCounts: Record<string, number>;
 };
 
+export type TerritoryDoctorRow = {
+  doctorName: string;
+  pcodeNormalized: string;
+};
+
+export type TerritoryDoctorsResponse = {
+  meta: ResponseMeta;
+  country: string;
+  territoryName: string;
+  patchName: string | null;
+  total: number;
+  rows: TerritoryDoctorRow[];
+};
+
 export type UploadFileResult = {
   originalFilename: string;
   savedFilename: string | null;

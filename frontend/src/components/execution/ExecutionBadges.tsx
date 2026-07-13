@@ -1,3 +1,5 @@
+import { formatTitleText } from "../../utils/textFormat";
+
 type BadgeTone = "good" | "warn" | "muted" | "info";
 
 const toneClass: Record<BadgeTone, string> = {
@@ -21,7 +23,7 @@ export function StatusBadge({ value }: { value: string }) {
         : normalized.includes("derived")
           ? "info"
           : "muted";
-  return <span className={`rounded-full border px-2 py-1 text-xs font-medium ${toneClass[tone]}`}>{value.replaceAll("_", " ")}</span>;
+  return <span className={`rounded-full border px-2 py-1 text-xs font-medium ${toneClass[tone]}`}>{formatTitleText(value)}</span>;
 }
 
 export function ConfidenceBadge({ value }: { value: number }) {
@@ -32,5 +34,5 @@ export function ConfidenceBadge({ value }: { value: number }) {
 export function SourceDerivationBadge({ sourceCounts }: { sourceCounts: Record<string, number> }) {
   const derived = sourceCounts.derived_from_consolidation ?? 0;
   if (!derived) return null;
-  return <span className={`rounded-full border px-2 py-1 text-xs font-medium ${toneClass.info}`}>{derived} derived from consolidation</span>;
+  return <span className={`rounded-full border px-2 py-1 text-xs font-medium ${toneClass.info}`}>{derived} Derived from consolidation</span>;
 }

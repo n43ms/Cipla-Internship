@@ -71,7 +71,7 @@ class AssistantService:
             provider_question = request.question
             question_changed = False
 
-        decision = route_question(provider_question)
+        decision = route_question(provider_question, request.page_context)
         query_plan = plan_query(
             provider_question,
             page_context=request.page_context,
@@ -95,7 +95,11 @@ class AssistantService:
         redaction_applied = question_changed or context_changed
 
         if not decision.supported:
-            payload = unsupported_response(provider_question, context_scope_payload)
+            payload = unsupported_response(
+                provider_question,
+                context_scope_payload,
+                request.page_context,
+            )
             self._log(
                 request=request,
                 question_redacted=provider_question,

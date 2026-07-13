@@ -14,6 +14,8 @@ describe("Execution governance page", () => {
   it("renders execution, derived-source, workflow pending, and intervention states", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(input);
+      if (url.includes("/api/filters")) return ok(minimalFilters());
+      if (url.includes("/api/doctors/roi")) return ok(minimalDoctorRoi());
       if (url.includes("/api/execution/filter-options")) {
         return ok({
           countries: [{ value: "LK", label: "Sri Lanka" }],
@@ -44,36 +46,6 @@ describe("Execution governance page", () => {
           primaryScope: true,
           scopeStatuses: ["primary_phase4_scope"],
           scopeReasons: ["Primary Phase 4 scope: planner, execution snapshot, and consolidation evidence are all available."],
-        });
-      }
-      if (url.includes("/api/execution/events")) {
-        return ok({
-          meta: { generatedAt: "now", latestIngestionStatus: "completed", filtersApplied: {}, dataQualityFlags: [], limitations: [] },
-          page: 1,
-          pageSize: 25,
-          total: 1,
-          rows: [{
-            sourceType: "planner_execution",
-            eventName: "Diabetes CME",
-            eventType: "CME",
-            country: "Sri Lanka",
-            month: "May 2026",
-            matchStatus: "weak_match",
-            confidence: 0.75,
-            candidateMatch: "Diabetes CME May",
-            plannedHcps: 10,
-            engagedHcps: 5,
-            executionStatus: "executed",
-            snapshotSource: "derived_from_consolidation",
-            sourceDerivationNote: "Derived from consolidation because the monthly execution country tab was missing.",
-            unmatchedReasonCode: "name_mismatch",
-            unmatchedReasonDetail: "The event name matched only weakly and must be reviewed before treating it as final execution evidence.",
-            isPrimaryPhase4Scope: true,
-            scopeStatus: "primary_phase4_scope",
-            scopeReason: "Primary Phase 4 scope.",
-            matchGrain: "single_match",
-            sourceReferences: { planEventId: "plan-1" },
-          }],
         });
       }
       if (url.includes("/api/workflow/summary")) {
@@ -148,6 +120,8 @@ describe("Execution governance page", () => {
     renderWithProviders(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Execution" })).toBeInTheDocument(), { timeout: 10000 });
+    fireEvent.click(screen.getByRole("button", { name: "Execution" }));
     await waitFor(
       () => expect(screen.getByText("Planned vs actual execution")).toBeInTheDocument(),
       { timeout: 10000 },
@@ -156,37 +130,37 @@ describe("Execution governance page", () => {
       () => expect(screen.getByText("Scope: 2026-05")).toBeInTheDocument(),
       { timeout: 10000 },
     );
-    expect(screen.getByText("Planner coverage")).toBeInTheDocument();
-    expect(screen.getByText("Snapshot coverage")).toBeInTheDocument();
-    expect(screen.getByText("Out-of-scope policy")).toBeInTheDocument();
+    expect(screen.queryByText("Planner coverage")).not.toBeInTheDocument();
+    expect(screen.queryByText("Snapshot coverage")).not.toBeInTheDocument();
+    expect(screen.queryByText("Out-of-scope policy")).not.toBeInTheDocument();
     expect(screen.getByText(/The page opens on 2026-05/)).toBeInTheDocument();
+    expect(screen.getByText(/Default KPIs use Nepal\/Sri Lanka Apr-May planner coverage/)).toBeInTheDocument();
     expect(screen.getByText("1 derived from consolidation")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /open data warning notes/i }));
     expect(screen.getByText("Execution evidence notes")).toBeInTheDocument();
     expect(screen.getByText(/weak or unmatched reconciliation records require review/)).toBeInTheDocument();
     expect(screen.getByText("Planned vs engaged HCPs")).toBeInTheDocument();
-    expect(screen.getByText("Event execution matrix")).toBeInTheDocument();
-    expect(screen.getByText("Diabetes CME")).toBeInTheDocument();
-    expect(screen.getByText("name mismatch")).toBeInTheDocument();
-    expect(screen.getByText("10 planned / 5 engaged")).toBeInTheDocument();
+    expect(screen.queryByText("Event execution matrix")).not.toBeInTheDocument();
     expect(screen.getByText("Pending reports")).toBeInTheDocument();
-    expect(screen.getByText("Expense submitted coverage")).toBeInTheDocument();
-    expect(screen.getByText("Expense confirmed coverage")).toBeInTheDocument();
+    expect(screen.getByText("Expense coverage")).toBeInTheDocument();
     expect(screen.getByText("Request confirmation")).toBeInTheDocument();
     expect(screen.getByText("Post confirmation")).toBeInTheDocument();
     expect(screen.getByText("Intervention mix")).toBeInTheDocument();
     expect(screen.getByText("Intervention type mix")).toBeInTheDocument();
-    expect(screen.getAllByText("Executed snapshots").length).toBeGreaterThan(0);
-    expect(screen.getByText("Executed request links")).toBeInTheDocument();
+    expect(screen.getAllByText("Executed").length).toBeGreaterThan(0);
+    expect(screen.getByText("Action due")).toBeInTheDocument();
     expect(screen.getByText("Workflow request drilldown")).toBeInTheDocument();
     expect(screen.getByText("Anil Arial")).toBeInTheDocument();
-    expect(screen.getByText("Submitted: 2026-05-20")).toBeInTheDocument();
-    expect(screen.getByText("Confirmed: -")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("View"));
-    expect(screen.getByText("Execution drilldown")).toBeInTheDocument();
-    expect(screen.getByText("Diabetes CME May")).toBeInTheDocument();
-  });
+    expect(screen.getByText("Search request")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/Page 1 of 1/)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(screen.getByText("Expense submitted")).toBeInTheDocument();
+    expect(screen.getByText("2026-05-20")).toBeInTheDocument();
+    expect(screen.getByText("Expense confirmed")).toBeInTheDocument();
+    expect(screen.getByText("Not available")).toBeInTheDocument();
+    expect(screen.getByText("Current blocker")).toBeInTheDocument();
+    expect(screen.queryByText("Primary Phase 4")).not.toBeInTheDocument();
+  }, 10000);
 
   it("renders an API error state", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("fail", { status: 500 }));
@@ -194,12 +168,16 @@ describe("Execution governance page", () => {
     renderWithProviders(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Execution" })).toBeInTheDocument(), { timeout: 5000 });
+    fireEvent.click(screen.getByRole("button", { name: "Execution" }));
     await waitFor(() => expect(screen.getByText("Execution governance unavailable")).toBeInTheDocument(), { timeout: 5000 });
   });
 
   it("renders empty matrix and sends selected filters", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(input);
+      if (url.includes("/api/filters")) return ok(minimalFilters());
+      if (url.includes("/api/doctors/roi")) return ok(minimalDoctorRoi());
       if (url.includes("/api/execution/filter-options")) {
         return ok({
           countries: [{ value: "LK", label: "Sri Lanka" }],
@@ -229,15 +207,6 @@ describe("Execution governance page", () => {
           primaryScope: true,
           scopeStatuses: [],
           scopeReasons: [],
-        });
-      }
-      if (url.includes("/api/execution/events")) {
-        return ok({
-          meta: { generatedAt: "now", latestIngestionStatus: "completed", filtersApplied: {}, dataQualityFlags: [], limitations: [] },
-          page: 1,
-          pageSize: 25,
-          total: 0,
-          rows: [],
         });
       }
       if (url.includes("/api/workflow/summary")) {
@@ -274,7 +243,9 @@ describe("Execution governance page", () => {
     renderWithProviders(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
-    await waitFor(() => expect(screen.getByText(/No execution rows match the current filters/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Execution" })).toBeInTheDocument(), { timeout: 10000 });
+    fireEvent.click(screen.getByRole("button", { name: "Execution" }));
+    await waitFor(() => expect(screen.getByText("Workflow request drilldown")).toBeInTheDocument());
     const countryInput = screen.getByLabelText("Country");
     fireEvent.change(countryInput, { target: { value: "LK" } });
     await waitFor(() => expect(screen.getByDisplayValue("Sri Lanka")).toBeInTheDocument());
@@ -284,6 +255,40 @@ describe("Execution governance page", () => {
     await waitFor(() => {
       const urls = fetchMock.mock.calls.map(([input]) => String(input));
       expect(urls.some((url) => url.includes("country=LK") && url.includes("month=2026-05"))).toBe(true);
+      expect(urls.some((url) => url.includes("/api/execution/events"))).toBe(false);
     });
   });
 });
+
+function minimalFilters() {
+  return {
+    countries: [],
+    months: [],
+    interventionTypes: [],
+    brands: [],
+    specialities: [],
+    doctorClasses: [],
+    roiSegments: [],
+    latestIngestionStatus: "completed",
+  };
+}
+
+function minimalDoctorRoi() {
+  return {
+    meta: { generatedAt: "now", latestIngestionStatus: "completed", filtersApplied: {}, dataQualityFlags: [], limitations: [], sourceDerivationNotes: [] },
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    sort: "ciplaPrescriptionQty",
+    sortDirection: "desc",
+    darkHorseCount: 0,
+    noRcpaCount: 0,
+    missingFxCount: 0,
+    provisionalFxCount: 0,
+    brandFilterMode: null,
+    periodFilterMode: "all",
+    rows: [],
+    quadrantCounts: {},
+    segmentCounts: {},
+  };
+}

@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { formatSentenceText } from "../../utils/textFormat";
 
 export type WarningTone = "info" | "warning" | "success";
 
@@ -195,5 +196,5 @@ function WarningGroup({ record }: { record: WarningRecord }) {
 }
 
 function humanize(value: string) {
-  return value.replaceAll("_", " ");
+  return formatSentenceText(value);
 }

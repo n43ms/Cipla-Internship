@@ -16,7 +16,7 @@ export function WorkflowGovernanceCards({
       <WorkflowCard label="Pending requests" value={pendingRequests} />
       <WorkflowCard label="Pending reports" value={pendingReports} />
       <WorkflowCard label="Reports approved" value={reportsApproved} />
-      <WorkflowCard label="Reports correction" value={reportsSentForCorrection} />
+      <WorkflowCard label="Reports sent for correction" value={reportsSentForCorrection} />
     </div>
   );
 }
@@ -24,25 +24,40 @@ export function WorkflowGovernanceCards({
 function WorkflowCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="dashboard-card p-4">
-      <p className="text-sm text-muted">{label}</p>
+      <p className="text-xs uppercase tracking-wide text-cyan-200/75">{label}</p>
       <p className="mt-2 text-2xl font-semibold">{value}</p>
     </div>
   );
 }
 
-export function WorkflowStatusTable({ counts, title }: { counts: Record<string, number>; title: string }) {
-  const entries = Object.entries(counts);
+export function WorkflowStatusTable({
+  counts,
+  maxEntries,
+  title,
+}: {
+  counts: Record<string, number>;
+  maxEntries?: number;
+  title: string;
+}) {
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const visibleEntries = maxEntries ? entries.slice(0, maxEntries) : entries;
+  const hiddenCount = Math.max(entries.length - visibleEntries.length, 0);
   return (
     <div className="dashboard-card p-4">
       <h3 className="font-medium">{title}</h3>
       <div className="mt-3 space-y-2">
         {entries.length === 0 ? <p className="text-sm text-muted">No workflow rows.</p> : null}
-        {entries.map(([status, count]) => (
+        {visibleEntries.map(([status, count]) => (
           <div key={status} className="flex min-w-0 items-center justify-between gap-3 text-sm">
             <StatusBadge value={status} />
             <span className="font-medium">{count}</span>
           </div>
         ))}
+        {hiddenCount > 0 ? (
+          <p className="pt-1 text-xs text-muted">
+            {hiddenCount} lower-volume {hiddenCount === 1 ? "status" : "statuses"} hidden
+          </p>
+        ) : null}
       </div>
     </div>
   );

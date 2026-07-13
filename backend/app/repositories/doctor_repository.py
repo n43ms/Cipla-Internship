@@ -23,6 +23,7 @@ class DoctorRepository:
         brand: str | None,
         speciality: str | None,
         doctor_class: str | None,
+        doctor_search: str | None,
         include_out_of_scope: bool,
         page: int,
         page_size: int,
@@ -40,6 +41,7 @@ class DoctorRepository:
             "brand": brand,
             "speciality": speciality,
             "doctor_class": doctor_class,
+            "doctor_search": doctor_search.strip() if doctor_search and doctor_search.strip() else None,
             "include_out_of_scope": include_out_of_scope,
             "limit": limit,
             "offset": offset,
@@ -71,6 +73,11 @@ class DoctorRepository:
             and (
                 cast(:doctor_class as text) is null
                 or lower(doctor_class) = lower(cast(:doctor_class as text))
+            )
+            and (
+                cast(:doctor_search as text) is null
+                or lower(coalesce(doctor_name, '')) like '%' || lower(cast(:doctor_search as text)) || '%'
+                or lower(pcode_normalized) like '%' || lower(cast(:doctor_search as text)) || '%'
             )
             and (
                 cast(:include_out_of_scope as boolean)

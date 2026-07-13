@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from backend.app.services.ai.query_planner import TOPIC_KEYWORDS as SUPPORTED_TOPIC_KEYWORDS
+from backend.app.services.ai.query_planner import infer_topics, looks_external_without_dashboard_anchor
 
 
 @dataclass(frozen=True)
@@ -15,15 +15,15 @@ class TopicDecision:
     refusal: str | None = None
 
 
-def route_question(question: str) -> TopicDecision:
-    normalized = question.lower()
-    topics = [
-        topic
-        for topic, keywords in SUPPORTED_TOPIC_KEYWORDS.items()
-        if any(keyword in normalized for keyword in keywords)
-    ]
+def route_question(question: str, page_context: str | None = None) -> TopicDecision:
+    topics = infer_topics(question, page_context)
     if topics:
         return TopicDecision(supported=True, topics=topics)
+    if not looks_external_without_dashboard_anchor(question):
+        return TopicDecision(
+            supported=True,
+            topics=["execution", "workflow", "budget", "doctor", "quality"],
+        )
     return TopicDecision(
         supported=False,
         topics=[],
@@ -46,8 +46,12 @@ def confidence_for_context(context: dict[str, Any]) -> str:
     return "high"
 
 
-def unsupported_response(question: str, context_scope: dict[str, Any]) -> dict[str, Any]:
-    decision = route_question(question)
+def unsupported_response(
+    question: str,
+    context_scope: dict[str, Any],
+    page_context: str | None = None,
+) -> dict[str, Any]:
+    decision = route_question(question, page_context)
     return {
         "answer": decision.refusal or "Unsupported question.",
         "dashboardPointers": [],
@@ -82,7 +86,11 @@ def deterministic_answer(
     context: dict[str, Any],
     reason: str | None = None,
 ) -> dict[str, Any]:
-    topics = route_question(question).topics
+    page_context = context.get("questionTopicHint")
+    topics = route_question(
+        question,
+        str(page_context) if page_context not in (None, "") else None,
+    ).topics
     pointers = dashboard_pointers_for_topics(topics, context)
     limitations = list(dict.fromkeys(str(item) for item in context.get("limitations", [])))
     if reason:
