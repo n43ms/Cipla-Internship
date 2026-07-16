@@ -1,3 +1,12 @@
+import sys
+from pathlib import Path
+
+# Add the project root to sys.path to allow absolute imports of 'backend'
+# This is necessary because some deployment platforms (e.g. Render) may not preserve PYTHONPATH
+root_dir = str(Path(__file__).resolve().parent.parent.parent)
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 from logging.config import fileConfig
 
 from alembic import context
