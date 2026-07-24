@@ -15,10 +15,21 @@ export async function apiPost<TResponse, TBody>(path: string, body: TBody): Prom
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
+    let detail = "";
+    try {
+      const errJson = await response.json();
+      detail = errJson?.detail || "";
+    } catch {
+      // fallback
+    }
+    const err = new Error(detail || `API request failed: ${response.status}`);
+    (err as any).status = response.status;
+    (err as any).detail = detail;
+    throw err;
   }
   return (await response.json()) as TResponse;
 }
+
 
 export async function apiPostForm<TResponse>(path: string, body: FormData): Promise<TResponse> {
   const response = await fetch(`${API_BASE_URL}${path}`, {

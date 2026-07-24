@@ -12,16 +12,17 @@ import { formatTitleText } from "../../utils/textFormat";
 export type DoctorRoiSortKey = "doctorName" | "roiSegment" | "quadrantLabel" | "engagementCount" | "rcpaLastMonth" | "totalRoiSpendUsd" | "ciplaPrescriptionQty";
 
 export function DoctorRoiCards({ data }: { data: DoctorRoiResponse }) {
-  const showNoRcpa = data.noRcpaCount > 0;
+  const showNoRcpa = (data?.noRcpaCount ?? 0) > 0;
   return (
     <div className={`grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 ${showNoRcpa ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>
-      <KpiCard label="Doctor ROI rows" value={data.total} detail="Country-scoped P-code universe" />
-      <KpiCard label="Dark-horse rows" value={data.darkHorseCount} detail="Unengaged Low Effort / High Reward" />
-      {showNoRcpa ? <KpiCard label="No RCPA rows" value={data.noRcpaCount} detail="Engagement exists without prescription coverage" /> : null}
-      <KpiCard label="Segments" value={Object.keys(data.segmentCounts).length} detail="Deterministic ROI buckets" />
+      <KpiCard label="Doctor ROI rows" value={data?.total ?? 0} detail="Country-scoped P-code universe" />
+      <KpiCard label="Dark-horse rows" value={data?.darkHorseCount ?? 0} detail="Unengaged Low Effort / High Reward" />
+      {showNoRcpa ? <KpiCard label="No RCPA rows" value={data?.noRcpaCount ?? 0} detail="Engagement exists without prescription coverage" /> : null}
+      <KpiCard label="Segments" value={Object.keys(data?.segmentCounts ?? {}).length} detail="Deterministic ROI buckets" />
     </div>
   );
 }
+
 
 const QUADRANT_TONE: Record<string, { card: string; label: string; value: string; dot: string; point: string }> = {
   "low effort / high reward": {

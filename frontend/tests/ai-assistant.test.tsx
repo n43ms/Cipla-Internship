@@ -30,7 +30,7 @@ describe("AI assistant", () => {
     });
 
     renderWithProviders(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enter dashboard|click to continue/i }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: /open execai/i })).toBeInTheDocument(), { timeout: 5000 });
     fireEvent.click(screen.getByRole("button", { name: /open execai/i }));
@@ -70,7 +70,7 @@ describe("AI assistant", () => {
     });
 
     renderWithProviders(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enter dashboard|click to continue/i }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: /open execai/i })).toBeInTheDocument(), { timeout: 5000 });
     fireEvent.click(screen.getByRole("button", { name: /open execai/i }));
@@ -108,7 +108,7 @@ describe("AI assistant", () => {
     });
 
     renderWithProviders(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enter dashboard|click to continue/i }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: /open execai/i })).toBeInTheDocument(), { timeout: 5000 });
     fireEvent.click(screen.getByRole("button", { name: /open execai/i }));
@@ -136,7 +136,7 @@ describe("AI assistant", () => {
     });
 
     renderWithProviders(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enter dashboard|click to continue/i }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: /open execai/i })).toBeInTheDocument(), { timeout: 5000 });
     fireEvent.click(screen.getByRole("button", { name: /open execai/i }));

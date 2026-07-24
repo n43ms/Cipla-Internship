@@ -12,7 +12,7 @@ describe("App shell", () => {
   it("renders the execution governance shell", () => {
     renderWithProviders(<App />);
 
-    expect(screen.getByRole("button", { name: /click to continue/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /enter dashboard|click to continue/i })).toBeInTheDocument();
     expect(screen.getByText("Cipla EMEU/PBP analytics")).toBeInTheDocument();
     expect(screen.getByText(/Doctor ROI and Execution Intelligence/)).toBeInTheDocument();
     expect(screen.getByText("ExecAI")).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe("App shell", () => {
     );
 
     renderWithProviders(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enter dashboard|click to continue/i }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: /upload new data files/i })).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /upload new data files/i }));

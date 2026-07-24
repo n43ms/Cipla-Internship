@@ -7,6 +7,8 @@ import { SidePanel } from "./components/common/SidePanel";
 import { WarningCenterDock, WarningCenterProvider } from "./components/common/WarningCenter";
 import { DataUploadPanel } from "./components/ingestion/DataUploadPanel";
 import { useDashboardMeta } from "./hooks/useDashboardMeta";
+import { apiPost } from "./api/client";
+
 const BudgetUtilization = lazy(() => import("./pages/BudgetUtilization").then((module) => ({ default: module.BudgetUtilization })));
 const DataQuality = lazy(() => import("./pages/DataQuality").then((module) => ({ default: module.DataQuality })));
 const DoctorRoi = lazy(() => import("./pages/DoctorRoi").then((module) => ({ default: module.DoctorRoi })));
@@ -33,7 +35,7 @@ const HEADER_SUBTITLE = "Doctor ROI, execution follow-up, budget governance, ter
 
 export default function App() {
   const [page, setPage] = useState<PageKey>("doctors");
-  const [entered, setEntered] = useState(false);
+  const [entered, setEntered] = useState(() => Boolean(sessionStorage.getItem("cipla_auth_user")));
   const [entryExiting, setEntryExiting] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showAiNotice, setShowAiNotice] = useState(true);
@@ -57,6 +59,45 @@ export default function App() {
     return () => window.removeEventListener("scroll", updateHeaderState);
   }, [entered]);
 
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      const res = await apiPost<{ success: boolean; email: string; isAdmin: boolean }, { email: string; password: string }>(
+        "/api/auth/login",
+        { email: authEmail, password: authPassword }
+      );
+
+      if (res.success) {
+        sessionStorage.setItem("cipla_auth_user", JSON.stringify({ email: res.email, isAdmin: res.isAdmin }));
+        enterApp();
+      } else {
+        setAuthError("401 Unauthorized: Invalid credentials.");
+      }
+    } catch (err: any) {
+      const status = err.status;
+      const message = String(err.message || err.detail || "");
+
+      if (status === 403 || message.includes("403") || message.toLowerCase().includes("domain") || message.toLowerCase().includes("@cipla.com")) {
+        setAuthError("403 Forbidden: Access restricted. Email domain must end with @cipla.com");
+      } else if (status === 401 || message.includes("401") || message.toLowerCase().includes("password")) {
+        setAuthError("401 Unauthorized: Incorrect password. Please verify your passcode.");
+      } else {
+        setAuthError(err.detail || err.message || "Authentication failed. Please check your credentials.");
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+
   function enterApp() {
     if (entryExiting) return;
     setEntryExiting(true);
@@ -64,11 +105,15 @@ export default function App() {
   }
 
   function returnToEntry() {
+    sessionStorage.removeItem("cipla_auth_user");
+    setAuthEmail("");
+    setAuthPassword("");
     setPage("doctors");
     setEntryExiting(false);
     setEntered(false);
     setShowAiNotice(true);
   }
+
 
   function openExecAiFromNotice() {
     setShowAiNotice(false);
@@ -76,8 +121,21 @@ export default function App() {
   }
 
   if (!entered) {
-    return <EntryScreen exiting={entryExiting} onEnter={enterApp} />;
+    return (
+      <EntryScreen
+        exiting={entryExiting}
+        onEnter={enterApp}
+        authEmail={authEmail}
+        setAuthEmail={setAuthEmail}
+        authPassword={authPassword}
+        setAuthPassword={setAuthPassword}
+        authError={authError}
+        authLoading={authLoading}
+        handleLoginSubmit={handleLoginSubmit}
+      />
+    );
   }
+
 
   return (
     <WarningCenterProvider>
@@ -178,7 +236,28 @@ function ExecAiEntryNotice({ onClose, onTry }: { onClose: () => void; onTry: () 
   );
 }
 
-function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => void }) {
+function EntryScreen({
+  exiting,
+  onEnter,
+  authEmail,
+  setAuthEmail,
+  authPassword,
+  setAuthPassword,
+  authError,
+  authLoading,
+  handleLoginSubmit,
+}: {
+  exiting: boolean;
+  onEnter: () => void;
+  authEmail: string;
+  setAuthEmail: (v: string) => void;
+  authPassword: string;
+  setAuthPassword: (v: string) => void;
+  authError: string | null;
+  authLoading: boolean;
+  handleLoginSubmit: (e: React.FormEvent) => void;
+}) {
+
   return (
     <main className={`relative flex min-h-screen overflow-x-hidden bg-[#07090a] text-ink transition-all duration-500 ease-out ${exiting ? "scale-[1.01] opacity-0 blur-sm" : "scale-100 opacity-100 blur-0"}`}>
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(97,199,187,0.12),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.045),transparent_48%)]" />
@@ -226,18 +305,55 @@ function EntryScreen({ exiting, onEnter }: { exiting: boolean; onEnter: () => vo
               detail="Answers business questions about ROI, execution risk, budgets, territories, and data quality using grounded dashboard context."
             />
           </div>
-          <div className="mt-6 flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={onEnter}
-              disabled={exiting}
-              className="group inline-flex items-center gap-3 rounded-lg border border-accent/30 bg-accent/[0.13] px-5 py-3 text-sm font-semibold text-zinc-50 shadow-[0_18px_46px_rgba(97,199,187,0.12)] transition-all duration-500 ease-out hover:-translate-y-0.5 hover:border-accent/55 hover:bg-accent/[0.18] hover:shadow-[0_24px_56px_rgba(97,199,187,0.18)] focus:outline-none focus:ring-2 focus:ring-accent/30 active:translate-y-0"
-            >
-              Click to continue
-              <ArrowRight className="h-4 w-4 transition-transform duration-500 group-hover:translate-x-1" />
-            </button>
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-cyan-200/80">Engineered by Aditya Nema</p>
+          <div className="mt-6 flex flex-col gap-3 max-w-md">
+            <form onSubmit={handleLoginSubmit} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/40 p-3.5 backdrop-blur-md shadow-xl">
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <div className="flex-1">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-cyan-200/80 mb-1">Account Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    placeholder="name@cipla.com"
+                    className="w-full rounded-lg border border-white/15 bg-black/50 px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-cyan-200/80 mb-1">Passcode</label>
+                  <input
+                    type="password"
+                    required
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="Enter passcode"
+                    className="w-full rounded-lg border border-white/15 bg-black/50 px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {authError && (
+                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-300">
+                  {authError}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-xs font-medium uppercase tracking-[0.22em] text-cyan-200/80">Engineered by Aditya Nema</p>
+                <button
+                  type="submit"
+                  disabled={exiting || authLoading}
+                  className="group inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/[0.13] px-4 py-2 text-xs font-semibold text-zinc-50 shadow-[0_18px_46px_rgba(97,199,187,0.12)] transition-all duration-500 ease-out hover:-translate-y-0.5 hover:border-accent/55 hover:bg-accent/[0.18] focus:outline-none disabled:opacity-50"
+                >
+                  {authLoading ? "Authenticating..." : "Enter Dashboard"}
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-500 group-hover:translate-x-1" />
+                </button>
+
+
+              </div>
+            </form>
           </div>
+
         </div>
 
         <aside className="dashboard-card relative overflow-hidden p-4">

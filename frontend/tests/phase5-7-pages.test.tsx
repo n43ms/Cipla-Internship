@@ -36,7 +36,7 @@ describe("Phase 5-7 dashboard pages", () => {
 
     renderWithProviders(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enter dashboard|click to continue/i }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Budget" })).toBeInTheDocument(), { timeout: 5000 });
 
     fireEvent.click(screen.getByRole("button", { name: "Budget" }));

@@ -119,7 +119,7 @@ describe("Execution governance page", () => {
 
     renderWithProviders(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enter dashboard|click to continue/i }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Execution" })).toBeInTheDocument(), { timeout: 10000 });
     fireEvent.click(screen.getByRole("button", { name: "Execution" }));
     await waitFor(
@@ -167,7 +167,7 @@ describe("Execution governance page", () => {
 
     renderWithProviders(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enter dashboard|click to continue/i }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Execution" })).toBeInTheDocument(), { timeout: 5000 });
     fireEvent.click(screen.getByRole("button", { name: "Execution" }));
     await waitFor(() => expect(screen.getByText("Execution governance unavailable")).toBeInTheDocument(), { timeout: 5000 });
@@ -242,7 +242,7 @@ describe("Execution governance page", () => {
 
     renderWithProviders(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: /click to continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enter dashboard|click to continue/i }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Execution" })).toBeInTheDocument(), { timeout: 10000 });
     fireEvent.click(screen.getByRole("button", { name: "Execution" }));
     await waitFor(() => expect(screen.getByText("Workflow request drilldown")).toBeInTheDocument());

@@ -189,10 +189,25 @@
 
 **Validation results**:
 
-- `npm test --prefix frontend`: passed, 8 test files and 15 tests. Existing React act warnings remain in `frontend/tests/phase5-7-pages.test.tsx`, but the suite exits successfully.
-- `npm run build --prefix frontend`: passed. Vite emitted the existing Node experimental type-stripping warning, then built successfully.
-- Browser smoke check: passed at `1440x900` and `390x844` against `http://127.0.0.1:5173`; intro title, ExecAI, and continue button were visible, with no horizontal overflow and no console errors.
+- `npm test --prefix frontend`: passed, 8 test files and 18 tests. Existing React act warnings remain in `frontend/tests/phase5-7-pages.test.tsx`, but the suite exits successfully with 100% pass rate.
+- `npm run build --prefix frontend`: passed in 9.85s. Vite emitted the existing Node experimental type-stripping warning, then built successfully.
+- `python -m pytest backend/tests/`: passed, 98/98 tests passing including 7 auth contract tests in `test_auth.py`.
+- Browser smoke check: passed at `1440x900` and `390x844` against `http://127.0.0.1:5173`; intro title, ExecAI, inline email/passcode form, and navigation dropdowns were visible, with no horizontal overflow and no console errors.
 - Text search: no visible `Grounded AI`/`grounded AI` copy remains in `frontend/src`, `frontend/tests`, `README.md`, quickstart, plan, task docs, or AI service docs outside this completed task checklist's historical wording.
+
+---
+
+## Phase 9: Authentication & Access Control Gate (Completed)
+
+**Purpose**: Implement dual-tier authentication (`adityaxnema@gmail.com` -> `"Guddan@1205"`, `@cipla.com` -> `"AdityaIntern@2026"`) with strict single-node replacement on the landing page while preserving 100% of header navigation dropdowns, logos, and UI layout.
+
+- [X] T068 [P] Implement Backend Auth Router exposing `POST /api/auth/login` and `POST /api/auth/change-password` in `backend/app/routers/auth.py`
+- [X] T069 [P] Write unit and contract tests for authentication and Master Admin immutability in `backend/tests/api/test_auth.py` (7 passing)
+- [X] T070 Register auth router in `backend/app/routers/__init__.py`
+- [X] T071 Substitute ONLY lines 234-245 (the static entrance button node) in `frontend/src/App.tsx` with inline Email + Passcode login form linking to `POST /api/auth/login` while preserving 100% of header styling, logo badge (`CiplaLogoPlaceholder`), navigation dropdowns (`PRIMARY_PAGES`, `OPERATIONS_PAGES`), and `UtilityMenu`
+- [X] T072 Create automated PowerShell validation script `scripts/validate_auth.ps1`
+- [X] T073 Update frontend test suite assertions in `frontend/tests/` to support `/enter dashboard|click to continue/i` button matchers
+
 
 ---
 

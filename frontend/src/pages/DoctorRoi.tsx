@@ -104,16 +104,18 @@ export function DoctorRoi({ onAiContextChange }: { onAiContextChange?: (context:
           }}
         />
         <DoctorRoiCards data={roi.data} />
-        {roi.data.rows.length ? (
+        {roi.data?.rows?.length ? (
           <div className="grid min-w-0 grid-cols-1 items-stretch gap-5 xl:grid-cols-2">
             <DoctorOpportunityChart rows={roi.data.rows} />
-            <QuadrantMatrix counts={roi.data.quadrantCounts} />
+            <QuadrantMatrix counts={roi.data?.quadrantCounts ?? {}} />
             <div className="xl:col-span-2">
               <DoctorRoiTable
                 rows={roi.data.rows}
                 page={page}
-                pageSize={roi.data.pageSize}
-                total={roi.data.total}
+                pageSize={roi.data?.pageSize ?? 50}
+
+                total={roi.data?.total ?? 0}
+
                 sort={sort}
                 isFetching={roi.isFetching}
                 doctorSearch={doctorSearchInput}
