@@ -16,8 +16,11 @@ ADMIN_EMAILS: Set[str] = {
 MASTER_ADMIN_EMAIL = "adityaxnema@gmail.com"
 MASTER_ADMIN_PASSWORD = "Guddan@1205"
 
+import os
+
 # 3. Default & Current Active Shared Password for @cipla.com users
-CURRENT_SHARED_PASSWORD = "AdityaIntern@2026"
+CURRENT_SHARED_PASSWORD = os.getenv("CIPLA_SHARED_PASSCODE", "AdityaIntern@2026")
+
 
 
 class LoginRequest(BaseModel):

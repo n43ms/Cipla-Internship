@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
-import { Activity, ArrowRight, ChevronDown, Code2, DatabaseZap, Info, LogOut, MapPinned, Sparkles, Stethoscope, UploadCloud, WalletCards, X, type LucideIcon } from "lucide-react";
+import { Activity, ArrowRight, ChevronDown, Code2, DatabaseZap, Info, Key, LogOut, MapPinned, Sparkles, Stethoscope, UploadCloud, WalletCards, X, type LucideIcon } from "lucide-react";
 
 import { AiAssistantPanel } from "./components/ai/AiAssistantPanel";
 import { DataFreshnessBanner, KpiCard, LoadingState } from "./components/common/DataStateComponents";
@@ -8,6 +8,8 @@ import { WarningCenterDock, WarningCenterProvider } from "./components/common/Wa
 import { DataUploadPanel } from "./components/ingestion/DataUploadPanel";
 import { useDashboardMeta } from "./hooks/useDashboardMeta";
 import { apiPost } from "./api/client";
+import { AdminPasswordModal } from "./components/AdminPasswordModal";
+
 
 const BudgetUtilization = lazy(() => import("./pages/BudgetUtilization").then((module) => ({ default: module.BudgetUtilization })));
 const DataQuality = lazy(() => import("./pages/DataQuality").then((module) => ({ default: module.DataQuality })));
@@ -38,11 +40,22 @@ export default function App() {
   const [entered, setEntered] = useState(() => Boolean(sessionStorage.getItem("cipla_auth_user")));
   const [entryExiting, setEntryExiting] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [showAiNotice, setShowAiNotice] = useState(true);
   const [aiOpenSignal, setAiOpenSignal] = useState(0);
   const [aiContext, setAiContext] = useState<AiContext>({ pageContext: "doctor_roi", filters: {} });
   const [headerCompact, setHeaderCompact] = useState(false);
   const meta = useDashboardMeta();
+
+  const currentAuthUser = (() => {
+    try {
+      const stored = sessionStorage.getItem("cipla_auth_user");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
+
 
   useEffect(() => {
     if (!entered) {
@@ -183,7 +196,12 @@ export default function App() {
                   <UploadCloud aria-hidden="true" className="h-4 w-4 text-cyan-300" />
                   Upload new data/files
                 </button>
-                <UtilityMenu onAbout={() => setPage("about")} onExit={returnToEntry} />
+                <UtilityMenu
+                  onAbout={() => setPage("about")}
+                  onExit={returnToEntry}
+                  onResetPasscode={() => setAdminModalOpen(true)}
+                  isAdmin={currentAuthUser?.isAdmin}
+                />
               </div>
             </div>
           </div>
@@ -208,6 +226,12 @@ export default function App() {
       <SidePanel open={uploadOpen} onClose={() => setUploadOpen(false)} widthClass="sm:max-w-2xl">
         <DataUploadPanel onClose={() => setUploadOpen(false)} />
       </SidePanel>
+      <AdminPasswordModal
+        isOpen={adminModalOpen}
+        onClose={() => setAdminModalOpen(false)}
+        adminEmail={currentAuthUser?.email || authEmail || "adityaxnema@gmail.com"}
+      />
+
     </WarningCenterProvider>
   );
 }
@@ -466,7 +490,17 @@ function CompactNavDropdown({ title, pages, current, onSelect }: { title: string
   );
 }
 
-function UtilityMenu({ onAbout, onExit }: { onAbout: () => void; onExit: () => void }) {
+function UtilityMenu({
+  onAbout,
+  onExit,
+  onResetPasscode,
+  isAdmin,
+}: {
+  onAbout: () => void;
+  onExit: () => void;
+  onResetPasscode?: () => void;
+  isAdmin?: boolean;
+}) {
   return (
     <details className="group relative z-[80] shrink-0">
       <summary className="soft-button flex cursor-pointer list-none items-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-zinc-200 marker:hidden">
@@ -476,15 +510,34 @@ function UtilityMenu({ onAbout, onExit }: { onAbout: () => void; onExit: () => v
       <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[90] grid min-w-52 gap-1 rounded-xl border border-white/[0.09] bg-[#111315] p-2 shadow-2xl shadow-black/40">
         <button
           type="button"
-          onClick={onAbout}
+          onClick={(e) => {
+            onAbout();
+            e.currentTarget.closest("details")?.removeAttribute("open");
+          }}
           className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-zinc-200 transition-colors duration-200 hover:bg-white/[0.06]"
         >
           <Info className="h-4 w-4 text-cyan-300" aria-hidden="true" />
           About this software
         </button>
+        {isAdmin && onResetPasscode ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              onResetPasscode();
+              e.currentTarget.closest("details")?.removeAttribute("open");
+            }}
+            className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-amber-200 transition-colors duration-200 hover:bg-amber-400/[0.12]"
+          >
+            <Key className="h-4 w-4 text-amber-300" aria-hidden="true" />
+            Reset Admin Passcode
+          </button>
+        ) : null}
         <button
           type="button"
-          onClick={onExit}
+          onClick={(e) => {
+            onExit();
+            e.currentTarget.closest("details")?.removeAttribute("open");
+          }}
           className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-200 transition-colors duration-200 hover:bg-red-400/[0.12]"
         >
           <LogOut className="h-4 w-4 text-red-300" aria-hidden="true" />
@@ -494,6 +547,7 @@ function UtilityMenu({ onAbout, onExit }: { onAbout: () => void; onExit: () => v
     </details>
   );
 }
+
 
 function AboutSoftware() {
   return (
