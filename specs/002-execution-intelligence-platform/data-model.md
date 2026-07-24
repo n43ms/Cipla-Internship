@@ -564,3 +564,44 @@ Redaction policy:
 - replace currency symbols/codes followed by amounts and large standalone amounts with `[AMOUNT]`,
 - replace name-like spans following labels such as `Dr`, `Doctor`, `HCP`, or `Pcode for` with `[NAME]`,
 - never store source row payloads or raw workbook excerpts in AI logs.
+
+---
+
+## Security & Access Gate Entities
+
+### Access Control & Domain Gate Rules
+
+- **Allowed Email Gate**: `@cipla.com` email addresses ONLY, with the single exception of Master Admin `adityaxnema@gmail.com`. All other email domains return `403 Forbidden`.
+- **Master Admin Account**: `adityaxnema@gmail.com`
+  - Fixed, hardcoded password: `"Guddan@1205"`
+  - **Immutability Guarantee**: Cannot be modified, reset, or updated by any user or API call (`POST /api/auth/change-password` explicitly blocks targeting this email).
+- **Cipla Corporate Accounts**: `*@cipla.com`
+  - Default initial shared password: `"AdityaIntern@2026"`
+  - Can be updated by Whitelisted Admins via `POST /api/auth/change-password`.
+- **Designated Admin Whitelist (4 Accounts Only)**:
+  1. `pralhad.gujar@cipla.com`
+  2. `abhijeet.mudila@cipla.com`
+  3. `aditya.emmanual@cipla.com`
+  4. `adityaxnema@gmail.com`
+
+### Authentication Schemas
+
+#### Login Request (`POST /api/auth/login`)
+- `email`: Required string. Must end with `@cipla.com` or match `adityaxnema@gmail.com`.
+- `password`: Required string. Validated against `"Guddan@1205"` for Master Admin or active shared password for `@cipla.com`.
+
+#### Login Response
+- `success`: Boolean (`true` on success).
+- `email`: String (normalized lower-case email).
+- `isAdmin`: Boolean (`true` if email is in the 4 whitelisted admin addresses).
+- `message`: Response status text.
+
+#### Password Change Request (`POST /api/auth/change-password`)
+- `admin_email`: Required string. Must belong to designated admin whitelist.
+- `current_password`: Required string. Validated against current active passcode.
+- `new_password`: Required string (min 6 chars). Updates active passcode for `@cipla.com` users.
+
+#### Frontend UI Invariance Guarantee
+- **Header & Navigation Menus**: `UtilityMenu`, `PRIMARY_PAGES`, `OPERATIONS_PAGES`, `CiplaLogoPlaceholder`, and top navbar structure remain **100% UNTOUCHED and UNCHANGED**. ABSOLUTELY NO menu alterations are allowed on the frontend.
+- **Landing Screen**: ONLY lines 230-238 (the static "Click to continue" button node) are transformed into the inline Email + Passcode login form.
+

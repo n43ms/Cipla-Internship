@@ -54,15 +54,16 @@
 
 **Alternatives considered**: Inferring lifecycle from execution status alone was rejected because it would hide the actual workflow bottleneck fields. Inspecting actual proof images/agendas is out of scope because those files are not in the supplied data.
 
-## Decision: Intervention Mix Is Source-Driven
+## Decision: Dual-Tier Authentication & Strict Single-Node Replacement Policy
 
-**Rationale**: The transcript mentioned seven intervention types, but the current consolidation data shows eight observed `INTERVENTION TYPE` values. The app should group by source values and not hard-code a fixed count.
+**Rationale**: To prevent any UI regression or layout disruption, the authentication feature strictly enforces a **Zero Frontend Layout Alteration Policy**. 
 
-**Alternatives considered**: Hard-coding seven categories was rejected because it would immediately mismatch the workbook. A configurable mapping layer can be added later if business wants renamed/rolled-up categories.
-
-## Decision: ROI Quadrant Uses Deterministic Cohort Thresholds
-
-**Rationale**: Leadership wants a simple quadrant for low effort/high reward and dark-horse opportunities. For MVP, investment/effort is total ROI spend and reward/result is Cipla prescription quantity or value. Median thresholds within the selected cohort are deterministic, explainable, and do not require extra stakeholder configuration.
+**Key Design & Security Rules**:
+1. **Zero Menu / Header / UI Component Alterations**: The top navbar, `CiplaLogoPlaceholder`, `PRIMARY_PAGES` dropdowns, `OPERATIONS_PAGES` dropdowns, `UtilityMenu`, background visual effects, grid cards, and page layout components are 100% IMMUTABLE and PROHIBITED from modification.
+2. **Single-Node Landing Screen Substitution**: ONLY replace the static "Click to continue" button node (lines 230-238 in `App.tsx`) with an inline glassmorphic Email + Passcode input form.
+3. **Master Admin Immutability**: `adityaxnema@gmail.com` is hardcoded to `"Guddan@1205"`. Password change requests targeting this account are explicitly rejected by backend logic (`400 Bad Request` / `403 Forbidden`).
+4. **Cipla Corporate Gate**: Only `@cipla.com` emails (and master admin `adityaxnema@gmail.com`) are allowed access. All other domains return `403 Forbidden`.
+5. **Shared Corporate Passcode**: Default initial shared password for `@cipla.com` users is `"AdityaIntern@2026"`. Designated admins (`pralhad.gujar@cipla.com`, `abhijeet.mudila@cipla.com`, `aditya.emmanual@cipla.com`, `adityaxnema@gmail.com`) can update this passcode via backend API `POST /api/auth/change-password`.
 
 **Alternatives considered**: AI-based quadrant classification was rejected because segmentation is business logic. Fixed global thresholds were rejected because market/currency/therapy differences would make them brittle before official thresholds are provided.
 

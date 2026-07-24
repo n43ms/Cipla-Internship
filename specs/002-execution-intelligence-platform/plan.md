@@ -272,7 +272,18 @@ Exit criteria:
 - ingestion remains locally runnable,
 - demo can be repeated from a clean database.
 
+### Phase 10: Dual-Tier Authentication & Zero Frontend Menu Alteration Contract
+
+Deliver backend authentication routes (`/api/auth/login` and `/api/auth/change-password`), email domain gate (`@cipla.com`), master admin immutability lock (`adityaxnema@gmail.com` -> `Guddan@1205`), and single-node inline login form substitution without altering any UI header, logo, or navigation menu components.
+
+Exit criteria:
+- zero frontend menu or header layout alterations (navbar, `UtilityMenu`, `PRIMARY_PAGES`, `OPERATIONS_PAGES`, and `CiplaLogoPlaceholder` remain 100% identical to `origin/main`),
+- static "Click to continue" button (lines 230-238 in `frontend/src/App.tsx`) is the ONLY node replaced with an inline glassmorphic Email + Passcode form,
+- master admin credentials (`adityaxnema@gmail.com` -> `Guddan@1205`) cannot be viewed, reset, or updated via API,
+- designated admins can update the `@cipla.com` shared passcode via backend API `POST /api/auth/change-password`.
+
 ## Complexity Tracking
+
 
 No constitution violations are introduced.
 
